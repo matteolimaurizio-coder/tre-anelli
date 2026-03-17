@@ -326,7 +326,7 @@ window.G = (function(){
     board={};ALL.forEach(c=>board[c]=0);P1S.forEach(c=>board[c]=1);P2S.forEach(c=>board[c]=2);
     special={};['E5','E6','E14','E15'].forEach(c=>special[c]=true);
     cur=1;sel=null;mode='move';rotN=0;must=null;over=false;anim=false;prvRing=null;lastMove=null;
-    hist=[];navI=-1;notMoves=[];pendingHalf=null;
+    hist=[];navI=-1;notMoves=[];pendingHalf=null;pendingCap=null;
     document.getElementById('wo').style.display='none';
     document.getElementById('rot-hint').textContent='';
     document.getElementById('notation-log').innerHTML='';
@@ -365,8 +365,24 @@ window.G = (function(){
     const pl=mv.player;
     if(mv.type==='move'){
       const isSpec=special[mv.from];
-      if(mv.mid){
-        // capture
+      if(mv.steps&&mv.steps.length){
+        // multi-step capture sequence
+        board[mv.from]=0;
+        let spFrom=isSpec;
+        mv.steps.forEach((s,i)=>{
+          board[s.mid]=0;
+          board[s.to]=pl;
+          if(special[s.mid])delete special[s.mid];
+          // previous landing cell is vacated on next step
+          if(i>0){board[mv.steps[i-1].to]=0;}
+        });
+        if(spFrom){
+          const finalTo=mv.steps[mv.steps.length-1].to;
+          special[finalTo]=true;
+          delete special[mv.from];
+        }
+      } else if(mv.mid){
+        // single capture
         board[mv.from]=0;board[mv.mid]=0;board[mv.to]=pl;
         if(special[mv.mid])delete special[mv.mid];
         if(isSpec){special[mv.to]=true;delete special[mv.from];}
@@ -435,6 +451,22 @@ window.G = (function(){
     chkW();upd();draw();
   }
 
+  // Accumulator for multi-jump captures
+  let pendingCap=null; // {from, steps:[{mid,to},...], isSpecial}
+
+  function startCap(from,mid,to,isSpec){
+    pendingCap={from,steps:[{mid,to}],isSpecial:isSpec};
+  }
+  function addCap(mid,to){
+    pendingCap.steps.push({mid,to});
+  }
+  function commitCap(){
+    const pc=pendingCap;pendingCap=null;
+    const finalTo=pc.steps[pc.steps.length-1].to;
+    const lm={type:'move',from:pc.from,steps:pc.steps,to:finalTo};
+    finishMove(lm);
+  }
+
   cv.addEventListener('click',e=>{
     if(anim||!live())return;
     if(prvRing){clearPreview();return;}
@@ -445,8 +477,9 @@ window.G = (function(){
 
   function clickC(id){
     if(over||anim||!live())return;
-    if(cur!==myPl)return; // not your turn
+    if(cur!==myPl)return;
 
+    // ── MULTI-JUMP continuation ──
     if(must){
       if(board[id]===0){
         const j=cF(board,must,cur).find(j=>j.to===id);
@@ -454,11 +487,12 @@ window.G = (function(){
           const from=must;
           board[must]=0;board[j.mid]=0;board[j.to]=cur;
           if(special[j.mid])delete special[j.mid];
-          if(special[from]){special[j.to]=true;delete special[from];}
-          chkW();if(over){const lm={type:'move',from,mid:j.mid,to:j.to};finishMove(lm);return;}
+          if(pendingCap&&pendingCap.isSpecial){special[j.to]=true;}
+          addCap(j.mid,j.to);
+          chkW();if(over){commitCap();return;}
           const more=cF(board,j.to,cur);
           if(more.length){must=j.to;sel=j.to;log('→'+j.to+'. Continua!');upd();draw();return;}
-          const lm={type:'move',from,mid:j.mid,to:j.to};must=null;sel=null;log('Cattura →'+j.to+'.');finishMove(lm);return;
+          must=null;sel=null;log('Cattura →'+j.to+'.');commitCap();return;
         }
       }
       sel=must;draw();return;
@@ -470,36 +504,41 @@ window.G = (function(){
 
     const normCap=hasNormalCap(cur),specCap=hasSpecialCap(cur),anyCap=normCap||specCap,isSpecial=special[sel];
 
-    // Normal capture
+    // ── NORMAL CAPTURE ──
     const j=cF(board,sel,cur).find(j=>j.to===id);
     if(j){
       const from=sel;
       board[sel]=0;board[j.mid]=0;board[j.to]=cur;
       if(special[j.mid])delete special[j.mid];
       if(isSpecial){special[j.to]=true;delete special[from];}
-      chkW();if(over){const lm={type:'move',from,mid:j.mid,to:j.to};finishMove(lm);return;}
-      if(!isSpecial){const more=cF(board,j.to,cur);if(more.length){must=j.to;sel=j.to;log('Cattura →'+j.to+'. Continua!');upd();draw();return;}}
-      const lm={type:'move',from,mid:j.mid,to:j.to};must=null;sel=null;log('Cattura: '+from+'→'+id+'.');finishMove(lm);return;
+      startCap(from,j.mid,j.to,isSpecial);
+      chkW();if(over){commitCap();return;}
+      if(!isSpecial){
+        const more=cF(board,j.to,cur);
+        if(more.length){must=j.to;sel=j.to;log('Cattura →'+j.to+'. Continua!');upd();draw();return;}
+      }
+      must=null;sel=null;log('Cattura: '+from+'→'+id+'.');commitCap();return;
     }
 
-    // Special horizontal capture
+    // ── SPECIAL HORIZONTAL CAPTURE ──
     if(isSpecial){
       const sc=specialMoves(board,sel,cur),cap=sc.caps.find(c=>c.to===id);
       if(cap){
         const from=sel;captureSpecial(from,cap.mid,cap.to);
-        chkW();if(over){const lm={type:'move',from,mid:cap.mid,to:cap.to};finishMove(lm);return;}
-        const lm={type:'move',from,mid:cap.mid,to:cap.to};must=null;sel=null;log('Cattura speciale: '+from+'→'+id+'.');finishMove(lm);return;
+        startCap(from,cap.mid,cap.to,true);
+        chkW();if(over){commitCap();return;}
+        must=null;sel=null;log('Cattura speciale: '+from+'→'+id+'.');commitCap();return;
       }
     }
 
-    // Normal move
+    // ── NORMAL MOVE ──
     if((ADJ[sel]||[]).includes(id)&&board[id]===0){
       if(anyCap){log('Cattura obbligatoria!');return;}
       if(isSpecial){moveSpecial(sel,id);}else{board[id]=cur;board[sel]=0;}
       const lm={type:'move',from:sel,to:id};log('Mossa: '+sel+'→'+id+'.');sel=null;finishMove(lm);return;
     }
 
-    // Special horizontal move
+    // ── SPECIAL HORIZONTAL MOVE ──
     if(isSpecial&&board[id]===0&&rowOf(id)===rowOf(sel)&&rowOf(sel)!==-1){
       if(anyCap){log('Cattura obbligatoria!');return;}
       const sc=specialMoves(board,sel,cur);
