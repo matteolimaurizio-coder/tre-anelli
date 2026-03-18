@@ -7,25 +7,27 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:sans-serif;background:#f5f5f0;min-height:100vh;padding:12px;}
-#lobby{text-align:center;padding:40px 20px;}
+/* LOBBY */
+#lobby{text-align:center;padding:30px 20px;}
 #lobby h1{font-size:26px;font-weight:600;margin-bottom:6px;color:#222;}
-#lobby p{font-size:13px;color:#888;margin-bottom:28px;}
-#lobby h2{font-size:16px;font-weight:500;margin-bottom:14px;color:#444;}
-.btns{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:20px;}
-.btns button{font-size:13px;padding:12px 22px;cursor:pointer;border-radius:10px;border:1px solid #ccc;background:#fff;line-height:1.8;}
+#lobby>p{font-size:13px;color:#888;margin-bottom:24px;}
+.section-title{font-size:15px;font-weight:500;color:#444;margin:18px 0 10px;}
+.btns{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+.btns button{font-size:13px;padding:10px 18px;cursor:pointer;border-radius:10px;border:1px solid #ccc;background:#fff;line-height:1.8;}
 .btns button:hover{background:#f0f0f0;}
-#join-box{display:none;margin-top:16px;}
-#join-box input{font-size:18px;padding:8px 14px;border-radius:8px;border:1px solid #ccc;width:120px;text-align:center;text-transform:uppercase;letter-spacing:4px;margin-right:8px;}
-#join-box button{font-size:13px;padding:9px 18px;cursor:pointer;border-radius:8px;border:1px solid #ccc;background:#fff;}
-#waiting{display:none;text-align:center;padding:20px;}
-#waiting .code{font-size:36px;font-weight:700;letter-spacing:8px;color:#c04828;margin:16px 0;}
-#waiting p{font-size:13px;color:#888;}
-#lobby-status{font-size:13px;color:#e85d24;margin-top:10px;min-height:18px;}
+#join-box{display:none;margin-top:12px;}
+#join-box input{font-size:18px;padding:7px 12px;border-radius:8px;border:1px solid #ccc;width:110px;text-align:center;text-transform:uppercase;letter-spacing:4px;margin-right:8px;}
+#join-box button{font-size:13px;padding:8px 16px;cursor:pointer;border-radius:8px;border:1px solid #ccc;background:#fff;}
+#waiting{display:none;text-align:center;padding:16px;}
+#waiting .code{font-size:36px;font-weight:700;letter-spacing:8px;color:#c04828;margin:12px 0;}
+#lobby-status{font-size:13px;color:#e85d24;margin-top:8px;min-height:18px;}
+.divider{border:none;border-top:1px solid #e0e0e0;margin:20px auto;width:80%;}
+/* GAME */
 #game{display:none;}
 #sb{font-size:13px;color:#666;text-align:center;padding:7px 12px;border-radius:9px;background:#ececec;margin-bottom:8px;}
 #tl{font-size:16px;font-weight:600;color:#222;margin-bottom:2px;}
 #al{font-size:12px;color:#888;min-height:16px;}
-#online-bar{font-size:11px;color:#888;text-align:center;margin-bottom:4px;}
+#mode-label{font-size:11px;color:#aaa;text-align:center;margin-bottom:4px;}
 #bw{display:flex;justify-content:center;position:relative;}
 #wo{display:none;position:absolute;inset:0;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;border-radius:12px;flex-direction:column;z-index:10;}
 #wbox{background:#fff;border-radius:13px;padding:24px 32px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.18);}
@@ -62,28 +64,36 @@ body{font-family:sans-serif;background:#f5f5f0;min-height:100vh;padding:12px;}
 <div id="lobby">
   <h1>Tre Anelli</h1>
   <p>Anello interno fisso — pezzi catturati eliminati</p>
-  <h2>Gioca online con un amico</h2>
+
+  <div class="section-title">🌐 Gioca online con un amico</div>
   <div class="btns">
-    <button onclick="createGame()">🔴 Crea partita<br><small style="font-size:11px;color:#888;">ottieni un codice da condividere</small></button>
-    <button onclick="showJoin()">🔵 Unisciti<br><small style="font-size:11px;color:#888;">inserisci il codice dell'amico</small></button>
+    <button onclick="createGame()">🔴 Crea partita<br><small style="font-size:11px;color:#888;">ottieni un codice</small></button>
+    <button onclick="showJoin()">🔵 Unisciti<br><small style="font-size:11px;color:#888;">inserisci il codice</small></button>
   </div>
   <div id="join-box">
     <input id="join-code" maxlength="4" placeholder="XXXX" oninput="this.value=this.value.toUpperCase()">
     <button onclick="joinGame()">Entra</button>
   </div>
-  <div id="lobby-status"></div>
-
-  <!-- Waiting screen (inside lobby) -->
   <div id="waiting">
     <p>Condividi questo codice con il tuo avversario:</p>
     <div class="code" id="game-code"></div>
     <p style="color:#888;font-size:12px;">In attesa che l'avversario si connetta…</p>
   </div>
+  <div id="lobby-status"></div>
+
+  <hr class="divider">
+
+  <div class="section-title">👥 Gioca in locale</div>
+  <div class="btns">
+    <button onclick="startLocal('2p')">👥 Due giocatori<br><small style="font-size:11px;color:#888;">stesso schermo</small></button>
+    <button onclick="startLocal('ai1')">🔴 vs IA<br><small style="font-size:11px;color:#888;">gioco come P1</small></button>
+    <button onclick="startLocal('ai2')">🔵 vs IA<br><small style="font-size:11px;color:#888;">gioco come P2</small></button>
+  </div>
 </div>
 
 <!-- GAME -->
 <div id="game">
-  <div id="online-bar"></div>
+  <div id="mode-label"></div>
   <div id="sb">
     <div id="tl">Turno: P1 (rosso)</div>
     <div id="al">Seleziona una pedina.</div>
@@ -94,12 +104,14 @@ body{font-family:sans-serif;background:#f5f5f0;min-height:100vh;padding:12px;}
       <div id="wbox">
         <h2 id="wt"></h2><p id="wr"></p>
         <button onclick="G.seeBoard()">Vedi posizione finale</button>
-        <button onclick="location.reload()">Menu</button>
+        <button onclick="G.restart()" id="btn-restart">Rivincita</button>
+        <button onclick="goMenu()">Menu</button>
       </div>
     </div>
   </div>
   <div id="controls">
-    <button onclick="location.reload()">Menu</button>
+    <button onclick="G.restart()" id="btn-restart2">Ricomincia</button>
+    <button onclick="goMenu()">Menu</button>
   </div>
   <div id="rot-controls">
     <button id="btn-M" onmouseenter="G.previewRot('M')" onmouseleave="G.clearPreview()" onclick="G.rot('M')">↺ Medio</button>
@@ -128,7 +140,6 @@ body{font-family:sans-serif;background:#f5f5f0;min-height:100vh;padding:12px;}
   </div>
 </div>
 
-<!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, set, get, onValue, push as fbPush } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
@@ -142,117 +153,99 @@ const firebaseConfig = {
   messagingSenderId: "873864785531",
   appId: "1:873864785531:web:fe6b728fb97fe381b73cde"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-let myPlayer = 1; // 1=rosso, 2=blu
-let gameCode = null;
-let lastProcessedMove = -1;
-let movesRef = null;
+let gameCode=null, movesRef=null, lastProcessedMove=-1;
 
-// Generate 4-letter code
 function genCode(){
-  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ';
-  return Array.from({length:4},()=>chars[Math.floor(Math.random()*chars.length)]).join('');
+  const c='ABCDEFGHJKLMNPQRSTUVWXYZ';
+  return Array.from({length:4},()=>c[Math.floor(Math.random()*c.length)]).join('');
 }
 
 window.createGame = async function(){
-  const code = genCode();
-  gameCode = code;
-  myPlayer = 1;
-  // Write game to Firebase
-  await set(ref(db, 'games/'+code), {
-    status: 'waiting',
-    created: Date.now(),
-    moves: []
-  });
-  document.getElementById('game-code').textContent = code;
-  document.getElementById('waiting').style.display = 'block';
-  document.getElementById('lobby-status').textContent = '';
-  // Listen for player 2 joining
-  onValue(ref(db, 'games/'+code+'/status'), snap => {
-    if(snap.val() === 'playing'){
-      startOnlineGame(code, 1);
-    }
+  const code=genCode(); gameCode=code;
+  await set(ref(db,'games/'+code),{status:'waiting',created:Date.now(),moves:[]});
+  document.getElementById('game-code').textContent=code;
+  document.getElementById('waiting').style.display='block';
+  document.getElementById('lobby-status').textContent='';
+  onValue(ref(db,'games/'+code+'/status'),snap=>{
+    if(snap.val()==='playing') startOnline(code,1);
   });
 };
 
 window.showJoin = function(){
-  document.getElementById('join-box').style.display = 'block';
+  document.getElementById('join-box').style.display='block';
   document.getElementById('join-code').focus();
 };
 
 window.joinGame = async function(){
-  const code = document.getElementById('join-code').value.trim().toUpperCase();
-  if(code.length !== 4){
-    document.getElementById('lobby-status').textContent = 'Inserisci un codice di 4 lettere.';
-    return;
-  }
-  const snap = await get(ref(db, 'games/'+code));
-  if(!snap.exists()){
-    document.getElementById('lobby-status').textContent = 'Codice non trovato. Ricontrolla.';
-    return;
-  }
-  if(snap.val().status !== 'waiting'){
-    document.getElementById('lobby-status').textContent = 'Partita già iniziata o non disponibile.';
-    return;
-  }
-  gameCode = code;
-  myPlayer = 2;
-  await set(ref(db, 'games/'+code+'/status'), 'playing');
-  startOnlineGame(code, 2);
+  const code=document.getElementById('join-code').value.trim().toUpperCase();
+  if(code.length!==4){document.getElementById('lobby-status').textContent='Inserisci 4 lettere.';return;}
+  const snap=await get(ref(db,'games/'+code));
+  if(!snap.exists()){document.getElementById('lobby-status').textContent='Codice non trovato.';return;}
+  if(snap.val().status!=='waiting'){document.getElementById('lobby-status').textContent='Partita non disponibile.';return;}
+  gameCode=code;
+  await set(ref(db,'games/'+code+'/status'),'playing');
+  startOnline(code,2);
 };
 
-function startOnlineGame(code, player){
-  document.getElementById('lobby').style.display = 'none';
-  document.getElementById('game').style.display = 'block';
-  myPlayer = player;
-  lastProcessedMove = -1;
-  movesRef = ref(db, 'games/'+code+'/moves');
-
-  const bar = document.getElementById('online-bar');
-  bar.textContent = 'Partita: '+code+' — Sei il Giocatore '+(player===1?'1 🔴':'2 🔵');
-
-  G.initOnline(player);
-
-  // Listen for new moves
-  onValue(movesRef, snap => {
-    const moves = snap.val();
-    if(!moves) return;
-    const arr = Array.isArray(moves) ? moves : Object.values(moves);
-    // Process any new moves made by the opponent
-    arr.forEach((mv, idx) => {
-      if(idx > lastProcessedMove){
-        lastProcessedMove = idx;
-        // Only apply if it's not our own move
-        if(mv.player !== myPlayer){
-          G.applyRemoteMove(mv);
-        }
+function startOnline(code,player){
+  document.getElementById('lobby').style.display='none';
+  document.getElementById('game').style.display='block';
+  document.getElementById('mode-label').textContent='🌐 Online — Partita: '+code+' — Sei P'+(player===1?'1 🔴':'2 🔵');
+  document.getElementById('btn-restart').style.display='none';
+  document.getElementById('btn-restart2').style.display='none';
+  lastProcessedMove=-1;
+  movesRef=ref(db,'games/'+code+'/moves');
+  G.init('online',player);
+  onValue(movesRef,snap=>{
+    const moves=snap.val();if(!moves)return;
+    const arr=Array.isArray(moves)?moves:Object.values(moves);
+    arr.forEach((mv,idx)=>{
+      if(idx>lastProcessedMove){
+        lastProcessedMove=idx;
+        if(mv.player!==player) G.applyRemote(mv);
       }
     });
   });
 }
 
-// Called by game when human makes a move — send to Firebase
 window.sendMove = function(mv){
-  mv.player = myPlayer;
-  mv.ts = Date.now();
-  fbPush(movesRef, mv);
+  if(movesRef) fbPush(movesRef,mv);
 };
 
-window.myPlayerNum = () => myPlayer;
+window.startLocal = function(mode){
+  document.getElementById('lobby').style.display='none';
+  document.getElementById('game').style.display='block';
+  const labels={'2p':'👥 Due giocatori','ai1':'🤖 vs IA (sei P1 🔴)','ai2':'🤖 vs IA (sei P2 🔵)'};
+  document.getElementById('mode-label').textContent=labels[mode];
+  document.getElementById('btn-restart').style.display='';
+  document.getElementById('btn-restart2').style.display='';
+  G.init(mode,0);
+};
+
+window.goMenu = function(){
+  document.getElementById('game').style.display='none';
+  document.getElementById('lobby').style.display='block';
+  document.getElementById('waiting').style.display='none';
+  document.getElementById('join-box').style.display='none';
+  document.getElementById('lobby-status').textContent='';
+  movesRef=null;
+};
 
 // ── GAME ENGINE ──
 window.G = (function(){
   const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
   const W=540,H=540,CX=270,CY=270,RE=210,RM=130,RI=58;
+
   function cA(ring,n){const step=ring==='E'?20:ring==='M'?30:60;let d=180-(n-1)*step;while(d<0)d+=360;return d*Math.PI/180;}
   function nP(id){if(id==='C')return[CX,CY];const r=id[0],n=parseInt(id.slice(1)),rr=r==='E'?RE:r==='M'?RM:RI;return[CX+rr*Math.cos(cA(r,n)),CY+rr*Math.sin(cA(r,n))];}
   function aD(id){const r=id[0],n=parseInt(id.slice(1)),step=r==='E'?20:r==='M'?30:60;let d=180-(n-1)*step;while(d<0)d+=360;return d;}
   const S20=Math.sin(20*Math.PI/180),RY=[CY+RE*S20,CY,CY-RE*S20];
   const RL=['E2','M2','I2','I3','M6','E9'],RE_=['E1','M1','I1','C','I4','M7','E10'],RH=['E18','M12','I6','I5','M8','E11'];
   function pos(id){const[nx,ny]=nP(id);if(RL.includes(id))return[nx,RY[0]];if(RE_.includes(id))return[nx,RY[1]];if(RH.includes(id))return[nx,RY[2]];return[nx,ny];}
+
   const ADJ={};
   function ae(a,b){if(!ADJ[a])ADJ[a]=[];if(!ADJ[b])ADJ[b]=[];if(!ADJ[a].includes(b))ADJ[a].push(b);if(!ADJ[b].includes(a))ADJ[b].push(a);}
   for(let i=1;i<=18;i++)ae('E'+i,'E'+(i===18?1:i+1));
@@ -262,37 +255,35 @@ window.G = (function(){
   ae('E1','M1');ae('M1','I1');ae('I1','C');ae('C','I4');ae('I4','M7');ae('M7','E10');
   ae('E2','M2');ae('M2','I2');ae('I2','I3');ae('I3','M6');ae('M6','E9');
   ae('E18','M12');ae('M12','I6');ae('I6','I5');ae('I5','M8');ae('M8','E11');
+
   const WIN=['I1','I3','I5'];
   const P1S=['E3','E4','E5','E6','E7','E8','M3','M4','M5'];
   const P2S=['E12','E13','E14','E15','E16','E17','M9','M10','M11'];
   const ALL=[...Array.from({length:18},(_,i)=>'E'+(i+1)),...Array.from({length:12},(_,i)=>'M'+(i+1)),...Array.from({length:6},(_,i)=>'I'+(i+1)),'C'];
+
   let special={};
   const ROWS=[['E18','M12','I6','I5','M8','E11'],['E1','M1','I1','C','I4','M7','E10'],['E2','M2','I2','I3','M6','E9']];
   function rowOf(id){return ROWS.findIndex(r=>r.includes(id));}
-  function rowNeighbors(id){const ri=rowOf(id);if(ri===-1)return[];return ROWS[ri];}
-  function specialMoves(b,from,pl){
-    const en=pl===1?2:1,row=rowNeighbors(from);
-    if(!row.length)return{moves:[],caps:[]};
+  function rowN(id){const ri=rowOf(id);return ri===-1?[]:ROWS[ri];}
+  function spMoves(b,from,pl){
+    const en=pl===1?2:1,row=rowN(from);if(!row.length)return{moves:[],caps:[]};
     const idx=row.indexOf(from),moves=[],caps=[];
-    for(const dir of[-1,1]){
-      let i=idx+dir;
-      while(i>=0&&i<row.length){
-        const cell=row[i];
-        if(b[cell]===0){moves.push(cell);}
-        else if(b[cell]===en){const j=i+dir;if(j>=0&&j<row.length&&b[row[j]]===0)caps.push({mid:cell,to:row[j]});break;}
-        else{break;}
-        i+=dir;
-      }
-    }
+    for(const dir of[-1,1]){let i=idx+dir;while(i>=0&&i<row.length){const cell=row[i];if(b[cell]===0){moves.push(cell);}else if(b[cell]===en){const j=i+dir;if(j>=0&&j<row.length&&b[row[j]]===0)caps.push({mid:cell,to:row[j]});break;}else{break;}i+=dir;}}
     return{moves,caps};
   }
 
-  let board,cur,sel,mode,rotN,must,over,anim,prvRing,lastMove,hist,navI,myPl;
-  let notMoves=[],pendingHalf=null;
+  // Game state
+  let board,cur,sel,mode,rotN,must,over,anim,prvRing,lastMove,hist,navI;
+  let notMoves=[],pendingHalf=null,pendingCap=null;
+  let gameMode,myPl; // gameMode: 'online','2p','ai1','ai2'
 
+  // Notation
   function notStr(lm){
     if(!lm)return'?';
-    if(lm.type==='move'){if(lm.captured&&lm.captured.length){let s=lm.from;lm.steps.forEach(st=>s+='×'+st.mid+'>'+st.to);return s;}return lm.from+'-'+lm.to;}
+    if(lm.type==='move'){
+      if(lm.steps&&lm.steps.length){let s=lm.from;lm.steps.forEach(st=>s+='×'+st.mid+'>'+st.to);return s;}
+      return lm.from+'-'+lm.to;
+    }
     if(lm.type==='rot')return'r'+lm.ring+(lm.steps>1?lm.steps:'');
     return'?';
   }
@@ -303,26 +294,26 @@ window.G = (function(){
     renderNotation();
   }
   function renderNotation(){
-    const el=document.getElementById('notation-log');
-    let html='';
-    notMoves.forEach((m,i)=>{const isCur=(i===notMoves.length-1);html+=`<span>${m.num}. </span><span class="p1${isCur?' cur':''}">${m.p1}</span>  <span class="p2${isCur?' cur':''}">${m.p2}</span>\n`;});
+    const el=document.getElementById('notation-log');let html='';
+    notMoves.forEach((m,i)=>{const isCur=(i===notMoves.length-1);html+=`<span>${m.num}. </span><span class="p1${isCur?' cur':''}">${m.p1}</span>  <span class="p2${isCur?' cur':''}">${m.p2||'…'}</span>\n`;});
     if(pendingHalf){html+=`<span>${notMoves.length+1}. </span><span class="p1 cur">${pendingHalf}</span>  …\n`;}
     el.innerHTML=html;el.scrollTop=el.scrollHeight;
   }
   function copyNotation(){
     const date=new Date().toLocaleDateString('it-IT');
-    let txt=`[Online]\n[${date}]\n\n`;
+    const modeStr={'online':'Online','2p':'P1: umano  P2: umano','ai1':'P1: umano  P2: IA','ai2':'P1: IA  P2: umano'}[gameMode]||'';
+    let txt=`[${modeStr}]\n[${date}]\n\n`;
     notMoves.forEach(m=>{txt+=m.num+'. '+m.p1+'  '+(m.p2||'…')+'\n';});
     if(pendingHalf)txt+=(notMoves.length+1)+'. '+pendingHalf+'  …\n';
     navigator.clipboard.writeText(txt).then(()=>{const btn=document.querySelector('#notation-head button');const orig=btn.textContent;btn.textContent='✓ Copiato!';setTimeout(()=>btn.textContent=orig,1500);}).catch(()=>alert(txt));
   }
 
   function sn(){return{b:Object.assign({},board),cur,rotN,lm:lastMove?{...lastMove}:null,sp:Object.assign({},special)};}
-  function push(lm,player){if(lm&&player)pushNotation(lm,player);hist.push(sn());navI=-1;nUpd();}
+  function pushH(lm,player){if(lm&&player)pushNotation(lm,player);hist.push(sn());navI=-1;nUpd();}
   function live(){return navI===-1;}
 
-  function initOnline(player){
-    myPl=player;
+  function init(mode,player){
+    gameMode=mode;myPl=player;
     board={};ALL.forEach(c=>board[c]=0);P1S.forEach(c=>board[c]=1);P2S.forEach(c=>board[c]=2);
     special={};['E5','E6','E14','E15'].forEach(c=>special[c]=true);
     cur=1;sel=null;mode='move';rotN=0;must=null;over=false;anim=false;prvRing=null;lastMove=null;
@@ -331,10 +322,16 @@ window.G = (function(){
     document.getElementById('rot-hint').textContent='';
     document.getElementById('notation-log').innerHTML='';
     hist.push(sn());nUpd();upd();draw();
+    if(gameMode==='ai2') setTimeout(aiTurn,800);
   }
 
+  function restart(){
+    if(gameMode==='online')return;
+    init(gameMode,myPl);
+  }
   function seeBoard(){document.getElementById('wo').style.display='none';}
 
+  // Navigation
   function navTo(i){const s=hist[i];if(!s)return;navI=i;board=Object.assign({},s.b);lastMove=s.lm?{...s.lm}:null;special=Object.assign({},s.sp||{});nUpd();upd();draw();}
   function navFirst(){navTo(0);}
   function navPrev(){const i=navI===-1?hist.length-2:navI-1;if(i>=0)navTo(i);}
@@ -356,67 +353,132 @@ window.G = (function(){
     for(const mid of(ADJ[from]||[])){if(b[mid]!==en)continue;for(const to of(ADJ[mid]||[])){if(b[to]===0&&to!==from)res.push({mid,to});}}
     return res;
   }
-
   function hasNormalCap(pl){return ALL.some(c=>board[c]===pl&&cF(board,c,pl).length>0);}
-  function hasSpecialCap(pl){return ALL.some(c=>board[c]===pl&&special[c]&&specialMoves(board,c,pl).caps.length>0);}
+  function hasSpecialCap(pl){return ALL.some(c=>board[c]===pl&&special[c]&&spMoves(board,c,pl).caps.length>0);}
 
-  // Apply a move object to board state (used for both local and remote moves)
-  function applyMoveObj(mv){
-    const pl=mv.player;
+  // Is current player human?
+  function isHuman(){
+    if(gameMode==='2p')return true;
+    if(gameMode==='online')return cur===myPl;
+    if(gameMode==='ai1')return cur===1;
+    if(gameMode==='ai2')return cur===2;
+    return true;
+  }
+
+  // ── AI ──
+  function cS(b,from,pl){
+    const seqs=[];
+    function dfs(bd,at,steps,used){
+      const js=cF(bd,at,pl).filter(j=>!used.includes(j.mid));
+      if(!js.length){if(steps.length)seqs.push({origin:from,steps:[...steps],captured:[...used]});return;}
+      for(const j of js){const nb=Object.assign({},bd);nb[at]=0;nb[j.mid]=0;nb[j.to]=pl;dfs(nb,j.to,[...steps,{from:at,mid:j.mid,to:j.to}],[...used,j.mid]);}
+    }
+    dfs(b,from,[],[]);return seqs;
+  }
+  function gM(b,rN,pl){
+    const all=[];for(const c of ALL){if(b[c]!==pl)continue;all.push(...cS(b,c,pl));}
+    if(all.length)return all.map(s=>({type:'capseq',seq:s}));
+    const mv=[];
+    for(const c of ALL){if(b[c]!==pl)continue;for(const to of(ADJ[c]||[])){if(b[to]===0)mv.push({type:'move',from:c,to});}}
+    ['M','E'].forEach(r=>{if(rC(r).some(c=>b[c]===pl))mv.push({type:'rot',ring:r});});
+    return mv;
+  }
+  function aM(b,rN,m,pl){
+    const nb=Object.assign({},b);let nrN=rN;
+    if(m.type==='move'){nb[m.to]=pl;nb[m.from]=0;}
+    else if(m.type==='capseq'){nb[m.seq.origin]=0;for(const s of m.seq.steps){nb[s.mid]=0;nb[s.to]=pl;}}
+    else if(m.type==='rot'){const st=(rN%3)+1;nrN=rN+1;const cells=rC(m.ring),n=cells.length,sp={};cells.forEach(c=>sp[c]=nb[c]);for(let i=0;i<n;i++)nb[cells[i]]=sp[cells[(i-st+n)%n]];}
+    return{board:nb,rotN:nrN};
+  }
+  function term(b,pl){
+    const en=pl===1?2:1;
+    if(WIN.every(c=>b[c]===pl))return 100000;if(WIN.every(c=>b[c]===en))return -100000;
+    if(ALL.every(c=>b[c]!==pl))return -100000;if(ALL.every(c=>b[c]!==en))return 100000;return null;
+  }
+  function eval_(b,pl){
+    const t=term(b,pl);if(t!==null)return t;
+    const en=pl===1?2:1;let sc=0;
+    sc+=(cnt(b,pl)-cnt(b,en))*40;
+    const mW=WIN.filter(c=>b[c]===pl).length,eW=WIN.filter(c=>b[c]===en).length;
+    sc+=mW*300+mW*mW*300-eW*300-eW*eW*300;
+    WIN.forEach(w=>{if(b[w]===0)for(const n of(ADJ[w]||[])){if(b[n]===pl)sc+=60;else if(b[n]===en)sc-=60;}});
+    for(let i=1;i<=6;i++){const c='I'+i;if(b[c]===pl)sc+=50;else if(b[c]===en)sc-=50;}
+    for(let i=1;i<=12;i++){const c='M'+i;if(b[c]===pl)sc+=15;else if(b[c]===en)sc-=15;}
+    for(const c of ALL){if(b[c]!==pl)continue;if(cF(b,c,en).length>0)sc-=35;if(cF(b,c,pl).length>0)sc+=22;}
+    return sc;
+  }
+  function mm(b,rN,d,al,be,mx,ap){
+    const t=term(b,ap);if(t!==null)return t+(mx?d*8:-d*8);if(d===0)return eval_(b,ap);
+    const pl=mx?ap:(ap===1?2:1),mv=gM(b,rN,pl);if(!mv.length)return eval_(b,ap);
+    mv.sort((a,b)=>a.type==='capseq'?-1:b.type==='capseq'?1:0);
+    if(mx){let best=-Infinity;for(const m of mv){const s=aM(b,rN,m,pl);best=Math.max(best,mm(s.board,s.rotN,d-1,al,be,false,ap));al=Math.max(al,best);if(be<=al)break;}return best;}
+    else{let best=Infinity;for(const m of mv){const s=aM(b,rN,m,pl);best=Math.min(best,mm(s.board,s.rotN,d-1,al,be,true,ap));be=Math.min(be,best);if(be<=al)break;}return best;}
+  }
+  function aiTurn(){
+    if(over||isHuman())return;
+    const ap=cur,mv=gM(board,rotN,ap);
+    if(!mv.length){endT();return;}
+    mv.sort((a,b)=>a.type==='capseq'?-1:b.type==='capseq'?1:0);
+    let best=-Infinity,bm=null;
+    for(const m of mv){const s=aM(board,rotN,m,ap);const v=mm(s.board,s.rotN,4,-Infinity,Infinity,false,ap)+(Math.random()*0.3);if(v>best){best=v;bm=m;}}
+    const m=bm,pl=ap;
+    if(m.type==='move'){
+      lastMove={type:'move',from:m.from,to:m.to};
+      board[m.to]=pl;board[m.from]=0;
+      log('IA: '+m.from+'→'+m.to+'.');pushH(lastMove,pl);chkW();if(!over)endT();
+    } else if(m.type==='capseq'){
+      const steps=m.seq.steps;
+      lastMove={type:'move',from:m.seq.origin,steps,to:steps[steps.length-1].to};
+      board[m.seq.origin]=0;for(const s of steps){board[s.mid]=0;board[s.to]=pl;}
+      log('IA cattura '+m.seq.captured.length+' pedina/e.');pushH(lastMove,pl);chkW();if(!over)endT();
+    } else if(m.type==='rot'){
+      const st=(rotN%3)+1;lastMove={type:'rot',ring:m.ring,steps:st};
+      animR(m.ring,st,()=>{
+        const cells=rC(m.ring),n=cells.length,sp={},spOld=Object.assign({},special);
+        cells.forEach(c=>sp[c]=board[c]);for(let i=0;i<n;i++)board[cells[i]]=sp[cells[(i-st+n)%n]];
+        cells.forEach(c=>{if(special[c])delete special[c];});
+        cells.forEach((c,i)=>{if(spOld[c])special[cells[(i+st)%n]]=true;});
+        rotN++;log('IA ruota '+{M:'medio',E:'esterno'}[m.ring]+'.');pushH(lastMove,pl);chkW();if(!over)endT();
+      });
+    }
+  }
+
+  // Apply move from Firebase (online mode)
+  function applyRemote(mv){
+    if(over)return;
+    const pl=mv.player,isSpec=special[mv.from];
     if(mv.type==='move'){
-      const isSpec=special[mv.from];
       if(mv.steps&&mv.steps.length){
-        // multi-step capture sequence
         board[mv.from]=0;
-        let spFrom=isSpec;
         mv.steps.forEach((s,i)=>{
-          board[s.mid]=0;
-          board[s.to]=pl;
+          if(i>0)board[mv.steps[i-1].to]=0;
+          board[s.mid]=0;board[s.to]=pl;
           if(special[s.mid])delete special[s.mid];
-          // previous landing cell is vacated on next step
-          if(i>0){board[mv.steps[i-1].to]=0;}
         });
-        if(spFrom){
-          const finalTo=mv.steps[mv.steps.length-1].to;
-          special[finalTo]=true;
-          delete special[mv.from];
-        }
+        if(isSpec){special[mv.steps[mv.steps.length-1].to]=true;delete special[mv.from];}
       } else if(mv.mid){
-        // single capture
         board[mv.from]=0;board[mv.mid]=0;board[mv.to]=pl;
         if(special[mv.mid])delete special[mv.mid];
         if(isSpec){special[mv.to]=true;delete special[mv.from];}
       } else {
-        // simple move
         board[mv.to]=pl;board[mv.from]=0;
         if(isSpec){special[mv.to]=true;delete special[mv.from];}
       }
       lastMove={type:'move',from:mv.from,to:mv.to};
     } else if(mv.type==='rot'){
       const cells=rC(mv.ring),n=cells.length,sp={},spOld=Object.assign({},special);
-      cells.forEach(c=>sp[c]=board[c]);
-      for(let i=0;i<n;i++)board[cells[i]]=sp[cells[(i-mv.steps+n)%n]];
+      cells.forEach(c=>sp[c]=board[c]);for(let i=0;i<n;i++)board[cells[i]]=sp[cells[(i-mv.steps+n)%n]];
       cells.forEach(c=>{if(special[c])delete special[c];});
       cells.forEach((c,i)=>{if(spOld[c])special[cells[(i+mv.steps)%n]]=true;});
-      rotN++;
-      lastMove={type:'rot',ring:mv.ring,steps:mv.steps};
+      rotN++;lastMove={type:'rot',ring:mv.ring,steps:mv.steps};
     }
-  }
-
-  // Called when opponent makes a move
-  function applyRemoteMove(mv){
-    if(over)return;
-    applyMoveObj(mv);
     cur=mv.player===1?2:1;
-    push(lastMove,mv.player);
-    chkW();
-    upd();draw();
+    pushH(lastMove,mv.player);chkW();upd();draw();
   }
 
   // Rotation
   function previewRot(r){
-    if(over||anim||!live())return;
-    if(cur!==myPl)return;
+    if(over||anim||!live()||!isHuman())return;
     if(!hP(cur,r))return;
     prvRing=r;const st=(rotN%3)+1;
     document.getElementById('rot-hint').textContent='Anello '+{M:'medio',E:'esterno'}[r]+': +'+st+' casella'+(st>1?'e':'')+' →';
@@ -425,46 +487,50 @@ window.G = (function(){
   function clearPreview(){prvRing=null;document.getElementById('rot-hint').textContent='';['M','E'].forEach(r=>{const b=document.getElementById('btn-'+r);if(b)b.classList.remove('previewing');});draw();}
 
   function rot(r){
-    if(over||must||anim||!live())return;
-    if(cur!==myPl)return;
+    if(over||must||anim||!live()||!isHuman())return;
     if(!hP(cur,r)){log("Nessuna pedina sull'anello "+{M:'medio',E:'esterno'}[r]+'.');return;}
     clearPreview();
-    const st=(rotN%3)+1;
-    const mv={type:'rot',ring:r,steps:st,player:myPl};
-    applyMoveObj(mv);
-    lastMove={type:'rot',ring:r,steps:st};
-    push(lastMove,myPl);
-    sendMove(mv);
-    cur=myPl===1?2:1;
+    const st=(rotN%3)+1,pl=cur;
+    const cells=rC(r),n=cells.length,sp={},spOld=Object.assign({},special);
+    cells.forEach(c=>sp[c]=board[c]);for(let i=0;i<n;i++)board[cells[i]]=sp[cells[(i-st+n)%n]];
+    cells.forEach(c=>{if(special[c])delete special[c];});
+    cells.forEach((c,i)=>{if(spOld[c])special[cells[(i+st)%n]]=true;});
+    rotN++;lastMove={type:'rot',ring:r,steps:st};
     log('Anello '+{M:'medio',E:'esterno'}[r]+' ruotato di '+st+' passo/i.');
-    chkW();upd();draw();
+    if(gameMode==='online')window.sendMove({type:'rot',ring:r,steps:st,player:pl});
+    pushH(lastMove,pl);chkW();if(!over)endT();
   }
 
-  // Click handler
-  function moveSpecial(from,to){special[to]=true;delete special[from];board[to]=cur;board[from]=0;}
-  function captureSpecial(from,mid,to){special[to]=true;delete special[from];board[from]=0;board[mid]=0;board[to]=cur;if(special[mid])delete special[mid];}
+  // Rotation animation (for AI only)
+  function animR(ring,steps,cb){
+    anim=true;const rr=ring==='E'?RE:RM,sd=ring==='E'?20:30,td=steps*sd;
+    const cells=rC(ring),pieces=cells.filter(c=>board[c]!==0).map(c=>({pl:board[c],a0:aD(c)}));
+    const dur=420,t0=performance.now();
+    function fr(now){
+      const t=Math.min((now-t0)/dur,1),e=t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2,rot_=td*e;
+      dBase(ring);
+      pieces.forEach(p=>{const a=(p.a0-rot_)*Math.PI/180,x=CX+rr*Math.cos(a),y=CY+rr*Math.sin(a);ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2);ctx.fillStyle=p.pl===1?'#c04828':'#1d6fa5';ctx.fill();});
+      if(t<1)requestAnimationFrame(fr);else{anim=false;cb();}
+    }
+    requestAnimationFrame(fr);
+  }
+
+  // Click helpers
+  function mvSp(from,to){special[to]=true;delete special[from];board[to]=cur;board[from]=0;}
+  function capSp(from,mid,to){special[to]=true;delete special[from];board[from]=0;board[mid]=0;board[to]=cur;if(special[mid])delete special[mid];}
 
   function finishMove(lm){
-    push(lm,myPl);
-    sendMove({...lm,player:myPl});
-    cur=myPl===1?2:1;
-    chkW();upd();draw();
+    pushH(lm,cur);
+    if(gameMode==='online')window.sendMove({...lm,player:cur});
+    chkW();if(!over)endT();
   }
-
-  // Accumulator for multi-jump captures
-  let pendingCap=null; // {from, steps:[{mid,to},...], isSpecial}
-
-  function startCap(from,mid,to,isSpec){
-    pendingCap={from,steps:[{mid,to}],isSpecial:isSpec};
-  }
-  function addCap(mid,to){
-    pendingCap.steps.push({mid,to});
-  }
+  function startCap(from,mid,to,isSpec){pendingCap={from,steps:[{mid,to}],isSpecial:isSpec};}
+  function addCap(mid,to){if(pendingCap)pendingCap.steps.push({mid,to});}
   function commitCap(){
+    if(!pendingCap)return;
     const pc=pendingCap;pendingCap=null;
     const finalTo=pc.steps[pc.steps.length-1].to;
-    const lm={type:'move',from:pc.from,steps:pc.steps,to:finalTo};
-    finishMove(lm);
+    finishMove({type:'move',from:pc.from,steps:pc.steps,to:finalTo});
   }
 
   cv.addEventListener('click',e=>{
@@ -476,10 +542,8 @@ window.G = (function(){
   });
 
   function clickC(id){
-    if(over||anim||!live())return;
-    if(cur!==myPl)return;
+    if(over||anim||!live()||!isHuman())return;
 
-    // ── MULTI-JUMP continuation ──
     if(must){
       if(board[id]===0){
         const j=cF(board,must,cur).find(j=>j.to===id);
@@ -504,7 +568,7 @@ window.G = (function(){
 
     const normCap=hasNormalCap(cur),specCap=hasSpecialCap(cur),anyCap=normCap||specCap,isSpecial=special[sel];
 
-    // ── NORMAL CAPTURE ──
+    // Normal capture
     const j=cF(board,sel,cur).find(j=>j.to===id);
     if(j){
       const from=sel;
@@ -513,41 +577,36 @@ window.G = (function(){
       if(isSpecial){special[j.to]=true;delete special[from];}
       startCap(from,j.mid,j.to,isSpecial);
       chkW();if(over){commitCap();return;}
-      if(!isSpecial){
-        const more=cF(board,j.to,cur);
-        if(more.length){must=j.to;sel=j.to;log('Cattura →'+j.to+'. Continua!');upd();draw();return;}
-      }
+      if(!isSpecial){const more=cF(board,j.to,cur);if(more.length){must=j.to;sel=j.to;log('Cattura →'+j.to+'. Continua!');upd();draw();return;}}
       must=null;sel=null;log('Cattura: '+from+'→'+id+'.');commitCap();return;
     }
 
-    // ── SPECIAL HORIZONTAL CAPTURE ──
+    // Special horizontal capture
     if(isSpecial){
-      const sc=specialMoves(board,sel,cur),cap=sc.caps.find(c=>c.to===id);
+      const sc=spMoves(board,sel,cur),cap=sc.caps.find(c=>c.to===id);
       if(cap){
-        const from=sel;captureSpecial(from,cap.mid,cap.to);
+        const from=sel;capSp(from,cap.mid,cap.to);
         startCap(from,cap.mid,cap.to,true);
         chkW();if(over){commitCap();return;}
         must=null;sel=null;log('Cattura speciale: '+from+'→'+id+'.');commitCap();return;
       }
     }
 
-    // ── NORMAL MOVE ──
+    // Normal move
     if((ADJ[sel]||[]).includes(id)&&board[id]===0){
       if(anyCap){log('Cattura obbligatoria!');return;}
-      if(isSpecial){moveSpecial(sel,id);}else{board[id]=cur;board[sel]=0;}
+      if(isSpecial){mvSp(sel,id);}else{board[id]=cur;board[sel]=0;}
       const lm={type:'move',from:sel,to:id};log('Mossa: '+sel+'→'+id+'.');sel=null;finishMove(lm);return;
     }
 
-    // ── SPECIAL HORIZONTAL MOVE ──
+    // Special horizontal move
     if(isSpecial&&board[id]===0&&rowOf(id)===rowOf(sel)&&rowOf(sel)!==-1){
       if(anyCap){log('Cattura obbligatoria!');return;}
-      const sc=specialMoves(board,sel,cur);
+      const sc=spMoves(board,sel,cur);
       if(sc.moves.includes(id)){
-        moveSpecial(sel,id);
-        const lm={type:'move',from:sel,to:id};log('Mossa speciale: '+sel+'→'+id+'.');sel=null;finishMove(lm);return;
+        mvSp(sel,id);const lm={type:'move',from:sel,to:id};log('Mossa speciale: '+sel+'→'+id+'.');sel=null;finishMove(lm);return;
       }
     }
-
     log('Mossa non valida.');
   }
 
@@ -557,28 +616,40 @@ window.G = (function(){
   }
   function wG(p,r){
     over=true;draw();upd();
-    document.getElementById('wt').textContent='Vince P'+p+(p===myPl?' (tu)':' (avversario)')+'!';
+    let tag='';
+    if(gameMode==='online')tag=p===myPl?' (tu)':' (avversario)';
+    else if(gameMode==='ai1'||gameMode==='ai2')tag=((gameMode==='ai1'&&p===1)||(gameMode==='ai2'&&p===2))?' (tu)':' (IA)';
+    document.getElementById('wt').textContent='Vince P'+p+tag+'!';
     document.getElementById('wr').textContent=r;
     document.getElementById('wo').style.display='flex';
   }
-
+  function endT(){
+    must=null;cur=cur===1?2:1;mode='move';sel=null;upd();draw();
+    if((gameMode==='ai1'&&cur===2)||(gameMode==='ai2'&&cur===1))setTimeout(aiTurn,500);
+  }
   function log(m){document.getElementById('lg').textContent=m;}
   function upd(){
-    const myTurn=cur===myPl;
-    document.getElementById('tl').textContent='Turno: P'+cur+(cur===1?' (rosso)':' (blu)')+(myTurn?'':' [avversario]');
+    const aiTurn_=(gameMode==='ai1'&&cur===2)||(gameMode==='ai2'&&cur===1);
+    const waitOpp=gameMode==='online'&&cur!==myPl;
+    document.getElementById('tl').textContent='Turno: P'+cur+(cur===1?' (rosso)':' (blu)')+(aiTurn_?' [IA]':waitOpp?' [avversario]':'');
     document.getElementById('al').textContent=
       !live()?'Navigazione — ⏭ per tornare al live':
-      !myTurn?'In attesa della mossa avversaria…':
+      aiTurn_?'IA sta pensando...':
+      waitOpp?'In attesa della mossa avversaria…':
       must?'Cattura da '+must+' — clicca arrivo':
       'Seleziona pedina o ruota anello.';
     document.getElementById('c1').textContent=cnt(board,1);
     document.getElementById('c2').textContent=cnt(board,2);
     const s=(rotN%3)+1;
     document.getElementById('rb').textContent='Prossima rot.: '+s+' passo'+(s>1?'i':'');
-    ['M','E'].forEach(r=>{const btn=document.getElementById('btn-'+r);if(!btn)return;const ok=live()&&!over&&!anim&&hP(cur,r)&&cur===myPl;btn.classList.toggle('off',!ok);});
+    ['M','E'].forEach(r=>{
+      const btn=document.getElementById('btn-'+r);if(!btn)return;
+      const ok=live()&&!over&&!anim&&hP(cur,r)&&isHuman();
+      btn.classList.toggle('off',!ok);
+    });
   }
 
-  // Drawing (same as local version)
+  // Drawing
   function dArrow(){
     if(!lastMove)return;
     if(lastMove.type==='move'){
@@ -595,6 +666,7 @@ window.G = (function(){
       ctx.fillStyle='rgba(240,180,0,0.9)';ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(ax-11*Math.cos(ea-1.1),ay-11*Math.sin(ea-1.1));ctx.lineTo(ax-11*Math.cos(ea-0.3),ay-11*Math.sin(ea-0.3));ctx.closePath();ctx.fill();ctx.restore();
     }
   }
+  function dBase(ex){ctx.clearRect(0,0,W,H);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);dSt();for(const id of ALL){if(id!=='C'&&id[0]===ex)continue;dCell(id,false,false,false,0);}}
   function dSt(){
     RY.forEach(ry=>{ctx.strokeStyle='#e0e0e0';ctx.lineWidth=0.5;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(CX-RE-22,ry);ctx.lineTo(CX+RE+22,ry);ctx.stroke();});ctx.setLineDash([]);
     [RE,RM,RI].forEach(r=>{ctx.strokeStyle='#ccc';ctx.lineWidth=0.5;ctx.beginPath();ctx.arc(CX,CY,r,0,Math.PI*2);ctx.stroke();});
@@ -620,14 +692,14 @@ window.G = (function(){
     if(prvRing&&live()){const st=(rotN%3)+1,cells=rC(prvRing),n=cells.length;cells.forEach((c,i)=>{if(board[c]!==0)ghostM[cells[(i+st)%n]]=board[c];});}
     for(const id of ALL){
       const isSel=live()&&sel===id,isMust=live()&&must===id;let isTgt=false;
-      if(live()&&cur===myPl&&mode==='move'){
+      if(live()&&isHuman()&&mode==='move'){
         const act=must||sel;
         if(act){
-          const anyCap=ALL.some(c=>board[c]===cur&&(cF(board,c,cur).length>0||(special[c]&&specialMoves(board,c,cur).caps.length>0)));
+          const anyCap=ALL.some(c=>board[c]===cur&&(cF(board,c,cur).length>0||(special[c]&&spMoves(board,c,cur).caps.length>0)));
           if(!must&&!anyCap&&(ADJ[act]||[]).includes(id)&&board[id]===0)isTgt=true;
-          if(!must&&!anyCap&&special[act]){const sc=specialMoves(board,act,cur);if(sc.moves.includes(id))isTgt=true;}
+          if(!must&&!anyCap&&special[act]){const sc=spMoves(board,act,cur);if(sc.moves.includes(id))isTgt=true;}
           cF(board,act,cur).forEach(j=>{if(j.to===id)isTgt=true;});
-          if(special[act]){specialMoves(board,act,cur).caps.forEach(c=>{if(c.to===id)isTgt=true;});}
+          if(special[act]){spMoves(board,act,cur).caps.forEach(c=>{if(c.to===id)isTgt=true;});}
         }
       }
       dCell(id,isSel,isMust,isTgt,ghostM[id]||0);
@@ -641,7 +713,7 @@ window.G = (function(){
     ctx.fillStyle='#555';ctx.font='11px sans-serif';ctx.fillText('= speciale',315,14);
   }
 
-  return{initOnline,seeBoard,rot,previewRot,clearPreview,navFirst,navPrev,navNext,navLast,copyNotation,applyRemoteMove};
+  return{init,restart,seeBoard,rot,previewRot,clearPreview,navFirst,navPrev,navNext,navLast,copyNotation,applyRemote};
 })();
 </script>
 </body>
