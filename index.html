@@ -14,7 +14,7 @@ body{font-family:sans-serif;background:#f5f5f0;min-height:100vh;padding:12px;}
 .rules-box b.title{display:block;font-size:13px;margin-bottom:8px;color:#222;}
 .section{margin-bottom:16px;}
 .section h2{font-size:12px;font-weight:600;color:#666;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;}
-.btn-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+.btn-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;align-items:center;}
 .btn-row button{font-size:12px;padding:10px 16px;cursor:pointer;border-radius:10px;border:1px solid #ccc;background:#fff;line-height:1.7;min-width:130px;}
 .btn-row button:hover{background:#f5f5f5;}
 .btn-row button.ob{border-color:#3b82f6;color:#1d4ed8;}
@@ -60,6 +60,28 @@ body{font-family:sans-serif;background:#f5f5f0;min-height:100vh;padding:12px;}
 #notation-head button{font-size:11px;padding:3px 10px;cursor:pointer;border-radius:6px;border:1px solid #ccc;background:#fff;}
 #notation-log{font-family:monospace;font-size:11px;color:#333;padding:8px 10px;max-height:140px;overflow-y:auto;line-height:1.8;white-space:pre-wrap;min-height:28px;}
 #notation-log .p1{color:#c04828;}#notation-log .p2{color:#1d6fa5;}#notation-log .cur{background:#fff7e0;border-radius:3px;padding:0 2px;}
+
+/* CSS PANNELLO IA INTEGRATO */
+#ai-monitor{margin-top:10px; margin-bottom:10px; border:.5px solid #d9c8f2;border-radius:9px;background:#fff;overflow:hidden;font-family:sans-serif;}
+#ai-head{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#f5f3ff;border-bottom:.5px solid #d9c8f2;}
+#ai-head span{font-size:12px;font-weight:600;color:#6d28d9;}
+#ai-body{padding:10px;}
+.ai-row{display:flex;align-items:center;margin-bottom:6px;font-size:11px;color:#555;}
+.ai-row label{flex:1;}
+.ai-row input[type=range]{flex:2;accent-color:#9a6dd7;cursor:pointer;margin:0 8px;}
+.ai-row .val{width:35px;text-align:right;font-weight:600;color:#6d28d9;}
+.ai-flags{display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;font-size:11px;color:#555;}
+.ai-flags label{display:flex;align-items:center;gap:4px;cursor:pointer;}
+.ai-flags input{accent-color:#9a6dd7;}
+
+/* RESPONSIVE ANALISI */
+@media (max-width: 640px) {
+  #analysis{padding:0 8px;}
+  #an-layout{flex-direction:column;}
+  #an-left{flex:1 1 auto!important;max-width:100%;}
+  #an-right{min-width:100%;}
+  #an-cv{width:100%;height:auto;aspect-ratio:1;}
+}
 </style>
 </head>
 <body>
@@ -79,7 +101,16 @@ body{font-family:sans-serif;background:#f5f5f0;min-height:100vh;padding:12px;}
   <div class="section">
     <h2>Gioca online</h2>
     <div class="btn-row">
-      <button class="ob" onclick="createGame('beta')">Crea partita</button>
+      <button class="ob" onclick="showCreateMenu()">Crea partita</button>
+    </div>
+    <div id="create-menu" style="display:none; background:#fff; border:1px solid #d9c8f2; border-radius:10px; padding:15px; margin-top:10px; text-align:left;">
+      <label style="font-size:11px; color:#666; font-weight:600;">Tempo di gioco</label>
+      <select id="time-control" style="width:100%; font-size:12px; padding:8px; border-radius:6px; border:1px solid #ccc; margin-top:4px; outline:none; cursor:pointer; margin-bottom:10px;">
+        <option value="blitz">⚡ Blitz (5 min + 3 sec)</option>
+        <option value="rapid">⏱️ Rapid (10 min + 5 sec)</option>
+        <option value="unlimited" selected>♾️ Senza limiti di tempo</option>
+      </select>
+      <button class="ob" style="width:100%; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;" onclick="createGame('beta')">Crea Partita</button>
     </div>
     <div class="btn-row">
       <button class="ob" onclick="showJoin()">Unisciti con codice</button>
@@ -102,7 +133,28 @@ body{font-family:sans-serif;background:#f5f5f0;min-height:100vh;padding:12px;}
     <h2>Gioca in locale</h2>
     <div class="btn-row">
       <button onclick="startLocal('beta', false)">Due giocatori</button>
-      <button onclick="startLocal('beta', true)">Contro l'IA</button>
+      <button class="beta" onclick="toggleAiMenu()">Contro l'IA ▼</button>
+    </div>
+    
+    <div id="ai-menu" style="display:none; background:#fff; border:1px solid #d9c8f2; border-radius:10px; padding:15px; margin-top:10px; text-align:left;">
+      <div style="display:flex; gap:10px; margin-bottom:15px;">
+        <div style="flex:1;">
+          <label style="font-size:11px; color:#666; font-weight:600;">Difficoltà Motore</label>
+          <select id="lobby-ai-diff" style="width:100%; font-size:12px; padding:8px; border-radius:6px; border:1px solid #ccc; margin-top:4px; outline:none; cursor:pointer;">
+            <option value="easy">IA Facile</option>
+            <option value="medium" selected>IA Media</option>
+            <option value="hard">IA Difficile</option>
+          </select>
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:11px; color:#666; font-weight:600;">Il tuo Colore</label>
+          <select id="lobby-ai-color" style="width:100%; font-size:12px; padding:8px; border-radius:6px; border:1px solid #ccc; margin-top:4px; outline:none; cursor:pointer;">
+            <option value="1">🔴 Rosso (Inizi tu)</option>
+            <option value="2">🔵 Blu (Inizia l'IA)</option>
+          </select>
+        </div>
+      </div>
+      <button class="beta" style="width:100%; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;" onclick="startLocal('beta', true)">Avvia Partita</button>
     </div>
   </div>
 
@@ -133,25 +185,36 @@ body{font-family:sans-serif;background:#f5f5f0;min-height:100vh;padding:12px;}
       </div>
     </div>
   </div>
+  
   <div id="controls">
+    <button id="btn-undo" onclick="G.undoMove()" style="display:none; border-color:#9a6dd7; color:#6d28d9; font-weight:bold;">↩ Annulla Mossa</button>
     <button onclick="G.restart()" id="btn-restart2">Ricomincia</button>
     <button onclick="G.surrender()" style="border-color:#e85d24;color:#e85d24;">Abbandona</button>
     <button onclick="goMenu()">Menu</button>
   </div>
+  
   <div id="rot-controls" style="display:flex;justify-content:center;gap:24px;margin-top:6px;">
     <button id="btn-M" onmouseenter="G.previewRot('M')" onmouseleave="G.clearPreview()" onclick="G.rot('M')" style="font-size:12px;padding:6px 20px;cursor:pointer;border-radius:8px;border:1.5px solid #7a9ecc;background:#eef4fb;color:#1d4e8a;transition:background .15s;min-width:120px;">↺ Anello medio</button>
     <button id="btn-E" onmouseenter="G.previewRot('E')" onmouseleave="G.clearPreview()" onclick="G.rot('E')" style="font-size:12px;padding:6px 20px;cursor:pointer;border-radius:8px;border:1.5px solid #8fb87a;background:#f0f7ec;color:#2d6a1a;transition:background .15s;min-width:120px;">↺ Anello esterno</button>
   </div>
+  
   <div id="info-bar">
     <span>🔴 P1: <b id="c1">9</b></span>
     <span>🔵 P2: <b id="c2">9</b></span>
     <span id="rb">Prossima rot.: 1</span>
   </div>
+  
+  <div id="clock-bar" style="display:none; justify-content:center; gap:40px; margin-top:8px; font-size:14px; font-weight:600; font-family:monospace;">
+    <div id="clock-p1" style="color:#c04828; padding:4px 12px; border-radius:6px; background:#f5f5f0;">5:00</div>
+    <div id="clock-p2" style="color:#1d6fa5; padding:4px 12px; border-radius:6px; background:#f5f5f0;">5:00</div>
+  </div>
+  
   <div id="reserve-bar">
     <span>🔴 Riserva: <b id="r1">0</b></span>
     <button id="btn-place" onclick="G.placeMode()" style="display:none;font-size:11px;padding:3px 12px;cursor:pointer;border-radius:7px;border:1px solid #9a6dd7;background:#f3eeff;color:#6d28d9;">↓ Piazza</button>
     <span>🔵 Riserva: <b id="r2">0</b></span>
   </div>
+  
   <div id="rot-hint"></div>
   <div id="lg"></div>
   <div id="nav">
@@ -161,6 +224,44 @@ body{font-family:sans-serif;background:#f5f5f0;min-height:100vh;padding:12px;}
     <button id="nn" onclick="G.navNext()">▶</button>
     <button id="nl2" onclick="G.navLast()">⏭</button>
   </div>
+
+  <div id="ai-monitor" style="display:none;">
+    <div id="ai-head">
+      <span>🤖 Laboratorio IA</span>
+      <select id="monitor-ai-diff" onchange="changeAiDiff()" style="font-size:11px; padding:2px 6px; border-radius:4px; border:1px solid #ccc; outline:none; cursor:pointer;">
+        <option value="easy">Livello: Facile</option>
+        <option value="medium" selected>Livello: Medio</option>
+        <option value="hard">Livello: Difficile</option>
+      </select>
+    </div>
+    <div id="ai-body">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px; padding:8px; background:#f9f9f9; border-radius:6px; border:1px solid #eee;">
+        <div id="lab-eval-score" style="font-size:16px; font-weight:700; min-width:45px; text-align:center; color:#444;">±0.0</div>
+        <div style="flex:1; height:10px; background:#1d6fa5; border-radius:5px; overflow:hidden;">
+          <div id="lab-eval-bar" style="height:100%; width:50%; background:#c04828; transition:width .4s ease;"></div>
+        </div>
+      </div>
+      
+      <details style="font-size:11px; color:#555; background:#fcfcfc; border:1px solid #eee; border-radius:6px; padding:6px;">
+        <summary style="cursor:pointer; font-weight:600; outline:none;">⚙️ Impostazioni Motore Avanzate</summary>
+        <div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px;">
+           <div class="ai-row"><label>Tempo (ms)</label><input type="range" id="sl-ms" min="500" max="15000" step="500" value="3000"><span class="val" id="sl-ms-v">3000</span></div>
+           <div class="ai-row"><label>Pesi Cattura</label><input type="range" id="sl-cap" min="0" max="200" step="10" value="100"><span class="val" id="sl-cap-v">100</span></div>
+           <div class="ai-row"><label>Pesi Vittoria</label><input type="range" id="sl-win" min="0" max="150" step="10" value="50"><span class="val" id="sl-win-v">50</span></div>
+           <div class="ai-row"><label>Pesi Rotazioni</label><input type="range" id="sl-rot" min="-50" max="50" step="5" value="-20"><span class="val" id="sl-rot-v">-20</span></div>
+           <div class="ai-row"><label>Pesi Riserva</label><input type="range" id="sl-place" min="-30" max="80" step="5" value="10"><span class="val" id="sl-place-v">10</span></div>
+           
+           <div class="ai-flags">
+             <label><input type="checkbox" id="fl-pvs" checked onchange="pushSettingsToWorker()"> PVS</label>
+             <label><input type="checkbox" id="fl-nmp" onchange="pushSettingsToWorker()"> NMP</label>
+             <label><input type="checkbox" id="fl-lmr" onchange="pushSettingsToWorker()"> LMR</label>
+             <label><input type="checkbox" id="fl-fut" checked onchange="pushSettingsToWorker()"> Futility</label>
+           </div>
+        </div>
+      </details>
+    </div>
+  </div>
+
   <div id="notation-wrap">
     <div id="notation-head">
       <span>📋 Notazione</span>
@@ -170,22 +271,39 @@ body{font-family:sans-serif;background:#f5f5f0;min-height:100vh;padding:12px;}
   </div>
 </div>
 
-<!-- ANALYSIS BOARD -->
 <div id="analysis" style="display:none;max-width:1100px;margin:0 auto;padding:0 4px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
     <h2 style="font-size:16px;font-weight:600;color:#222;">Analisi</h2>
     <button onclick="closeAnalysis()" style="font-size:12px;padding:4px 14px;cursor:pointer;border-radius:8px;border:1px solid #ccc;background:#fff;">← Menu</button>
   </div>
   <div id="an-layout" style="display:flex;gap:14px;flex-wrap:wrap;">
-    <div id="an-left" style="flex:0 0 560px;">
+    <div id="an-left" style="flex:1 1 560px;max-width:560px;min-width:300px;">
       <div id="an-sb" style="text-align:center;padding:7px 12px;border-radius:9px;background:#ececec;margin-bottom:8px;">
         <div id="an-tl" style="font-size:15px;font-weight:600;color:#222;margin-bottom:2px;">Turno: P1 (rosso)</div>
         <div id="an-al" style="font-size:12px;color:#888;">Carica una partita o fai mosse libere.</div>
       </div>
+      
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; padding:0 4px;">
+        <span style="font-size:11px; font-weight:bold; color:#444;">Valutazione Motore</span>
+        <label style="font-size:11px; color:#666; display:flex; align-items:center; gap:5px; cursor:pointer;">
+            <input type="checkbox" id="chk-auto-eval" onchange="toggleAutoAnalysis()" style="accent-color:#9a6dd7;">
+            Analisi Continua
+        </label>
+      </div>
+      <div id="an-eval-box" style="display:flex; align-items:center; gap:8px; margin-bottom:8px; padding:6px 12px; background:#fff; border-radius:9px; border:1px solid #ddd; opacity:0.6; transition:opacity 0.3s;">
+        <div id="an-eval-score" style="font-size:15px; font-weight:700; min-width:45px; text-align:center; color:#444;">-.-</div>
+        <div style="flex:1; height:10px; background:#1d6fa5; border-radius:5px; overflow:hidden;">
+          <div id="an-eval-bar" style="height:100%; width:50%; background:#c04828; transition:width .4s ease;"></div>
+        </div>
+        <button id="an-eval-btn" onclick="forceAnalysisEval()" style="font-size:11px; padding:4px 10px; cursor:pointer; border-radius:6px; border:1px solid #9a6dd7; background:#f3eeff; color:#6d28d9; font-weight:bold; outline:none;">Analizza</button>
+      </div>
+
       <canvas id="an-cv" width="540" height="540" style="max-width:100%;display:block;border-radius:10px;background:#f8f7f4;"></canvas>
+      
       <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:8px;">
         <button onclick="A.flipTurn()" style="font-size:12px;padding:5px 14px;cursor:pointer;border-radius:8px;border:1px solid #ccc;background:#fff;">↔ Cambia turno</button>
         <button id="an-place-btn" onclick="A.placeMode()" style="display:none;font-size:11px;padding:3px 12px;cursor:pointer;border-radius:7px;border:1px solid #9a6dd7;background:#f3eeff;color:#6d28d9;">↓ Piazza riserva</button>
+        <button id="an-edit-btn" onclick="A.toggleEdit()" style="font-size:12px;padding:5px 14px;cursor:pointer;border-radius:8px;border:1px solid #9a6dd7;background:#fff;color:#6d28d9;">✏️ Setup Manuale</button>
       </div>
       <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:6px;">
         <button id="an-btn-M" onmouseenter="A.previewRot('M')" onmouseleave="A.clearPreview()" onclick="A.rot('M')" style="font-size:12px;padding:5px 12px;cursor:pointer;border-radius:8px;border:1px solid #ccc;background:#fff;transition:background .15s;">↺ Medio</button>
@@ -214,12 +332,24 @@ body{font-family:sans-serif;background:#f5f5f0;min-height:100vh;padding:12px;}
         <button onclick="A.loadNotation()" style="margin-top:6px;font-size:12px;padding:6px 16px;cursor:pointer;border-radius:8px;border:1px solid #3b82f6;background:#eff6ff;color:#1d4ed8;width:100%;">Carica</button>
         <div id="an-paste-err" style="font-size:11px;color:#e85d24;margin-top:4px;min-height:14px;"></div>
       </div>
+      
+      <div style="background:#fff;border-radius:10px;border:.5px solid #ddd;padding:10px;">
+        <div style="font-size:12px;font-weight:600;color:#444;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Carica/Esporta Posizione (TAN)</div>
+        <input id="an-tan" type="text" style="width:100%;font-family:monospace;font-size:11px;border:.5px solid #ddd;border-radius:7px;padding:6px;background:#fafafa;margin-bottom:6px;" placeholder="es: b16r/12/6 b 0:0 1 0">
+        <div style="display:flex;gap:6px;">
+          <button onclick="A.loadTAN()" style="flex:1;font-size:11px;padding:5px 10px;cursor:pointer;border-radius:6px;border:1px solid #3b82f6;color:#1d4ed8;background:#fff;">Carica TAN</button>
+          <button onclick="A.copyTAN()" style="flex:1;font-size:11px;padding:5px 10px;cursor:pointer;border-radius:6px;border:1px solid #ccc;background:#fff;">Copia TAN</button>
+        </div>
+        <div id="an-tan-err" style="font-size:11px;color:#e85d24;margin-top:4px;min-height:14px;"></div>
+      </div>
+      
       <div style="background:#fff;border-radius:10px;border:.5px solid #ddd;padding:10px;flex:1;display:flex;flex-direction:column;">
         <div style="font-size:12px;font-weight:600;color:#444;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Varianti</div>
         <div style="overflow-y:auto;flex:1;max-height:340px;">
           <div id="an-tree" style="font-family:monospace;font-size:11px;color:#333;line-height:2;white-space:pre-wrap;"></div>
         </div>
         <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+          <button onclick="startAiFromAnalysis()" style="font-size:11px;padding:3px 10px;cursor:pointer;border-radius:6px;border:1px solid #9a6dd7;color:#6d28d9;background:#f3eeff;font-weight:bold;">🤖 Sfida IA da qui</button>
           <button onclick="A.deleteNode()" style="font-size:11px;padding:3px 10px;cursor:pointer;border-radius:6px;border:1px solid #e85d24;color:#e85d24;background:#fff;">Elimina ramo</button>
           <button onclick="A.promoteVariation()" style="font-size:11px;padding:3px 10px;cursor:pointer;border-radius:6px;border:1px solid #3b82f6;color:#1d4ed8;background:#fff;">Promuovi</button>
           <button onclick="A.copyTree()" style="font-size:11px;padding:3px 10px;cursor:pointer;border-radius:6px;border:1px solid #ccc;background:#fff;">Copia notazione</button>
@@ -230,7 +360,166 @@ body{font-family:sans-serif;background:#f5f5f0;min-height:100vh;padding:12px;}
 </div>
 
 <script>
+// --- MENU A SCOMPARSA ---
+function toggleAiMenu() {
+    const menu = document.getElementById('ai-menu');
+    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+
+function showCreateMenu() { 
+  const menu = document.getElementById('create-menu'); 
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none'; 
+}
+
+// --- FUNZIONE CENTRALE PER AGGIORNARE LE BARRE VALUTAZIONE ---
+function updateEvalVisuals(msg, scoreElId, barElId) {
+    const raw = msg.eval_score || 0;
+    const pawns = Math.abs(raw / 100).toFixed(1);
+    const sign = raw > 0 ? '+' : (raw < 0 ? '-' : '');
+    
+    const scEl = document.getElementById(scoreElId);
+    if(scEl){
+      scEl.textContent = sign + pawns;
+      scEl.style.color = raw > 0 ? '#c04828' : (raw < 0 ? '#1d6fa5' : '#444');
+    }
+    
+    const barEl = document.getElementById(barElId);
+    if(barEl){
+      let pct = 50 + (raw / 12);
+      pct = Math.max(5, Math.min(95, pct));
+      barEl.style.width = pct + '%';
+    }
+}
+
+// --- CONFIGURAZIONE IA E WORKER ---
+const AI_SETTINGS = {
+  easy:   { maxDepth: 4,  ms: 1000,  o_cap: 10,  o_win: 20, o_rot: 100, o_place: 80 },
+  medium: { maxDepth: 12, ms: 3000,  o_cap: 100, o_win: 50, o_rot: 0,   o_place: 20 },
+  hard:   { maxDepth: 25, ms: 10000, o_cap: 100, o_win: 50, o_rot: -20, o_place: 10 }
+};
+
+let aiWorkerReady = false;
+let aiWorker = new Worker('engine_worker.js');
+aiWorker.onmessage = function(e) {
+  if (e.data.type === 'ready') {
+      aiWorkerReady = true;
+  }
+  else if (e.data.type === 'mossa') {
+     // Routing esplicito tramite flag _callbackId per l'analisi
+     const isAnalysisEval = e.data._callbackId && e.data._callbackId.startsWith('analysis_');
+     
+     if (isAnalysisEval) {
+         updateEvalVisuals(e.data, 'an-eval-score', 'an-eval-bar');
+         document.getElementById('an-eval-box').style.opacity = '1';
+     } else {
+         const isAnalysisOpen = document.getElementById('analysis') && document.getElementById('analysis').style.display === 'block';
+         if (isAnalysisOpen) {
+             updateEvalVisuals(e.data, 'an-eval-score', 'an-eval-bar');
+         } else {
+             updateEvalVisuals(e.data, 'lab-eval-score', 'lab-eval-bar');
+             if (window.handleAIMove) window.handleAIMove(e.data);
+         }
+     }
+  }
+};
+
+function syncAiToUI() {
+  const diff = document.getElementById('monitor-ai-diff').value;
+  const conf = AI_SETTINGS[diff];
+  document.getElementById('sl-ms').value = conf.ms;
+  document.getElementById('sl-cap').value = conf.o_cap;
+  document.getElementById('sl-win').value = conf.o_win;
+  document.getElementById('sl-rot').value = conf.o_rot;
+  document.getElementById('sl-place').value = conf.o_place;
+  updateSliderLabels();
+  pushSettingsToWorker();
+  
+  const lobbyDiff = document.getElementById('lobby-ai-diff');
+  if(lobbyDiff) lobbyDiff.value = diff;
+}
+
+function changeAiDiff() { syncAiToUI(); }
+
+function updateSliderLabels() {
+  ['ms','cap','win','rot','place'].forEach(id => {
+    const el = document.getElementById('sl-'+id);
+    if(el) document.getElementById('sl-'+id+'-v').textContent = el.value + (id==='ms'?'ms':'');
+  });
+}
+
+function pushSettingsToWorker() {
+  if (!aiWorkerReady) return;
+  aiWorker.postMessage({ type: 'set_time', ms: parseInt(document.getElementById('sl-ms').value) });
+  aiWorker.postMessage({
+    type: 'set_ordering',
+    cap: parseInt(document.getElementById('sl-cap').value),
+    win: parseInt(document.getElementById('sl-win').value),
+    rot: parseInt(document.getElementById('sl-rot').value),
+    place: parseInt(document.getElementById('sl-place').value)
+  });
+  aiWorker.postMessage({
+    type: 'set_flags',
+    pvs: document.getElementById('fl-pvs').checked,
+    nmp: document.getElementById('fl-nmp').checked,
+    lmr: document.getElementById('fl-lmr').checked,
+    fut: document.getElementById('fl-fut').checked
+  });
+}
+
+['ms','cap','win','rot','place'].forEach(id => {
+  document.getElementById('sl-'+id).addEventListener('input', function() {
+    updateSliderLabels();
+    pushSettingsToWorker();
+  });
+});
+
 let db=null,movesRef=null,lastProcessedMove=-1,myPlayer=1;
+
+// SISTEMA OROLOGIO ONLINE
+let clockConfig=null; 
+let timeLeft=[0,0]; 
+let clockInterval=null;
+let lastMoveTime=0;
+
+function formatTime(ms){
+  if(ms<=0)return'0:00';
+  const sec=Math.ceil(ms/1000),m=Math.floor(sec/60),s=sec%60;
+  return m+':'+(s<10?'0':'')+s;
+}
+
+function updateClockDisplay(){
+  const c1=document.getElementById('clock-p1'),c2=document.getElementById('clock-p2');
+  if(!c1||!c2)return;
+  c1.textContent=formatTime(timeLeft[0]);
+  c2.textContent=formatTime(timeLeft[1]);
+  c1.style.background=(G&&G.cur()===1)?'#fff7e0':'#f5f5f0';
+  c2.style.background=(G&&G.cur()===2)?'#fff7e0':'#f5f5f0';
+}
+
+function startClock(player){
+  if(!clockConfig||clockConfig.type==='unlimited')return;
+  lastMoveTime=Date.now();
+  if(clockInterval)clearInterval(clockInterval);
+  clockInterval=setInterval(()=>{
+    const elapsed=Date.now()-lastMoveTime;
+    timeLeft[player-1]-=elapsed;
+    lastMoveTime=Date.now();
+    if(timeLeft[player-1]<=0){
+      timeLeft[player-1]=0;
+      clearInterval(clockInterval);
+      clockInterval=null;
+      if(G&&typeof G.over==='function'&&!G.over())G.wG(player===1?2:1,'Tempo scaduto!');
+    }
+    updateClockDisplay();
+  },100);
+}
+
+function stopClock(player){
+  if(clockInterval){clearInterval(clockInterval);clockInterval=null;}
+  if(!clockConfig||clockConfig.type==='unlimited')return;
+  timeLeft[player-1]+=clockConfig.increment;
+  updateClockDisplay();
+}
 
 function loadFB(cb){
   if(db){cb(true);return;}
@@ -251,7 +540,13 @@ function createGame(ver){
   loadFB(ok=>{
     if(!ok)return;
     const code=genCode();
-    db.ref('games/'+code).set({status:'waiting',version:ver,created:Date.now(),moves:[]});
+    const tc=document.getElementById('time-control').value;
+    const timeData={type:tc};
+    if(tc==='blitz'){timeData.base=300000;timeData.increment=3000;} 
+    else if(tc==='rapid'){timeData.base=600000;timeData.increment=5000;} 
+    else{timeData.base=0;timeData.increment=0;} 
+    
+    db.ref('games/'+code).set({status:'waiting',version:ver,created:Date.now(),moves:[],timeControl:timeData});
     document.getElementById('game-code').textContent=code;
     document.getElementById('waiting').style.display='block';
     document.getElementById('lobby-status').textContent='';
@@ -279,13 +574,29 @@ function joinGame(){
 function startOnline(code,player,ver){
   document.getElementById('lobby').style.display='none';
   document.getElementById('game').style.display='block';
+  document.getElementById('ai-monitor').style.display='none';
   myPlayer=player;
   lastProcessedMove=-1;
   movesRef=db.ref('games/'+code+'/moves');
   document.getElementById('mode-bar').textContent='Online · Partita: '+code+' · Sei P'+(player===1?'1 (rosso)':'2 (blu)');
   document.getElementById('btn-restart').style.display='none';
   document.getElementById('btn-restart2').style.display='none';
-  G.init('online',ver,false);
+  
+  db.ref('games/'+code+'/timeControl').once('value').then(snap=>{
+    const tc=snap.val();
+    if(tc&&tc.type!=='unlimited'){
+      clockConfig=tc;
+      timeLeft=[tc.base,tc.base];
+      document.getElementById('clock-bar').style.display='flex';
+      updateClockDisplay();
+      if(player===1)startClock(1);
+    } else {
+      clockConfig={type:'unlimited',base:0,increment:0};
+      document.getElementById('clock-bar').style.display='none';
+    }
+  });
+  
+  G.init('online',ver,false,null);
   movesRef.on('value',snap=>{
     const mv=snap.val();if(!mv)return;
     const arr=Array.isArray(mv)?mv:Object.values(mv);
@@ -298,11 +609,49 @@ function sendMove(mv){if(movesRef)movesRef.push(mv);}
 function startLocal(ver, ai){
   document.getElementById('lobby').style.display='none';
   document.getElementById('game').style.display='block';
-  document.getElementById('mode-bar').textContent=ai?'Contro l\'IA':'Due giocatori';
   document.getElementById('btn-restart').style.display='';
   document.getElementById('btn-restart2').style.display='';
   if(movesRef){movesRef.off();movesRef=null;}
-  G.init('local',ver,ai);
+  
+  let aiColor = null;
+  if(ai){
+    const userColor = parseInt(document.getElementById('lobby-ai-color').value);
+    aiColor = userColor === 1 ? 2 : 1; 
+    myPlayer = userColor; 
+    document.getElementById('monitor-ai-diff').value = document.getElementById('lobby-ai-diff').value;
+  } else {
+    myPlayer = 1;
+  }
+  
+  document.getElementById('mode-bar').textContent = ai ? `Contro l'IA (Sei P${myPlayer})` : 'Due giocatori';
+  document.getElementById('ai-monitor').style.display = ai ? 'block' : 'none';
+  
+  if(ai) syncAiToUI();
+  
+  G.isAnalysisAi = false;
+  G.init('local', ver, ai, aiColor);
+}
+
+function startAiFromAnalysis() {
+  const st = A.getState();
+  closeAnalysis();
+  document.getElementById('lobby').style.display='none';
+  document.getElementById('game').style.display='block';
+  document.getElementById('mode-bar').textContent="🤖 Sfida da Analisi (Difficoltà Massima)";
+  document.getElementById('btn-restart').style.display='none';
+  document.getElementById('btn-restart2').style.display='none';
+  if(movesRef){movesRef.off();movesRef=null;}
+  
+  let aiColor = st.cur; 
+  myPlayer = aiColor === 1 ? 2 : 1; 
+  
+  document.getElementById('ai-monitor').style.display = 'block';
+  document.getElementById('monitor-ai-diff').value = 'hard';
+  syncAiToUI();
+  
+  G.isAnalysisAi = true;
+  G.init('local', 'beta', true, aiColor);
+  G.loadState(st);
 }
 
 function goMenu(){
@@ -312,13 +661,18 @@ function goMenu(){
   document.getElementById('waiting').style.display='none';
   document.getElementById('join-box').style.display='none';
   document.getElementById('lobby-status').textContent='';
+  document.getElementById('create-menu').style.display='none';
   if(movesRef){movesRef.off();movesRef=null;}
+  if(clockInterval){clearInterval(clockInterval);clockInterval=null;}
+  clockConfig=null;
+  document.getElementById('clock-bar').style.display='none';
 }
 
 function openAnalysis(){
   document.getElementById('lobby').style.display='none';
   document.getElementById('analysis').style.display='block';
   A.init();
+  toggleAutoAnalysis(); // Inizializza visuale barra
 }
 function closeAnalysis(){
   document.getElementById('analysis').style.display='none';
@@ -386,6 +740,7 @@ const G=(function(){
   let gameVer='orig',gameMode='local';
   let pendingSteps=null;
   let pendingCapMid=null;
+  let aiPlayer=null;
 
   function notStr(lm){
     if(!lm)return'?';
@@ -410,6 +765,16 @@ const G=(function(){
     if(pendingHalf)html+=`<span>${notMoves.length+1}. </span><span class="p1 cur">${pendingHalf}</span>  …\n`;
     el.innerHTML=html;el.scrollTop=el.scrollHeight;
   }
+  function rebuildNotation() {
+    notMoves = []; pendingHalf = null;
+    for(let i=1; i<hist.length; i++) {
+      const pl = hist[i-1].cur;
+      const s = notStr(hist[i].lm);
+      if(pl===1) { pendingHalf = s; }
+      else { notMoves.push({num:notMoves.length+1, p1:pendingHalf||'?', p2:s}); pendingHalf = null; }
+    }
+    renderNotation();
+  }
   function copyNotation(){
     const date=new Date().toLocaleDateString('it-IT');
     let txt=`[${gameMode==='online'?'Online':'Locale'} · ${gameVer==='beta'?'Beta':'Originale'}]\n[${date}]\n\n`;
@@ -422,8 +787,8 @@ const G=(function(){
   function push(lm,player){if(lm&&player)pushNotation(lm,player);hist.push(sn());navI=-1;nUpd();}
   function live(){return navI===-1;}
 
-  function init(gmode,ver,ai){
-    gameMode=gmode;gameVer=ver;vsAI=ai;
+  function init(gmode,ver,ai,aiPl){
+    gameMode=gmode;gameVer=ver;vsAI=ai;aiPlayer=aiPl;
     const ALL=getALL();
     board={};getALL().forEach(c=>board[c]=0);P1S.forEach(c=>board[c]=1);P2S.forEach(c=>board[c]=2);
     if(ver==='beta'){
@@ -440,9 +805,43 @@ const G=(function(){
     document.getElementById('rot-hint').textContent='';
     document.getElementById('notation-log').innerHTML='';
     document.getElementById('reserve-bar').style.display=ver==='beta'?'flex':'none';
+    
+    document.getElementById('lab-eval-score').textContent = '±0.0';
+    document.getElementById('lab-eval-score').style.color = '#444';
+    document.getElementById('lab-eval-bar').style.width = '50%';
+    
     hist.push(sn());nUpd();upd();draw();
+    
+    if(vsAI && cur === aiPlayer) aiThink();
   }
-  function restart(){if(gameMode==='online')return;init(gameMode,gameVer,vsAI);}
+  
+  function loadState(s) {
+    board = Object.assign({}, s.board);
+    cur = s.cur;
+    rotN = s.rotN;
+    reserve = [...s.reserve];
+    special = Object.assign({}, s.special);
+    hist = [sn()];
+    navI = -1;
+    notMoves = [];
+    document.getElementById('notation-log').innerHTML='';
+    upd(); draw();
+    if(cur === aiPlayer && vsAI) aiThink();
+  }
+  
+  function undoMove() {
+    if(!vsAI || over || anim || cur === aiPlayer) return;
+    if(hist.length <= 2) return; 
+    
+    hist.pop(); 
+    hist.pop(); 
+    
+    rebuildNotation();
+    restore(hist[hist.length-1]);
+    navI=-1; nUpd(); upd(); draw();
+  }
+  
+  function restart(){if(gameMode==='online')return;init(gameMode,gameVer,vsAI,aiPlayer);}
   function seeBoard(){document.getElementById('wo').style.display='none';}
 
   function restore(s){board=Object.assign({},s.b);lastMove=s.lm?{...s.lm}:null;special=Object.assign({},s.sp||{});window.medium=s.md?Object.assign({},s.md):null;reserve=[...(s.rv||[0,0])];placing=false;}
@@ -469,7 +868,12 @@ const G=(function(){
   }
   function hasNormalCap(pl){return getALL().some(c=>board[c]===pl&&cF(board,c,pl).length>0);}
   function hasSpecialCap(pl){return getALL().some(c=>board[c]===pl&&special[c]&&spMoves(board,c,pl).caps.length>0);}
-  function isMyTurn(){return gameMode==='local'||cur===myPlayer;}
+  
+  function isMyTurn() {
+    if (gameMode === 'online') return cur === myPlayer;
+    if (gameMode === 'local' && vsAI) return cur !== aiPlayer;
+    return true; 
+  }
 
   function cleanFlags(){
     Object.keys(special).forEach(c=>{if(!board[c])delete special[c];});
@@ -506,169 +910,66 @@ const G=(function(){
     cleanFlags();
   }
 
-  // --- IA LOGIC ---
   function aiThink(){
-    if(over||anim||cur===1)return;
-    const best = minimax(board, reserve, special, 3, -Infinity, Infinity, true);
-    if(best.move){
-      const m = best.move;
-      if(m.type==='rot') rot(m.ring);
-      else if(m.type==='place'){ placing=true; clickC(m.to); }
-      else { clickC(m.from); setTimeout(()=>clickC(m.to), 500); }
+    if(over||anim||cur!==aiPlayer)return;
+    if(!aiWorkerReady) {
+        setTimeout(aiThink, 500); 
+        return;
     }
+    
+    document.getElementById('al').textContent = 'L\'IA sta pensando...';
+    
+    let boardArr = new Int8Array(37);
+    let specialArr = new Int8Array(37);
+    let reserveArr = new Int8Array([reserve[0]||0, reserve[1]||0]);
+    const NODI = ['E1','E2','E3','E4','E5','E6','E7','E8','E9','E10','E11','E12','E13','E14','E15','E16','E17','E18','M1','M2','M3','M4','M5','M6','M7','M8','M9','M10','M11','M12','I1','I2','I3','I4','I5','I6','C'];
+
+    for (let i = 0; i < NODI.length; i++) {
+        let nodo = NODI[i];
+        boardArr[i] = board[nodo] || 0;
+        specialArr[i] = special[nodo] ? 1 : 0;
+    }
+
+    let diff = document.getElementById('monitor-ai-diff') ? document.getElementById('monitor-ai-diff').value : 'medium';
+    if (G.isAnalysisAi) diff = 'hard';
+    const conf = AI_SETTINGS[diff];
+
+    pushSettingsToWorker();
+
+    aiWorker.postMessage({
+        type: 'calcola',
+        board: boardArr, reserve: reserveArr, special: specialArr,
+        player: cur, max_depth: conf.maxDepth, is_beta: gameVer === 'beta' ? 1 : 0, rotN: rotN
+    });
   }
 
-  function minimax(b, res, sp, depth, alpha, beta, isMax){
-    const winner = checkWRaw(b);
-    if(winner===2) return {score: 10000 + depth};
-    if(winner===1) return {score: -10000 - depth};
-    if(depth===0) return {score: evaluate(b, res, sp)};
+  window.handleAIMove = function(msg) {
+    if (over || cur !== aiPlayer || !vsAI) return;
+    document.getElementById('al').textContent = 'Mossa in corso...';
 
-    const pl = isMax?2:1;
-    const moves = genMoves(b, res, sp, pl);
-    let bestMove = null;
+    let fromIdx = Math.floor(msg.result / 10000);
+    let toIdx = Math.floor((msg.result % 10000) / 100);
+    const NODI = ['E1','E2','E3','E4','E5','E6','E7','E8','E9','E10','E11','E12','E13','E14','E15','E16','E17','E18','M1','M2','M3','M4','M5','M6','M7','M8','M9','M10','M11','M12','I1','I2','I3','I4','I5','I6','C'];
 
-    if(isMax){
-      let maxScore = -Infinity;
-      for(const m of moves){
-        const {nb, nres, nsp} = sim(b, res, sp, m, pl);
-        const score = minimax(nb, nres, nsp, depth-1, alpha, beta, false).score;
-        if(score > maxScore){ maxScore = score; bestMove = m; }
-        alpha = Math.max(alpha, maxScore);
-        if(beta <= alpha) break;
-      }
-      return {score: maxScore, move: bestMove};
+    if (fromIdx === 88) {
+        let anello = (toIdx === 0 || toIdx === 1) ? 'E' : 'M';
+        rot(anello, true); 
+    } else if (fromIdx === 99) {
+        let to_str = NODI[toIdx];
+        placing = true;
+        clickC(to_str, true); 
     } else {
-      let minScore = Infinity;
-      for(const m of moves){
-        const {nb, nres, nsp} = sim(b, res, sp, m, pl);
-        const score = minimax(nb, nres, nsp, depth-1, alpha, beta, true).score;
-        if(score < minScore){ minScore = score; bestMove = m; }
-        beta = Math.min(beta, minScore);
-        if(beta <= alpha) break;
-      }
-      return {score: minScore, move: bestMove};
+        let from_str = NODI[fromIdx];
+        let to_str = NODI[toIdx];
+        clickC(from_str, true); 
+        setTimeout(() => {
+            clickC(to_str, true);
+            if (must && !over && cur === aiPlayer) {
+                setTimeout(aiThink, 600);
+            }
+        }, 400);
     }
-  }
-
-  function genMoves(b, res, sp, pl){
-    const ms = [], adj = getADJ();
-    getALL().forEach(c => {
-      if(b[c]===pl){
-        adj[c].forEach(to => {
-          if(b[to]===0) ms.push({type:'move', from:c, to:to});
-          else if(b[to]!==pl){
-            adj[to].forEach(over => { if(b[over]===0 && over!==c) ms.push({type:'move', from:c, to:over, mid:to}); });
-          }
-        });
-        if(sp[c] && gameVer==='beta'){
-          betaSpReach(b, c).forEach(to => ms.push({type:'move', from:c, to:to}));
-        }
-      }
-    });
-    if(res[pl-1]>0) getALL().forEach(c => { if(b[c]===0 && (gameVer==='beta'? (c[0]==='E'||c[0]==='M') : c!=='C')) ms.push({type:'place', to:c}); });
-    if(hP(pl, 'M')) ms.push({type:'rot', ring:'M'});
-    if(hP(pl, 'E')) ms.push({type:'rot', ring:'E'});
-    return ms.sort(()=>Math.random()-0.5);
-  }
-
-  function sim(b, res, sp, m, pl){
-    const nb = {...b}, nres = [...res], nsp = {...sp};
-    if(m.type==='move'){
-      if(m.mid){ nb[m.mid]=0; nres[pl-1]++; delete nsp[m.mid]; }
-      if(nsp[m.from]){ nsp[m.to]=true; delete nsp[m.from]; }
-      nb[m.from]=0; nb[m.to]=pl;
-    } else if(m.type==='place'){ nb[m.to]=pl; nres[pl-1]--; }
-    else if(m.type==='rot'){
-      const r=m.ring, st=(rotN%3)+1, cells=rC(r), n=cells.length, old={...nb}, osp={...nsp};
-      cells.forEach((c,i)=>nb[cells[i]]=old[cells[(i-st+n)%n]]);
-      cells.forEach(c=>delete nsp[c]);
-      cells.forEach((c,i)=>{if(osp[c])nsp[cells[(i+st)%n]]=true;});
-    }
-    return {nb, nres, nsp};
-  }
-
-  // Precompute BFS distances from each WIN node for both adjacency graphs
-  function bfsDistances(startNodes, adj, allNodes){
-    const dist={};
-    const queue=[...startNodes];
-    startNodes.forEach(n=>dist[n]=0);
-    while(queue.length){
-      const cur=queue.shift();
-      (adj[cur]||[]).forEach(nb=>{
-        if(dist[nb]===undefined){dist[nb]=dist[cur]+1;queue.push(nb);}
-      });
-    }
-    // any unreachable node gets max distance
-    allNodes.forEach(n=>{if(dist[n]===undefined)dist[n]=99;});
-    return dist;
-  }
-  // Cache distances (recomputed if needed per version)
-  const _distCache={};
-  function getDistMap(){
-    const key=gameVer;
-    if(_distCache[key])return _distCache[key];
-    const adj=gameVer==='beta'?ADJ_BETA:ADJ;
-    const all=gameVer==='beta'?ALL_BETA:ALL_ORIG;
-    _distCache[key]=bfsDistances(WIN, adj, all);
-    return _distCache[key];
-  }
-
-  function evaluate(b, res, sp){
-    const dist=getDistMap();
-    // Max useful distance for scoring (nodes farther than this get ~0 bonus)
-    const MAX_D=5;
-    let s=0;
-
-    // Count how many WIN nodes each player occupies
-    let win2=0, win1=0;
-    WIN.forEach(c=>{ if(b[c]===2) win2++; else if(b[c]===1) win1++; });
-
-    // Non-linear bonus for WIN node control:
-    // 1 node = 60, 2 nodes = 180 (much more than 2x), 3 = already caught by checkWRaw
-    const winBonus=[0, 60, 180, 10000];
-    s += winBonus[win2] - winBonus[win1];
-
-    getALL().forEach(c=>{
-      if(b[c]===0) return;
-      const d=dist[c]!==undefined ? dist[c] : MAX_D+1;
-      // Proximity bonus: distance 0 = on WIN node (already counted above)
-      // distance 1 = trampolino diretto, distance 2 = un passo da trampolino, ecc.
-      const proximity = d===0 ? 0 : Math.max(0, MAX_D - d + 1) * 8;
-      if(b[c]===2){
-        s += 10 + proximity;
-        if(sp[c]) s += 8;
-      } else {
-        s -= 10 + proximity;
-        if(sp[c]) s -= 8;
-      }
-    });
-
-    // Reserve: a piece in reserve is slightly less valuable than one on a trampolino
-    s += res[1]*9 - res[0]*9;
-
-    // Threat bonus: if player has 2 WIN nodes, bonus for each piece adjacent to the 3rd missing WIN node
-    if(win2===2){
-      const missing=WIN.find(c=>b[c]!==2);
-      if(missing)(getADJ()[missing]||[]).forEach(nb=>{ if(b[nb]===2) s+=40; });
-    }
-    if(win1===2){
-      const missing=WIN.find(c=>b[c]!==1);
-      if(missing)(getADJ()[missing]||[]).forEach(nb=>{ if(b[nb]===1) s-=40; });
-    }
-
-    return s;
-  }
-
-  function checkWRaw(b){
-    if(WIN.every(c=>b[c]===1)) return 1;
-    if(WIN.every(c=>b[c]===2)) return 2;
-    if(getALL().every(c=>b[c]!==1) && reserve[0]===0) return 2;
-    if(getALL().every(c=>b[c]!==2) && reserve[1]===0) return 1;
-    return 0;
-  }
-
-  // --- FINE IA ---
+  };
 
   function applyRemote(mv){
     if(over)return;
@@ -716,8 +1017,9 @@ const G=(function(){
   }
   function clearPreview(){prvRing=null;document.getElementById('rot-hint').textContent='';['M','E'].forEach(r=>{const b=document.getElementById('btn-'+r);if(b)b.classList.remove('previewing');});draw();}
 
-  function rot(r){
-    if(over||must||anim||!live()||!isMyTurn()||placing)return;
+  function rot(r, isAI=false){
+    if(over||must||anim||!live()||placing)return;
+    if(!isAI && !isMyTurn())return; 
     if(!hP(cur,r))return;
     clearPreview();
     const st=(rotN%3)+1,pl=cur;
@@ -735,7 +1037,7 @@ const G=(function(){
     const dur=400,t0=performance.now();
     function fr(now){
       const t=Math.min((now-t0)/dur,1),e=t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2,rot_=td*e;
-      ctx.clearRect(0,0,W,H);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);dSt();
+      ctx.clearRect(0,0,W,H);ctx.fillStyle='#f8f7f4';ctx.fillRect(0,0,W,H);dSt();
       for(const id of getALL()){if(id!=='C'&&id[0]===ring)continue;dCell(id,false,false,false,0);}
       pieces.forEach(p=>{const a=(p.a0-rot_)*Math.PI/180,x=CX+rr*Math.cos(a),y=CY+rr*Math.sin(a);ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2);ctx.fillStyle=p.pl===1?'#c04828':'#1d6fa5';ctx.fill();});
       if(t<1)requestAnimationFrame(fr);else{anim=false;cb();}
@@ -767,8 +1069,9 @@ const G=(function(){
     for(const id of getALL()){const[x,y]=pos(id);if((mx-x)**2+(my-y)**2<=225){clickC(id);return;}}
   });
 
-  function clickC(id){
-    if(over||anim||!live()||!isMyTurn())return;
+  function clickC(id, isAI=false){
+    if(over||anim||!live())return;
+    if(!isAI && !isMyTurn())return; 
     const pl=cur;
     if(placing){
       if(board[id]===pl){placing=false;upd();draw();return;}
@@ -805,6 +1108,20 @@ const G=(function(){
       sel=must;draw();return;
     }
     if(must)must=null;
+    
+    if(pendingCapMid){
+      if(board[id]===0){
+        const adj=getADJ();
+        if((adj[pendingCapMid]||[]).includes(id)&&id!==sel){
+          const from=sel,mid=pendingCapMid,isMedCap=!!(window.medium&&window.medium[mid]);
+          doCapture(mid);doMove(sel,id,pl);
+          pendingCapMid=null;lastMove={type:'move',from,to:id};sel=null;
+          finMove({type:'move',from,mid,to:id},pl);return;
+        }
+      }
+      pendingCapMid=null;draw();return;
+    }
+    
     if(sel===null){if(board[id]===pl){sel=id;pendingCapMid=null;draw();}return;}
     if(id===sel){sel=null;pendingCapMid=null;draw();return;}
     if(board[id]===pl){sel=id;pendingCapMid=null;draw();return;}
@@ -813,21 +1130,29 @@ const G=(function(){
     const anyCap=(normCap||specCap)&&gameVer==='orig';
     const isSp=special[sel];
 
-    const j=cF(board,sel,pl).find(j=>j.to===id);
-    if(j){
-      const from=sel,isMedCap=!!(window.medium&&window.medium[j.mid]);
-      doCapture(j.mid);doMove(sel,j.to,pl);
-      chkW();if(over){lastMove={type:'move',from,to:j.to};push(lastMove,pl);if(gameMode==='online')sendMove({type:'move',from,mid:j.mid,midWasMedium:isMedCap,to:j.to,player:pl});return;}
-      if(gameVer==='orig'&&!isSp){
-        const more=cF(board,j.to,pl);
-        if(more.length){
-          pendingSteps={from,steps:[{mid:j.mid,midWasMedium:isMedCap,to:j.to}]};
-          must=j.to;sel=j.to;upd();draw();return;
-        }
+    const normalCaptures=cF(board,sel,pl);
+    if(normalCaptures.length>0){
+      const victimClicked=normalCaptures.find(c=>c.mid===id);
+      if(victimClicked){
+        pendingCapMid=id;draw();return;
       }
-      lastMove={type:'move',from,to:j.to};must=null;sel=null;
-      finMove({type:'move',from,mid:j.mid,midWasMedium:isMedCap,to:j.to},pl);return;
+      const j=normalCaptures.find(j=>j.to===id);
+      if(j){
+        const from=sel,isMedCap=!!(window.medium&&window.medium[j.mid]);
+        doCapture(j.mid);doMove(sel,j.to,pl);
+        chkW();if(over){lastMove={type:'move',from,to:j.to};push(lastMove,pl);if(gameMode==='online')sendMove({type:'move',from,mid:j.mid,midWasMedium:isMedCap,to:j.to,player:pl});return;}
+        if(gameVer==='orig'&&!isSp){
+          const more=cF(board,j.to,pl);
+          if(more.length){
+            pendingSteps={from,steps:[{mid:j.mid,midWasMedium:isMedCap,to:j.to}]};
+            must=j.to;sel=j.to;upd();draw();return;
+          }
+        }
+        lastMove={type:'move',from,to:j.to};must=null;sel=null;
+        finMove({type:'move',from,mid:j.mid,midWasMedium:isMedCap,to:j.to},pl);return;
+      }
     }
+    
     if(gameVer==='orig'&&isSp){
       const sc=spMoves(board,sel,pl),cap=sc.caps.find(c=>c.to===id);
       if(cap){
@@ -851,12 +1176,9 @@ const G=(function(){
       }
     }
     if(gameVer==='beta'&&isSp&&board[id]===0){
-      // pendingCapMid: we already chose a victim, now pick destination
       if(pendingCapMid){
-        // destination after choosing victim
         const en=cur===1?2:1;
         const adj=getADJ();
-        // valid destinations: adjacent to victim, not from, empty
         const validDests=(adj[pendingCapMid]||[]).filter(nb=>nb!==sel&&board[nb]===0);
         if(validDests.includes(id)){
           const from=sel,mid=pendingCapMid;
@@ -864,7 +1186,6 @@ const G=(function(){
           pendingCapMid=null;lastMove={type:'move',from,to:id};sel=null;
           finMove({type:'move',from,mid,to:id},pl);return;
         }
-        // clicked somewhere invalid — cancel victim choice but keep piece selected
         pendingCapMid=null;draw();return;
       }
       if(betaSpReach(board,sel).includes(id)){
@@ -872,11 +1193,9 @@ const G=(function(){
         finMove({type:'move',from,to:id},pl);return;
       }
     }
-    // beta special: click on adjacent enemy to choose victim
     if(gameVer==='beta'&&isSp&&board[id]!==0&&board[id]!==pl){
       const adj=getADJ();
       if((adj[sel]||[]).includes(id)){
-        // check there's at least one valid destination beyond this victim
         const validDests=(adj[id]||[]).filter(nb=>nb!==sel&&board[nb]===0);
         if(validDests.length>0){pendingCapMid=id;draw();return;}
       }
@@ -891,7 +1210,7 @@ const G=(function(){
   }
   function wG(p,r){
     over=true;draw();upd();
-    const tag=gameMode==='online'?(p===myPlayer?' (tu)':' (avversario)'):(vsAI && p===2 ? ' (IA)' : '');
+    const tag=gameMode==='online'?(p===myPlayer?' (tu)':' (avversario)'):(vsAI && p===aiPlayer ? ' (IA)' : '');
     document.getElementById('wt').textContent='Vince P'+p+tag+'!';
     document.getElementById('wr').textContent=r;
     document.getElementById('wo').style.display='flex';
@@ -901,14 +1220,21 @@ const G=(function(){
     wG(cur===1?2:1,'Abbandono.');
   }
   function endT(){
+    const prevPlayer=cur; 
     must=null;cur=cur===1?2:1;mode='move';sel=null;placing=false;upd();draw();
-    if(vsAI && cur===2 && !over) setTimeout(aiThink, 600);
+    
+    if(gameMode==='online'&&clockConfig&&clockConfig.type!=='unlimited'){
+      stopClock(prevPlayer);
+      if(!over)startClock(cur);
+    }
+    
+    if(vsAI && cur===aiPlayer && !over) aiThink();
   }
   function log(m){document.getElementById('lg').textContent=m;}
 
   function upd(){
-    const waitOpp=(gameMode==='online'&&cur!==myPlayer) || (vsAI && cur===2);
-    document.getElementById('tl').textContent='Turno: P'+cur+(cur===1?' (rosso)':' (blu)')+(waitOpp?' [IA/Attesa]':'');
+    const waitOpp=(gameMode==='online'&&cur!==myPlayer) || (vsAI && cur===aiPlayer);
+    document.getElementById('tl').textContent='Turno: P'+cur+(cur===1?' (rosso)':' (blu)')+(waitOpp?' [Attesa]':'');
     document.getElementById('al').textContent=
       !live()?'Navigazione — ⏭ per tornare alla partita':
       placing?'Scegli casella libera. Clic su tua pietra per annullare.':
@@ -927,6 +1253,11 @@ const G=(function(){
     const s=(rotN%3)+1;
     document.getElementById('rb').textContent='Prossima rot.: '+s+' passo'+(s>1?'i':'');
     ['M','E'].forEach(r=>{const btn=document.getElementById('btn-'+r);if(!btn)return;btn.classList.toggle('off',!(live()&&!over&&!anim&&!placing&&hP(cur,r)&&isMyTurn()));});
+    
+    const btnUndo = document.getElementById('btn-undo');
+    if(btnUndo) {
+       btnUndo.style.display = (vsAI && live() && !over && cur !== aiPlayer && hist.length > 2) ? 'inline-block' : 'none';
+    }
   }
 
   function drawWavy(x,y,color){
@@ -956,18 +1287,15 @@ const G=(function(){
   }
 
   function dSt(){
-    // Horizontal row lines — solid, visible
     RY.forEach(ry=>{
       ctx.strokeStyle='#c8c4bc';ctx.lineWidth=0.8;ctx.setLineDash([]);
       ctx.beginPath();ctx.moveTo(CX-RE-22,ry);ctx.lineTo(CX+RE+22,ry);ctx.stroke();
     });
-    // Ring circles
     const ringColors=['#b8b0a4','#b8b0a4','#b8b0a4'];
     [RE,RM,RI].forEach((r,i)=>{
       ctx.strokeStyle=ringColors[i];ctx.lineWidth=0.8;
       ctx.beginPath();ctx.arc(CX,CY,r,0,Math.PI*2);ctx.stroke();
     });
-    // Connections
     const dr=new Set();
     for(const a of getALL())for(const b of(getADJ()[a]||[])){
       const k=[a,b].sort().join(',');if(dr.has(k))continue;dr.add(k);
@@ -980,28 +1308,23 @@ const G=(function(){
   function dCell(id,isSel,isMust,isTgt,ghostPl,isVictim){
     const[x,y]=pos(id),pc=board[id],isWin=WIN.includes(id),r=rOf(id);
 
-    // Ring background colors
     let bg=r==='E'?'#f5f0e8':r==='C'?'#eeedfe':r==='I'?'#f9f7f4':'#eef2f8';
-    if(isWin)bg='#b8d98d'; // richer green for victory nodes
+    if(isWin)bg='#b8d98d'; 
     const isPlaceTgt=placing&&live()&&isMyTurn()&&board[id]===0&&(gameVer==='orig'?id!=='C':rOf(id)==='E'||rOf(id)==='M');
     if(isPlaceTgt)bg='#e8e0f8';
 
-    // Node circle
     ctx.beginPath();ctx.arc(x,y,15,0,Math.PI*2);ctx.fillStyle=bg;ctx.fill();
 
-    // Victory node: double ring marker
     if(isWin){
       ctx.strokeStyle='#6aaa2a';ctx.lineWidth=1.2;
       ctx.beginPath();ctx.arc(x,y,13,0,Math.PI*2);ctx.stroke();
     }
 
-    // Medium square border (orig only)
     if(window.medium&&window.medium[id]&&pc){
       ctx.save();ctx.strokeStyle=pc===1?'rgba(192,72,40,0.85)':'rgba(29,111,165,0.85)';
       ctx.lineWidth=1.5;const s=12;ctx.strokeRect(x-s,y-s,s*2,s*2);ctx.restore();
     }
 
-    // Node border
     let st='#c8c4bc',lw=0.8;
     if(isSel){st='#c04828';lw=2.2;}
     if(isMust){st='#e85d24';lw=2.5;}
@@ -1011,11 +1334,9 @@ const G=(function(){
     if(isPlaceTgt){st='#9a6dd7';lw=1.8;}
     ctx.strokeStyle=st;ctx.lineWidth=lw;ctx.beginPath();ctx.arc(x,y,15,0,Math.PI*2);ctx.stroke();
 
-    // Target dot on empty cells
     if(isTgt&&!ghostPl&&pc===0){ctx.fillStyle='rgba(29,158,117,0.65)';ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();}
     if(isPlaceTgt&&pc===0){ctx.fillStyle='rgba(154,109,215,0.4)';ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();}
 
-    // Ghost preview piece
     if(ghostPl){
       ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2);
       ctx.fillStyle=ghostPl===1?'rgba(192,72,40,0.35)':'rgba(29,111,165,0.35)';ctx.fill();
@@ -1023,16 +1344,13 @@ const G=(function(){
       return;
     }
 
-    // Piece — slightly larger, with highlight for depth
     if(pc){
       const col=pc===1?'#c04828':'#1d6fa5';
       const hi=pc===1?'rgba(255,180,160,0.35)':'rgba(160,200,255,0.35)';
       ctx.beginPath();ctx.arc(x,y,11,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();
-      // Convex highlight
       ctx.beginPath();ctx.arc(x-3,y-3,5,0,Math.PI*2);ctx.fillStyle=hi;ctx.fill();
     }
 
-    // Coordinate label — high contrast
     if(pc){
       ctx.fillStyle='rgba(255,255,255,0.95)';
       ctx.font='bold 7px sans-serif';
@@ -1042,7 +1360,6 @@ const G=(function(){
     }
     ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(id,x,y+1);
 
-    // Wavy border for special pieces
     if(special[id]&&pc){drawWavy(x,y,pc===1?'rgba(200,60,20,0.85)':'rgba(20,80,180,0.85)');}
   }
 
@@ -1053,7 +1370,6 @@ const G=(function(){
     for(const id of getALL()){
       const isSel=live()&&sel===id,isMust=live()&&must===id;let isTgt=false,isVictim=false;
       if(live()&&isMyTurn()&&!placing){
-        // pendingCapMid mode: highlight victim and show destinations
         if(pendingCapMid){
           if(id===pendingCapMid)isVictim=true;
           if(board[id]===0){
@@ -1068,7 +1384,10 @@ const G=(function(){
             if(!must&&!anyCap&&(adj[act]||[]).includes(id)&&board[id]===0)isTgt=true;
             if(!must&&!anyCap&&gameVer==='orig'&&special[act]){const sc=spMoves(board,act,cur);if(sc.moves.includes(id))isTgt=true;}
             if(!must&&gameVer==='beta'&&special[act]&&board[id]===0){if(betaSpReach(board,act).includes(id))isTgt=true;}
-            cF(board,act,cur).forEach(j=>{if(j.to===id)isTgt=true;});
+            
+            const normalCaptures=cF(board,act,cur);
+            normalCaptures.forEach(c=>{if(c.mid===id)isVictim=true;if(c.to===id)isTgt=true;});
+            
             if(gameVer==='orig'&&special[act]){spMoves(board,act,cur).caps.forEach(c=>{if(c.to===id)isTgt=true;});}
           }
         }
@@ -1076,36 +1395,102 @@ const G=(function(){
       dCell(id,isSel,isMust,isTgt,ghostM[id]||0,isVictim);
     }
 
-    // ── Legend ──
     const lx=10,ly=10;
     ctx.font='11px sans-serif';ctx.textBaseline='middle';ctx.textAlign='left';
-
-    // P1 piece
     ctx.beginPath();ctx.arc(lx+7,ly+7,8,0,Math.PI*2);ctx.fillStyle='#c04828';ctx.fill();
     ctx.beginPath();ctx.arc(lx+4,ly+4,3,0,Math.PI*2);ctx.fillStyle='rgba(255,180,160,0.35)';ctx.fill();
     ctx.fillStyle='#444';ctx.fillText('P1',lx+19,ly+7);
-
-    // P2 piece
     ctx.beginPath();ctx.arc(lx+48,ly+7,8,0,Math.PI*2);ctx.fillStyle='#1d6fa5';ctx.fill();
     ctx.beginPath();ctx.arc(lx+45,ly+4,3,0,Math.PI*2);ctx.fillStyle='rgba(160,200,255,0.35)';ctx.fill();
     ctx.fillStyle='#444';ctx.fillText('P2',lx+60,ly+7);
-
-    // Victory node
     ctx.beginPath();ctx.arc(lx+90,ly+7,8,0,Math.PI*2);ctx.fillStyle='#b8d98d';ctx.fill();
     ctx.strokeStyle='#6aaa2a';ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(lx+90,ly+7,7,0,Math.PI*2);ctx.stroke();
     ctx.strokeStyle='#c8c4bc';ctx.lineWidth=0.8;ctx.beginPath();ctx.arc(lx+90,ly+7,8,0,Math.PI*2);ctx.stroke();
     ctx.fillStyle='#444';ctx.fillText('I1,I3,I5',lx+102,ly+7);
-
-    // Special piece
     ctx.beginPath();ctx.arc(lx+163,ly+7,8,0,Math.PI*2);ctx.fillStyle='#888';ctx.fill();
     drawWavy(lx+163,ly+7,'rgba(80,80,80,0.9)');
     ctx.fillStyle='#444';ctx.fillText('◈ speciale',lx+175,ly+7);
   }
 
-  return{init,restart,seeBoard,surrender,rot,previewRot,clearPreview,navFirst,navPrev,navNext,navLast,copyNotation,placeMode,applyRemote};
+  return{init,restart,seeBoard,surrender,rot,previewRot,clearPreview,navFirst,navPrev,navNext,navLast,copyNotation,placeMode,applyRemote,isAnalysisAi:false,loadState,undoMove,wG,over:()=>over,cur:()=>cur};
 })();
 
 // ── ANALYSIS ENGINE ──
+let evalTimeout = null;
+let autoAnalysisEnabled = false;
+
+function toggleAutoAnalysis() {
+    autoAnalysisEnabled = document.getElementById('chk-auto-eval').checked;
+    const box = document.getElementById('an-eval-box');
+    const btn = document.getElementById('an-eval-btn');
+    if (autoAnalysisEnabled) {
+        box.style.opacity = '1';
+        btn.style.display = 'none';
+        requestAnalysisEval();
+    } else {
+        box.style.opacity = '0.6';
+        btn.style.display = 'block';
+        document.getElementById('an-eval-score').textContent = '-.-';
+        document.getElementById('an-eval-score').style.color = '#444';
+        document.getElementById('an-eval-bar').style.width = '50%';
+        clearTimeout(evalTimeout);
+    }
+}
+
+function forceAnalysisEval() {
+    if (autoAnalysisEnabled) return;
+    document.getElementById('an-eval-box').style.opacity = '1';
+    document.getElementById('an-eval-score').textContent = '...';
+    doAnalysisCall(12); // Deep calc per il bottone manuale
+}
+
+function requestAnalysisEval() {
+    if (!autoAnalysisEnabled) return;
+    doAnalysisCall(8); // Fast calc per il continuo
+}
+
+function doAnalysisCall(depth) {
+  if (!aiWorkerReady) {
+      setTimeout(() => doAnalysisCall(depth), 500); 
+      return;
+  }
+  if (!document.getElementById('analysis') || document.getElementById('analysis').style.display === 'none') return;
+  if (!A.getState) return;
+  
+  clearTimeout(evalTimeout);
+  evalTimeout = setTimeout(() => {
+      // Invia parametri prima del calcolo per evitare blocchi
+      syncAiToUI(); 
+      
+      const s = A.getState();
+      const NODI = ['E1','E2','E3','E4','E5','E6','E7','E8','E9','E10','E11','E12','E13','E14','E15','E16','E17','E18','M1','M2','M3','M4','M5','M6','M7','M8','M9','M10','M11','M12','I1','I2','I3','I4','I5','I6','C'];
+      
+      let boardArr = new Int8Array(37);
+      let specialArr = new Int8Array(37);
+      let reserveArr = new Int8Array([s.reserve[0]||0, s.reserve[1]||0]);
+
+      for (let i = 0; i < NODI.length; i++) {
+          boardArr[i] = s.board[NODI[i]] || 0;
+          specialArr[i] = s.special[NODI[i]] ? 1 : 0;
+      }
+
+      document.getElementById('an-eval-score').textContent = '...';
+
+      aiWorker.postMessage({ type: 'set_time', ms: depth > 10 ? 3000 : 800 }); 
+      aiWorker.postMessage({
+          type: 'calcola',
+          board: boardArr,
+          reserve: reserveArr,
+          special: specialArr,
+          player: s.cur,
+          max_depth: depth,
+          is_beta: 1, // <--- IL BUG ERA QUI! Ora forziamo l'analisi sulla versione Beta (1)
+          rotN: s.rotN,
+          _callbackId: 'analysis_' + Date.now() 
+      });
+  }, 300); 
+}
+
 const A=(function(){
   const cv=document.getElementById('an-cv'),ctx=cv.getContext('2d');
   const W=540,H=540,CX=270,CY=270,RE=210,RM=130,RI=58;
@@ -1115,15 +1500,11 @@ const A=(function(){
   const S20=Math.sin(20*Math.PI/180),RY=[CY+RE*S20,CY,CY-RE*S20];
   const RL=['E2','M2','I2','I3','M6','E9'],REQ=['E1','M1','I1','I4','M7','E10'],RH=['E18','M12','I6','I5','M8','E11'];
 
-  // Shared topology helpers — use same getADJ/getALL/betaSpReach from G's closure scope
-  // (they are defined in G's IIFE but reference gameVer which is module-level)
-  // We define local versions here that always use beta topology
   const AADJ={};
   function aae(a,b){if(!AADJ[a])AADJ[a]=[];if(!AADJ[b])AADJ[b]=[];if(!AADJ[a].includes(b))AADJ[a].push(b);if(!AADJ[b].includes(a))AADJ[b].push(a);}
   for(let i=1;i<=18;i++)aae('E'+i,'E'+(i===18?1:i+1));
   for(let i=1;i<=12;i++)aae('M'+i,'M'+(i===12?1:i+1));
   for(let i=1;i<=6;i++)aae('I'+i,'I'+(i===6?1:i+1));
-  // Beta topology: I1↔I4 directly, no C
   aae('E1','M1');aae('M1','I1');aae('I1','I4');aae('I4','M7');aae('M7','E10');
   aae('E2','M2');aae('M2','I2');aae('I2','I3');aae('I3','M6');aae('M6','E9');
   aae('E18','M12');aae('M12','I6');aae('I6','I5');aae('I5','M8');aae('M8','E11');
@@ -1159,10 +1540,10 @@ const A=(function(){
     return [...reached];
   }
 
-  // State
   let tree=null,curNode=null,nodeCounter=0;
   let sel=null,placing=false,prvRing=null,anim=false;
   let pendingCapMid=null;
+  let editMode=false;
 
   function makeState(board,cur,rotN,reserve,special){return{board:{...board},cur,rotN,reserve:[...reserve],special:{...special}};}
   function cloneState(s){return{board:{...s.board},cur:s.cur,rotN:s.rotN,reserve:[...s.reserve],special:{...s.special}};}
@@ -1182,20 +1563,16 @@ const A=(function(){
       if(mv.from==='riserva'){
         ns.board[mv.to]=pl;ns.reserve[pl-1]--;
       } else if(mv.mid){
-        // capture: move attacker first, then ensure captured cell is cleared
         if(ns.special[mv.from]){ns.special[mv.to]=true;delete ns.special[mv.from];}
         ns.board[mv.from]=0;
         ns.board[mv.to]=pl;
-        // remove captured piece (do this after moving attacker to avoid conflicts)
         delete ns.special[mv.mid];
         ns.board[mv.mid]=0;
         ns.reserve[pl-1]++;
       } else {
-        // No mid provided — infer capture if enemy piece sits between from and to
         const en=pl===1?2:1;
         let inferredMid=null;
         if(!(AADJ[mv.from]||[]).includes(mv.to)){
-          // not adjacent: look for enemy neighbour of from that is also neighbour of to
           for(const nb of(AADJ[mv.from]||[])){
             if(ns.board[nb]===en&&(AADJ[nb]||[]).includes(mv.to)){inferredMid=nb;break;}
           }
@@ -1233,7 +1610,21 @@ const A=(function(){
     syncFromNode();renderTree();
   }
 
-  function syncFromNode(){sel=null;placing=false;prvRing=null;pendingCapMid=null;document.getElementById('an-mode').textContent='';upd();draw();}
+  function syncFromNode(){
+    sel=null;placing=false;prvRing=null;pendingCapMid=null;
+    document.getElementById('an-mode').textContent=editMode ? 'Setup: Clicca un nodo per cambiare colore' : '';
+    upd();draw();
+    
+    if (autoAnalysisEnabled) {
+        requestAnalysisEval();
+    } else {
+        document.getElementById('an-eval-box').style.opacity = '0.6';
+        document.getElementById('an-eval-score').textContent = '-.-';
+        document.getElementById('an-eval-score').style.color = '#444';
+        document.getElementById('an-eval-bar').style.width = '50%';
+    }
+  }
+  
   function nodeDepth(n){let d=0;while(n.parent){d++;n=n.parent;}return d;}
 
   function navFirst(){let n=curNode;while(n.parent)n=n.parent;curNode=n;syncFromNode();renderTree();}
@@ -1256,11 +1647,20 @@ const A=(function(){
   }
   function flipTurn(){curNode.state.cur=curNode.state.cur===1?2:1;syncFromNode();}
   function placeMode(){
+    if(editMode) toggleEdit();
     const s=curNode.state;
     if(s.reserve[s.cur-1]===0){return;}
     placing=true;sel=null;
     document.getElementById('an-mode').textContent='Modalità piazza — clicca un nodo libero';
     upd();draw();
+  }
+  
+  function toggleEdit(){
+    editMode = !editMode;
+    const btn = document.getElementById('an-edit-btn');
+    btn.style.background = editMode ? '#e8e0f8' : '#fff';
+    placing = false; sel = null; pendingCapMid = null;
+    syncFromNode();
   }
 
   function rot(r){
@@ -1313,7 +1713,6 @@ const A=(function(){
     return'?';
   }
 
-  // ── Draw (using same visual style as main board) ──
   function drawWavyA(x,y,color){
     ctx.save();ctx.strokeStyle=color;ctx.lineWidth=1.5;
     const r=14,waves=8,amp=1.8;ctx.beginPath();
@@ -1360,10 +1759,8 @@ const A=(function(){
   function draw(){
     const s=curNode.state;
     ctx.clearRect(0,0,W,H);ctx.fillStyle='#f8f7f4';ctx.fillRect(0,0,W,H);dSt();
-    // ghost rotation preview
     let ghostM={};
     if(prvRing){const st=(s.rotN%3)+1,cells=rC(prvRing),n=cells.length;cells.forEach((c,i)=>{if(s.board[c]!==0)ghostM[cells[(i+st)%n]]=s.board[c];});}
-    // last move arrow
     if(curNode.move){
       const mv=curNode.move;
       if(mv.type==='move'&&mv.from!=='riserva'){
@@ -1378,7 +1775,7 @@ const A=(function(){
     }
     for(const id of AALL){
       const isSel=sel===id;let isTgt=false,isVictim=false;
-      if(!placing){
+      if(!placing && !editMode){
         if(pendingCapMid){
           if(id===pendingCapMid)isVictim=true;
           if(s.board[id]===0&&(AADJ[pendingCapMid]||[]).includes(id)&&id!==sel)isTgt=true;
@@ -1395,7 +1792,7 @@ const A=(function(){
   function upd(){
     const s=curNode.state;
     document.getElementById('an-tl').textContent='Turno: P'+s.cur+(s.cur===1?' (rosso)':' (blu)');
-    document.getElementById('an-al').textContent=placing?'Clicca un nodo libero. Clicca tua pietra per annullare.':sel?'Clicca destinazione.':'Clicca un pezzo o ruota un anello.';
+    document.getElementById('an-al').textContent=editMode?'Setup: Clicca i nodi per cambiare il colore dei pezzi':placing?'Clicca un nodo libero. Clicca tua pietra per annullare.':sel?'Clicca destinazione.':'Clicca un pezzo o ruota un anello.';
     document.getElementById('an-c1').textContent=cnt(s.board,1);
     document.getElementById('an-c2').textContent=cnt(s.board,2);
     document.getElementById('an-r1').textContent=s.reserve[0];
@@ -1418,6 +1815,15 @@ const A=(function(){
   function clickC(id){
     if(anim)return;
     const s=curNode.state,pl=s.cur;
+    
+    // GESTIONE NUOVO SETUP MANUALE
+    if(editMode){
+      s.board[id] = (s.board[id] + 1) % 3;
+      if(s.board[id] === 0) delete s.special[id];
+      syncFromNode();
+      return;
+    }
+    
     if(placing){
       if(s.board[id]===pl){placing=false;pendingCapMid=null;document.getElementById('an-mode').textContent='';upd();draw();return;}
       if(rOf(id)!=='E'&&rOf(id)!=='M')return;
@@ -1425,13 +1831,11 @@ const A=(function(){
       placing=false;document.getElementById('an-mode').textContent='';
       addMove({type:'move',from:'riserva',to:id},mvStr({type:'move',from:'riserva',to:id}));return;
     }
-    // pendingCapMid: victim chosen, now pick destination
     if(pendingCapMid){
       if(s.board[id]===0&&(AADJ[pendingCapMid]||[]).includes(id)&&id!==sel){
         const from=sel,mid=pendingCapMid;pendingCapMid=null;
         const mv={type:'move',from,mid,to:id};sel=null;addMove(mv,mvStr(mv));return;
       }
-      // cancel victim choice
       pendingCapMid=null;draw();return;
     }
     if(sel===null){if(s.board[id]===pl){sel=id;pendingCapMid=null;draw();}return;}
@@ -1439,7 +1843,6 @@ const A=(function(){
     if(s.board[id]===pl){sel=id;pendingCapMid=null;draw();return;}
     const cap=cF(s.board,sel,pl).find(j=>j.to===id);
     if(cap){const mv={type:'move',from:sel,mid:cap.mid,to:id};sel=null;addMove(mv,mvStr(mv));return;}
-    // special: click on adjacent enemy to choose victim
     if(s.special&&s.special[sel]&&s.board[id]!==0&&s.board[id]!==pl){
       if((AADJ[sel]||[]).includes(id)){
         const validDests=(AADJ[id]||[]).filter(nb=>nb!==sel&&s.board[nb]===0);
@@ -1493,6 +1896,84 @@ const A=(function(){
     navigator.clipboard.writeText(txt.trim()).then(()=>{const btn=document.querySelector('#an-right button:last-child');const o=btn.textContent;btn.textContent='✓ Copiato!';setTimeout(()=>btn.textContent=o,1500);}).catch(()=>alert(txt));
   }
 
+  // ══════════════════════════════════════════════════════════════
+  // SISTEMA TAN (Tre Anelli Notation) — equivalente FEN
+  // ══════════════════════════════════════════════════════════════
+  function exportTAN(){
+    const s=curNode.state;
+    const rings=['E','M','I'];
+    const ringLengths=[18,12,6];
+    let tanParts=[];
+    
+    for(let ri=0;ri<3;ri++){
+      const r=rings[ri],len=ringLengths[ri];
+      let seg='',empty=0;
+      for(let i=1;i<=len;i++){
+        const id=r+i,pc=s.board[id]||0,sp=s.special&&s.special[id];
+        if(pc===0){empty++;}
+        else{
+          if(empty>0){seg+=empty;empty=0;}
+          if(pc===1)seg+=sp?'R':'r';
+          else seg+=sp?'B':'b';
+        }
+      }
+      if(empty>0)seg+=empty;
+      tanParts.push(seg);
+    }
+    
+    const turn=s.cur===1?'r':'b';
+    const res=s.reserve[0]+':'+s.reserve[1];
+    const moveN=Math.ceil(nodeDepth(curNode)/2)||1;
+    const rotN=s.rotN%3;
+    
+    return tanParts.join('/')+' '+turn+' '+res+' '+moveN+' '+rotN;
+  }
+  
+  function importTAN(tan){
+    const parts=tan.trim().split(/\s+/);
+    if(parts.length!==5)return false;
+    
+    const [ringData,turnS,resS,moveS,rotS]=parts;
+    const rings=ringData.split('/');
+    if(rings.length!==3)return false;
+    
+    const board={};AALL.forEach(c=>board[c]=0);
+    const special={};
+    const ringNames=['E','M','I'];
+    
+    for(let ri=0;ri<3;ri++){
+      const seg=rings[ri],r=ringNames[ri];
+      let idx=1,i=0;
+      while(i<seg.length){
+        const ch=seg[i];
+        if(/\d/.test(ch)){
+          let numStr = '';
+          while(i < seg.length && /\d/.test(seg[i])) { numStr += seg[i]; i++; }
+          idx += parseInt(numStr);
+        }
+        else{
+          const id=r+idx;
+          if(ch==='r')board[id]=1;
+          else if(ch==='R'){board[id]=1;special[id]=true;}
+          else if(ch==='b')board[id]=2;
+          else if(ch==='B'){board[id]=2;special[id]=true;}
+          idx++;i++;
+        }
+      }
+    }
+    
+    const cur=turnS==='r'?1:2;
+    const reserve=resS.split(':').map(x=>parseInt(x)||0);
+    const rotN=parseInt(rotS)||0;
+    
+    const st=makeState(board,cur,rotN,reserve,special);
+    nodeCounter=0;
+    tree={id:nodeCounter++,move:null,moveStr:'TAN import',player:0,state:st,children:[],parent:null};
+    curNode=tree;
+    syncFromNode();renderTree();
+    return true;
+  }
+
   function parseNotation(text){
     const lines=text.split('\n').map(l=>l.trim()).filter(l=>l&&!l.startsWith('['));
     const tokens=[];
@@ -1525,9 +2006,31 @@ const A=(function(){
     if(errors>0)errEl.textContent=errors+' token non riconosciuti (ignorati).';
   }
 
+  function loadTAN(){
+    const tan=document.getElementById('an-tan').value.trim();
+    const err=document.getElementById('an-tan-err');
+    err.textContent='';
+    if(!tan){err.textContent='Inserisci una stringa TAN valida.';return;}
+    if(!importTAN(tan)){err.textContent='Formato TAN non valido.';return;}
+    err.style.color='#1d9e75';
+    err.textContent='✓ Posizione caricata!';
+    setTimeout(()=>{err.textContent='';err.style.color='#e85d24';},2000);
+  }
+  
+  function copyTAN(){
+    const tan=exportTAN();
+    document.getElementById('an-tan').value=tan;
+    navigator.clipboard.writeText(tan).then(()=>{
+      const err=document.getElementById('an-tan-err');
+      err.style.color='#1d9e75';
+      err.textContent='✓ TAN copiato negli appunti!';
+      setTimeout(()=>{err.textContent='';err.style.color='#e85d24';},2000);
+    }).catch(()=>alert(tan));
+  }
+
   function init(){initTree();renderTree();syncFromNode();}
 
-  return{init,navFirst,navPrev,navNext,navLast,rot,previewRot,clearPreview,flipTurn,placeMode,deleteNode,promoteVariation,loadNotation,copyTree};
+  return{init,navFirst,navPrev,navNext,navLast,rot,previewRot,clearPreview,flipTurn,placeMode,deleteNode,promoteVariation,loadNotation,copyTree,toggleEdit,getState:()=>curNode.state,loadTAN,copyTAN};
 })();
 </script>
 </body>
