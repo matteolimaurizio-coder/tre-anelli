@@ -528,13 +528,14 @@ function toggleGameAutoAnalysis() {
 function forceGameAnalysisEval() {
     if (gameAutoAnalysisEnabled) return;
     document.getElementById('game-eval-box').style.opacity = '1';
+    document.getElementById('game-eval-btn').style.display = 'none';
     document.getElementById('lab-eval-score').textContent = '...';
     doGameAnalysisCall(12);
 }
 
 function requestGameEval() {
     if (!gameAutoAnalysisEnabled) return;
-    if (G && typeof G.isVsAI === 'function' && G.isVsAI() && G.cur() === aiPlayer) return; // Non disturba il turno dell'IA
+    if (G && typeof G.isVsAI === 'function' && G.isVsAI() && G.cur() === aiPlayer) return;
     if (G && typeof G.over === 'function' && G.over()) return;
     doGameAnalysisCall(8);
 }
@@ -600,13 +601,17 @@ aiWorker.onmessage = function(e) {
      if (isAnalysisEval) {
          updateEvalVisuals(e.data, 'an-eval-score', 'an-eval-bar');
          document.getElementById('an-eval-box').style.opacity = '1';
+         document.getElementById('an-eval-btn').style.display = 'none';
      } else if (isGameEval) {
          updateEvalVisuals(e.data, 'lab-eval-score', 'lab-eval-bar');
          document.getElementById('game-eval-box').style.opacity = '1';
+         document.getElementById('game-eval-btn').style.display = 'none';
      } else {
          const isAnalysisOpen = document.getElementById('analysis') && document.getElementById('analysis').style.display === 'block';
          if (!isAnalysisOpen) {
-             updateEvalVisuals(e.data, 'lab-eval-score', 'lab-eval-bar');
+             if (gameAutoAnalysisEnabled) {
+                 updateEvalVisuals(e.data, 'lab-eval-score', 'lab-eval-bar');
+             }
              if (window.handleAIMove) window.handleAIMove(e.data);
          }
      }
@@ -780,7 +785,7 @@ function startOnline(code,player,ver){
       timeLeft=[tc.base,tc.base];
       document.getElementById('clock-bar').style.display='flex';
       updateClockDisplay();
-      startClock(1); // START THE CLOCK WHEN GAME STARTS
+      startClock(1);
     } else {
       clockConfig={type:'unlimited',base:0,increment:0};
       document.getElementById('clock-bar').style.display='none';
@@ -876,7 +881,7 @@ function openAnalysis(){
   document.getElementById('lobby').style.display='none';
   document.getElementById('analysis').style.display='block';
   A.init();
-  toggleAutoAnalysis(); // Inizializza visuale barra
+  toggleAutoAnalysis(); 
 }
 function closeAnalysis(){
   document.getElementById('analysis').style.display='none';
@@ -1044,9 +1049,12 @@ const G=(function(){
     document.getElementById('notation-log').innerHTML='';
     document.getElementById('reserve-bar').style.display=ver==='beta'?'flex':'none';
     
-    document.getElementById('lab-eval-score').textContent = '±0.0';
+    document.getElementById('lab-eval-score').textContent = '-.-';
     document.getElementById('lab-eval-score').style.color = 'var(--text2)';
     document.getElementById('lab-eval-bar').style.width = '50%';
+    document.getElementById('game-eval-box').style.opacity = '0.6';
+    const evalBtn = document.getElementById('game-eval-btn');
+    if(evalBtn && !gameAutoAnalysisEnabled) evalBtn.style.display = 'block';
     
     hist.push(sn());nUpd();upd();draw();
     
@@ -1529,7 +1537,18 @@ const G=(function(){
     const tanEl = document.getElementById('game-tan');
     if(tanEl) tanEl.value = exportTAN();
     
-    if (typeof requestGameEval === 'function') requestGameEval();
+    if (gameAutoAnalysisEnabled) {
+        if (typeof requestGameEval === 'function') requestGameEval();
+    } else {
+        const box = document.getElementById('game-eval-box');
+        const btn = document.getElementById('game-eval-btn');
+        const score = document.getElementById('lab-eval-score');
+        const bar = document.getElementById('lab-eval-bar');
+        if(box) box.style.opacity = '0.6';
+        if(btn) btn.style.display = 'block';
+        if(score) { score.textContent = '-.-'; score.style.color = 'var(--text2)'; }
+        if(bar) bar.style.width = '50%';
+    }
   }
 
   function drawWavy(x,y,color){
@@ -1705,6 +1724,7 @@ function toggleAutoAnalysis() {
 function forceAnalysisEval() {
     if (autoAnalysisEnabled) return;
     document.getElementById('an-eval-box').style.opacity = '1';
+    document.getElementById('an-eval-btn').style.display = 'none';
     document.getElementById('an-eval-score').textContent = '...';
     doAnalysisCall(12); 
 }
@@ -1878,8 +1898,18 @@ const A=(function(){
     sel=null;placing=false;prvRing=null;pendingCapMid=null;
     document.getElementById('an-mode').textContent=editMode ? 'Setup: Clicca un nodo per cambiare colore' : '';
     upd();draw();
-    requestAnalysisEval();
+    
+    if (autoAnalysisEnabled) {
+        requestAnalysisEval();
+    } else {
+        document.getElementById('an-eval-box').style.opacity = '0.6';
+        document.getElementById('an-eval-btn').style.display = 'block';
+        document.getElementById('an-eval-score').textContent = '-.-';
+        document.getElementById('an-eval-score').style.color = 'var(--text2)';
+        document.getElementById('an-eval-bar').style.width = '50%';
+    }
   }
+  
   function nodeDepth(n){let d=0;while(n.parent){d++;n=n.parent;}return d;}
 
   function navFirst(){let n=curNode;while(n.parent)n=n.parent;curNode=n;syncFromNode();renderTree();}
@@ -2293,7 +2323,7 @@ const A=(function(){
 
   function init(){initTree();renderTree();syncFromNode();}
 
-  return{init,navFirst,navPrev,navNext,navLast,rot,previewRot,clearPreview,flipTurn,placeMode,deleteNode,promoteVariation,loadNotation,copyTree,toggleEdit,getState:()=>curNode.state,loadTAN,copyTAN};
+  return{init,navFirst,navPrev,navNext,navLast,rot,previewRot,clearPreview,flipTurn,placeMode,deleteNode,promoteVariation,loadNotation,copyTree,toggleEdit,getState:()=>curNode.state,loadTAN,copyTAN,redraw:draw};
 })();
 </script>
 </body>
