@@ -240,6 +240,8 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
   </div>
   
   <div id="info-bar">
+    <span>🔴 P1: <b id="c1">9</b></span>
+    <span>🔵 P2: <b id="c2">9</b></span>
     <span id="rb">Prossima rot.: 1</span>
   </div>
   
@@ -264,26 +266,38 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
     <button id="nl2" onclick="G.navLast()">⏭</button>
   </div>
 
+  <div style="margin-top:10px; display:flex; gap:6px;">
+    <input id="game-tan" type="text" readonly style="flex:1;font-family:monospace;font-size:11px;border:.5px solid var(--border);border-radius:7px;padding:6px;background:var(--surface2);color:var(--text);" placeholder="TAN corrente...">
+    <button onclick="G.copyTAN()" style="font-size:11px;padding:5px 10px;cursor:pointer;border-radius:6px;border:1px solid var(--btn-border);color:var(--text2);background:var(--btn-bg);">Copia TAN</button>
+  </div>
+
   <div id="ai-monitor" style="display:none;">
-    <div id="ai-head">
-      <span>🤖 Laboratorio IA</span>
-      <select id="monitor-ai-diff" onchange="changeAiDiff()" style="font-size:11px; padding:2px 6px; border-radius:4px; border:1px solid #ccc; outline:none; cursor:pointer;">
-        <option value="easy">Livello: Facile</option>
-        <option value="medium" selected>Livello: Medio</option>
-        <option value="hard">Livello: Difficile</option>
-      </select>
+    <div id="ai-head" style="flex-wrap:wrap; gap:8px;">
+      <span style="font-size:12px; font-weight:600; color:var(--text2);">Valutazione Motore</span>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <label style="font-size:11px; color:var(--text3); display:flex; align-items:center; gap:5px; cursor:pointer;">
+            <input type="checkbox" id="chk-game-auto-eval" onchange="toggleGameAutoAnalysis()" style="accent-color:#9a6dd7;">
+            Analisi Continua
+        </label>
+        <select id="monitor-ai-diff" onchange="changeAiDiff()" style="font-size:11px; padding:2px 6px; border-radius:4px; border:1px solid var(--border); background:var(--surface); color:var(--text); outline:none; cursor:pointer;">
+          <option value="easy">Livello: Facile</option>
+          <option value="medium" selected>Livello: Medio</option>
+          <option value="hard">Livello: Difficile</option>
+        </select>
+      </div>
     </div>
     <div id="ai-body">
-      <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px; padding:8px; background:#f9f9f9; border-radius:6px; border:1px solid #eee;">
-        <div id="lab-eval-score" style="font-size:16px; font-weight:700; min-width:45px; text-align:center; color:#444;">±0.0</div>
+      <div id="game-eval-box" style="display:flex; align-items:center; gap:8px; margin-bottom:10px; padding:8px; background:var(--surface2); border-radius:6px; border:1px solid var(--border); opacity:0.6; transition:opacity 0.3s;">
+        <div id="lab-eval-score" style="font-size:16px; font-weight:700; min-width:45px; text-align:center; color:var(--text2);">-.-</div>
         <div style="flex:1; height:10px; background:#1d6fa5; border-radius:5px; overflow:hidden;">
           <div id="lab-eval-bar" style="height:100%; width:50%; background:#c04828; transition:width .4s ease;"></div>
         </div>
+        <button id="game-eval-btn" onclick="forceGameAnalysisEval()" style="font-size:11px; padding:4px 10px; cursor:pointer; border-radius:6px; border:1px solid #9a6dd7; background:var(--beta-hover); color:var(--beta-color); font-weight:bold; outline:none;">Analizza</button>
       </div>
       
-      <details style="font-size:11px; color:#555; background:#fcfcfc; border:1px solid #eee; border-radius:6px; padding:6px;">
+      <details style="font-size:11px; color:var(--text5); background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:6px;">
         <summary style="cursor:pointer; font-weight:600; outline:none;">⚙️ Impostazioni Motore Avanzate</summary>
-        <div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px;">
+        <div style="margin-top:10px; border-top:1px solid var(--border); padding-top:10px;">
            <div class="ai-row"><label>Tempo (ms)</label><input type="range" id="sl-ms" min="500" max="15000" step="500" value="3000"><span class="val" id="sl-ms-v">3000</span></div>
            <div class="ai-row"><label>Pesi Cattura</label><input type="range" id="sl-cap" min="0" max="200" step="10" value="100"><span class="val" id="sl-cap-v">100</span></div>
            <div class="ai-row"><label>Pesi Vittoria</label><input type="range" id="sl-win" min="0" max="150" step="10" value="50"><span class="val" id="sl-win-v">50</span></div>
@@ -399,7 +413,7 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
 </div>
 
 <script>
-// ── SISTEMA TEMI ─────────────────────────────────────────────
+// SISTEMA TEMI 
 const THEMES = {
   classic: {
     cvBg:'#f8f7f4',
@@ -459,7 +473,7 @@ function T(){return THEMES[currentTheme]||THEMES.classic;}
   try{const s=localStorage.getItem('ta_theme');if(s)setTheme(s);}catch(e){}
 })();
 
-// --- MENU A SCOMPARSA ---
+// MENU A SCOMPARSA E VALUTAZIONE
 function toggleAiMenu() {
     const menu = document.getElementById('ai-menu');
     menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
@@ -470,7 +484,6 @@ function showCreateMenu() {
   menu.style.display = menu.style.display === 'none' ? 'block' : 'none'; 
 }
 
-// --- FUNZIONE CENTRALE PER AGGIORNARE LE BARRE VALUTAZIONE ---
 function updateEvalVisuals(msg, scoreElId, barElId) {
     const raw = msg.eval_score || 0;
     const pawns = Math.abs(raw / 100).toFixed(1);
@@ -490,7 +503,84 @@ function updateEvalVisuals(msg, scoreElId, barElId) {
     }
 }
 
-// --- CONFIGURAZIONE IA E WORKER ---
+// LOGICA AUTO-EVAL PARTITA
+let gameEvalTimeout = null;
+let gameAutoAnalysisEnabled = false;
+
+function toggleGameAutoAnalysis() {
+    gameAutoAnalysisEnabled = document.getElementById('chk-game-auto-eval').checked;
+    const box = document.getElementById('game-eval-box');
+    const btn = document.getElementById('game-eval-btn');
+    if (gameAutoAnalysisEnabled) {
+        box.style.opacity = '1';
+        btn.style.display = 'none';
+        if (typeof requestGameEval === 'function') requestGameEval();
+    } else {
+        box.style.opacity = '0.6';
+        btn.style.display = 'block';
+        document.getElementById('lab-eval-score').textContent = '-.-';
+        document.getElementById('lab-eval-score').style.color = 'var(--text2)';
+        document.getElementById('lab-eval-bar').style.width = '50%';
+        clearTimeout(gameEvalTimeout);
+    }
+}
+
+function forceGameAnalysisEval() {
+    if (gameAutoAnalysisEnabled) return;
+    document.getElementById('game-eval-box').style.opacity = '1';
+    document.getElementById('lab-eval-score').textContent = '...';
+    doGameAnalysisCall(12);
+}
+
+function requestGameEval() {
+    if (!gameAutoAnalysisEnabled) return;
+    if (G && typeof G.isVsAI === 'function' && G.isVsAI() && G.cur() === aiPlayer) return; // Non disturba il turno dell'IA
+    if (G && typeof G.over === 'function' && G.over()) return;
+    doGameAnalysisCall(8);
+}
+
+function doGameAnalysisCall(depth) {
+    if (!aiWorkerReady || !G || typeof G.getBoard !== 'function') {
+        setTimeout(() => doGameAnalysisCall(depth), 500); 
+        return;
+    }
+    if (document.getElementById('game').style.display === 'none') return;
+    
+    clearTimeout(gameEvalTimeout);
+    gameEvalTimeout = setTimeout(() => {
+        syncAiToUI();
+        
+        const NODI = ['E1','E2','E3','E4','E5','E6','E7','E8','E9','E10','E11','E12','E13','E14','E15','E16','E17','E18','M1','M2','M3','M4','M5','M6','M7','M8','M9','M10','M11','M12','I1','I2','I3','I4','I5','I6','C'];
+        let boardArr = new Int8Array(37);
+        let specialArr = new Int8Array(37);
+        let rs = G.getReserve();
+        let reserveArr = new Int8Array([rs[0]||0, rs[1]||0]);
+        let b = G.getBoard();
+        let sp = G.getSpecial();
+
+        for (let i = 0; i < NODI.length; i++) {
+            boardArr[i] = b[NODI[i]] || 0;
+            specialArr[i] = sp[NODI[i]] ? 1 : 0;
+        }
+
+        document.getElementById('lab-eval-score').textContent = '...';
+
+        aiWorker.postMessage({ type: 'set_time', ms: depth > 10 ? 3000 : 800 }); 
+        aiWorker.postMessage({
+            type: 'calcola',
+            board: boardArr,
+            reserve: reserveArr,
+            special: specialArr,
+            player: G.cur(),
+            max_depth: depth,
+            is_beta: 1, 
+            rotN: G.getRotN(),
+            _callbackId: 'game_eval_' + Date.now() 
+        });
+    }, 300);
+}
+
+// CONFIGURAZIONE IA E WORKER 
 const AI_SETTINGS = {
   easy:   { maxDepth: 4,  ms: 1000,  o_cap: 10,  o_win: 20, o_rot: 100, o_place: 80 },
   medium: { maxDepth: 12, ms: 3000,  o_cap: 100, o_win: 50, o_rot: 0,   o_place: 20 },
@@ -505,14 +595,17 @@ aiWorker.onmessage = function(e) {
   }
   else if (e.data.type === 'mossa') {
      const isAnalysisEval = e.data._callbackId && e.data._callbackId.startsWith('analysis_');
+     const isGameEval = e.data._callbackId && e.data._callbackId.startsWith('game_eval_');
+     
      if (isAnalysisEval) {
          updateEvalVisuals(e.data, 'an-eval-score', 'an-eval-bar');
          document.getElementById('an-eval-box').style.opacity = '1';
+     } else if (isGameEval) {
+         updateEvalVisuals(e.data, 'lab-eval-score', 'lab-eval-bar');
+         document.getElementById('game-eval-box').style.opacity = '1';
      } else {
          const isAnalysisOpen = document.getElementById('analysis') && document.getElementById('analysis').style.display === 'block';
-         if (isAnalysisOpen) {
-             updateEvalVisuals(e.data, 'an-eval-score', 'an-eval-bar');
-         } else {
+         if (!isAnalysisOpen) {
              updateEvalVisuals(e.data, 'lab-eval-score', 'lab-eval-bar');
              if (window.handleAIMove) window.handleAIMove(e.data);
          }
@@ -709,7 +802,6 @@ function startOnline(code,player,ver){
 
 function sendMove(mv){
   if(movesRef){
-      // Aggiungo il tempo rimanente al pacchetto Firebase per la perfetta sincronia
       if(clockConfig && clockConfig.type !== 'unlimited') {
           mv.time = Math.max(0, timeLeft[mv.player - 1]);
       }
@@ -777,6 +869,7 @@ function goMenu(){
   if(clockInterval){clearInterval(clockInterval);clockInterval=null;}
   clockConfig=null;
   document.getElementById('clock-bar').style.display='none';
+  clearTimeout(gameEvalTimeout);
 }
 
 function openAnalysis(){
@@ -892,6 +985,40 @@ const G=(function(){
     notMoves.forEach(m=>{txt+=m.num+'. '+m.p1+'  '+(m.p2||'…')+'\n';});
     if(pendingHalf)txt+=(notMoves.length+1)+'. '+pendingHalf+'  …\n';
     navigator.clipboard.writeText(txt).then(()=>{const btn=document.querySelector('#notation-head button');const o=btn.textContent;btn.textContent='✓ Copiato!';setTimeout(()=>btn.textContent=o,1500);}).catch(()=>alert(txt));
+  }
+  function exportTAN(){
+    const rings=['E','M','I'];
+    const ringLengths=[18,12,6];
+    let tanParts=[];
+    for(let ri=0;ri<3;ri++){
+      const r=rings[ri],len=ringLengths[ri];
+      let seg='',empty=0;
+      for(let i=1;i<=len;i++){
+        const id=r+i,pc=board[id]||0,sp=special&&special[id];
+        if(pc===0){empty++;}
+        else{
+          if(empty>0){seg+=empty;empty=0;}
+          if(pc===1)seg+=sp?'R':'r';
+          else seg+=sp?'B':'b';
+        }
+      }
+      if(empty>0)seg+=empty;
+      tanParts.push(seg);
+    }
+    const turn=cur===1?'r':'b';
+    const res=reserve[0]+':'+reserve[1];
+    const moveN=Math.max(1, Math.ceil((hist.length)/2));
+    const rotNum=rotN%3;
+    return tanParts.join('/')+' '+turn+' '+res+' '+moveN+' '+rotNum;
+  }
+  function copyTAN(){
+    const tan = exportTAN();
+    navigator.clipboard.writeText(tan).then(()=>{
+        const btn = document.querySelector("#game button[onclick='G.copyTAN()']");
+        const o = btn.textContent;
+        btn.textContent = '✓ Copiato!';
+        setTimeout(() => btn.textContent = o, 1500);
+    });
   }
 
   function sn(){return{b:Object.assign({},board),cur,rotN,lm:lastMove?{...lastMove}:null,sp:Object.assign({},special),md:window.medium?Object.assign({},window.medium):null,rv:[...reserve]};}
@@ -1084,11 +1211,16 @@ const G=(function(){
 
   function applyRemote(mv){
     if(over)return;
-    const pl=mv.player;
     
-    // GESTIONE SINCRONIA OROLOGIO
+    // SURRENDER REMOTO
+    if(mv.type==='surrender'){
+      wG(mv.player===1?2:1,"L'avversario ha abbandonato.");
+      return;
+    }
+    
+    const pl=mv.player;
     if(mv.time !== undefined && clockConfig && clockConfig.type !== 'unlimited') {
-        timeLeft[pl-1] = mv.time; // Azzera qualsiasi lag di rete per chi ha mosso
+        timeLeft[pl-1] = mv.time; 
     }
 
     if(mv.type==='place'||(mv.type==='move'&&mv.from==='riserva')){
@@ -1343,7 +1475,9 @@ const G=(function(){
   }
   function surrender(){
     if(over||!live())return;
-    wG(cur===1?2:1,'Abbandono.');
+    const winner=myPlayer===1?2:1;
+    if(gameMode==='online')sendMove({type:'surrender',player:myPlayer});
+    wG(winner,'Abbandono.');
   }
   function endT(){
     const prevPlayer=cur; 
@@ -1385,13 +1519,17 @@ const G=(function(){
        btnUndo.style.display = (vsAI && live() && !over && cur !== aiPlayer && hist.length > 2) ? 'inline-block' : 'none';
     }
     
-    // Aggiornamento colori orologi attivi/inattivi
     const c1El = document.getElementById('clock-p1');
     const c2El = document.getElementById('clock-p2');
     if(c1El && c2El) {
         c1El.style.background = (cur === 1) ? 'var(--nlog-cur)' : 'var(--surface2)';
         c2El.style.background = (cur === 2) ? 'var(--nlog-cur)' : 'var(--surface2)';
     }
+    
+    const tanEl = document.getElementById('game-tan');
+    if(tanEl) tanEl.value = exportTAN();
+    
+    if (typeof requestGameEval === 'function') requestGameEval();
   }
 
   function drawWavy(x,y,color){
@@ -1533,7 +1671,13 @@ const G=(function(){
     }
   }
 
-  return{init,restart,seeBoard,surrender,rot,previewRot,clearPreview,navFirst,navPrev,navNext,navLast,copyNotation,placeMode,applyRemote,isAnalysisAi:false,loadState,undoMove,wG,over:()=>over,cur:()=>cur};
+  return{
+      init,restart,seeBoard,surrender,rot,previewRot,clearPreview,navFirst,navPrev,navNext,navLast,
+      copyNotation,placeMode,applyRemote,isAnalysisAi:false,loadState,undoMove,wG,
+      over:()=>over,cur:()=>cur,isVsAI:()=>vsAI,
+      getBoard:()=>board, getSpecial:()=>special, getReserve:()=>reserve, getRotN:()=>rotN,
+      exportTAN,copyTAN
+  };
 })();
 
 // ── ANALYSIS ENGINE ──
@@ -2011,8 +2155,13 @@ const A=(function(){
     navigator.clipboard.writeText(txt.trim()).then(()=>{const btn=document.querySelector('#an-right button:last-child');const o=btn.textContent;btn.textContent='✓ Copiato!';setTimeout(()=>btn.textContent=o,1500);}).catch(()=>alert(txt));
   }
   
+  // ══════════════════════════════════════════════════════════════
+  // SISTEMA TAN (Tre Anelli Notation) — equivalente FEN
+  // ══════════════════════════════════════════════════════════════
   function exportTAN(){
     const s=curNode.state;
+    // Formato: b16r/12/6 b 0:0 14 1
+    // Anello esterno (E1-E18), medio (M1-M12), interno (I1-I6)
     const rings=['E','M','I'];
     const ringLengths=[18,12,6];
     let tanParts=[];
@@ -2042,6 +2191,7 @@ const A=(function(){
   }
   
   function importTAN(tan){
+    // Parsing: "b16r/12/6 b 0:0 14 1"
     const parts=tan.trim().split(/\s+/);
     if(parts.length!==5)return false;
     
@@ -2052,6 +2202,7 @@ const A=(function(){
     const board={};AALL.forEach(c=>board[c]=0);
     const special={};
     const ringNames=['E','M','I'];
+    const ringLengths=[18,12,6];
     
     for(let ri=0;ri<3;ri++){
       const seg=rings[ri],r=ringNames[ri];
@@ -2142,7 +2293,7 @@ const A=(function(){
 
   function init(){initTree();renderTree();syncFromNode();}
 
-  return{init,navFirst,navPrev,navNext,navLast,rot,previewRot,clearPreview,flipTurn,placeMode,deleteNode,promoteVariation,loadNotation,copyTree,toggleEdit,getState:()=>curNode.state,loadTAN,copyTAN,redraw:draw};
+  return{init,navFirst,navPrev,navNext,navLast,rot,previewRot,clearPreview,flipTurn,placeMode,deleteNode,promoteVariation,loadNotation,copyTree,toggleEdit,getState:()=>curNode.state,loadTAN,copyTAN};
 })();
 </script>
 </body>
