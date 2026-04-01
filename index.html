@@ -125,8 +125,8 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
   </select>
   <div style="font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:600;">Stile Pedine</div>
   <select id="sel-pieces" onchange="setPieceStyle(this.value)" style="width:100%;font-size:12px;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);outline:none;cursor:pointer;">
-    <option value="classic">Classiche (Raggi)</option>
-    <option value="alt">Alternative (Serpenti/Uccelli)</option>
+    <option value="classic">Normale</option>
+    <option value="emoji">Cocomeri!</option>
   </select>
 </div>
 
@@ -287,7 +287,7 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
     </div>
     <div id="ai-body">
       <details style="font-size:11px; color:var(--text5); background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:6px;">
-        <summary style="cursor:pointer; font-weight:600; outline:none;">⚙️ Impostazioni Motore Avanzate</summary>
+        <summary style="cursor:pointer; font-weight:600; outline:none;">⚙️ Impostazioni Avanzate (Pesi)</summary>
         <div style="margin-top:10px; border-top:1px solid var(--border); padding-top:10px;">
            <div class="ai-row"><label>Tempo (ms)</label><input type="range" id="sl-ms" min="500" max="15000" step="500" value="3000"><span class="val" id="sl-ms-v">3000</span></div>
            <div class="ai-row"><label>Pesi Cattura</label><input type="range" id="sl-cap" min="0" max="200" step="10" value="100"><span class="val" id="sl-cap-v">100</span></div>
@@ -402,7 +402,6 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
     </div>
   </div>
 </div>
-
 <script>
 // --- IMPOSTAZIONI GLOBALI & TEMI ---
 function toggleSettings() {
@@ -477,43 +476,21 @@ function T(){return THEMES[currentTheme]||THEMES.classic;}
   try{const p=localStorage.getItem('ta_pieces');if(p){currentPieceStyle=p;document.addEventListener('DOMContentLoaded',()=>{const sel=document.getElementById('sel-pieces');if(sel)sel.value=p;});}}catch(e){}
 })();
 
-// --- FUNZIONI DI DISEGNO PEDINE ALTERNATIVE ---
-function drawSnakeBody(ctx, x, y, color) {
+// --- FUNZIONI DI DISEGNO PEDINE EMOJI ---
+function drawEmojiPiece(ctx, x, y, isPlayer1, isSpecial) {
   ctx.save();
-  const numCoils = 2, startRadius = 2, endRadius = 11, segments = 60, baseThickness = 2.8, tipThickness = 0.3, taperStart = 0.8;
-  ctx.strokeStyle = color; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  ctx.beginPath();
-  for(let i = 0; i <= segments; i++) {
-    const t = i / segments;
-    const angle = t * Math.PI * 2 * numCoils;
-    const radius = startRadius + (endRadius - startRadius) * t;
-    const px = x + Math.cos(angle) * radius, py = y + Math.sin(angle) * radius;
-    if(i===0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  ctx.font = '18px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  
+  let emoji;
+  if(isPlayer1) {
+    emoji = isSpecial ? '🔥' : '🍉';
+  } else {
+    emoji = isSpecial ? '🌀' : '💧';
   }
-  ctx.lineWidth = 2.5; 
-  ctx.stroke();
-  ctx.restore();
-}
-
-function drawBirdFeathers(ctx, x, y, color) {
-  ctx.save();
-  const numFeathers = 4, featherLength = 11, featherWidth = 6;
-  ctx.fillStyle = color; ctx.strokeStyle = color; ctx.lineWidth = 0.8; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  for(let f = 0; f < numFeathers; f++) {
-    const angle = (f / numFeathers) * Math.PI * 2 - Math.PI/2 + Math.PI/4;
-    ctx.beginPath(); ctx.moveTo(x, y);
-    for(let i = 0; i <= 20; i++) {
-      const t = i / 20, dist = t * featherLength, width = featherWidth * Math.sin(t * Math.PI) * 0.55;
-      const perpAngle = angle - Math.PI/2;
-      ctx.lineTo(x + Math.cos(angle) * dist + Math.cos(perpAngle) * width, y + Math.sin(angle) * dist + Math.sin(perpAngle) * width);
-    }
-    for(let i = 20; i >= 0; i--) {
-      const t = i / 20, dist = t * featherLength, width = featherWidth * Math.sin(t * Math.PI) * 0.55;
-      const perpAngle = angle + Math.PI/2;
-      ctx.lineTo(x + Math.cos(angle) * dist + Math.cos(perpAngle) * width, y + Math.sin(angle) * dist + Math.sin(perpAngle) * width);
-    }
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-  }
+  
+  ctx.fillText(emoji, x, y);
   ctx.restore();
 }
 
@@ -525,14 +502,13 @@ function drawWavyGlobal(ctx, x, y, color){
 }
 
 // --- MENU A SCOMPARSA ---
-function toggleAiMenu() {
-    const menu = document.getElementById('ai-menu');
-    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
-}
-
 function showCreateMenu() { 
   const menu = document.getElementById('create-menu'); 
   menu.style.display = menu.style.display === 'none' ? 'block' : 'none'; 
+}
+function toggleAiMenu() {
+    const menu = document.getElementById('ai-menu');
+    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
 }
 
 // --- FUNZIONE CENTRALE PER AGGIORNARE LE BARRE VALUTAZIONE ---
@@ -564,6 +540,7 @@ const AI_SETTINGS = {
 
 let aiWorkerReady = false;
 let isAiCalculating = false;
+let workerTasks = []; // CODA per evitare sovrapposizioni e blocchi
 let aiWorker = new Worker('engine_worker.js');
 
 aiWorker.onmessage = function(e) {
@@ -571,15 +548,21 @@ aiWorker.onmessage = function(e) {
       aiWorkerReady = true;
   }
   else if (e.data.type === 'mossa') {
+     // Filtra le risposte spurie
+     if (typeof e.data.eval_score === 'undefined') return;
+
+     const isAnalysisOpen = document.getElementById('analysis') && document.getElementById('analysis').style.display === 'block';
      const cbId = e.data._callbackId || '';
 
-     if (cbId.startsWith('analysis_')) {
+     if (isAnalysisOpen) {
          updateEvalVisuals(e.data, 'an-eval-score', 'an-eval-bar');
          document.getElementById('an-eval-box').style.opacity = '1';
          document.getElementById('an-eval-btn').style.display = 'none';
-     } else if (cbId === 'bot_move') {
-         isAiCalculating = false; 
-         if (window.handleAIMove) window.handleAIMove(e.data);
+     } else {
+         if (cbId === 'bot_move') {
+             isAiCalculating = false; 
+             if (window.handleAIMove) window.handleAIMove(e.data);
+         }
      }
   }
 };
@@ -840,7 +823,7 @@ function goMenu(){
   if(clockInterval){clearInterval(clockInterval);clockInterval=null;}
   clockConfig=null;
   document.getElementById('clock-bar').style.display='none';
-  isAiCalculating=false;
+  isAiCalculating = false;
 }
 
 function openAnalysis(){
@@ -1130,6 +1113,7 @@ const G=(function(){
     }
     
     isAiCalculating = true;
+    
     document.getElementById('al').textContent = 'L\'IA sta pensando...';
     
     let boardArr = new Int8Array(37);
@@ -1179,7 +1163,7 @@ const G=(function(){
         setTimeout(() => {
             clickC(to_str, true);
             if (must && !over && cur === aiPlayer) {
-                setTimeout(aiThink, 600);
+                aiThink();
             }
         }, 400);
     }
@@ -1188,7 +1172,6 @@ const G=(function(){
   function applyRemote(mv){
     if(over)return;
     
-    // SURRENDER REMOTO
     if(mv.type==='surrender'){
       wG(mv.player===1?2:1,"L'avversario ha abbandonato.");
       return;
@@ -1466,7 +1449,7 @@ const G=(function(){
       if(!over)startClock(cur);
     }
     
-    if(vsAI && cur===aiPlayer && !over) setTimeout(aiThink, 600);
+    if(vsAI && cur===aiPlayer && !over) aiThink();
   }
   function log(m){document.getElementById('lg').textContent=m;}
 
@@ -1594,14 +1577,14 @@ const G=(function(){
       return;
     }
 
-    if(pc){
+    if(pc && currentPieceStyle !== 'emoji'){
       const col=pc===1?th.p1:th.p2;
       const hi=pc===1?th.p1hi:th.p2hi;
       ctx.beginPath();ctx.arc(x,y,11,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();
       ctx.beginPath();ctx.arc(x-3,y-3,5,0,Math.PI*2);ctx.fillStyle=hi;ctx.fill();
     }
 
-    if (!(pc && special[id] && currentPieceStyle === 'alt')) {
+    if(currentPieceStyle !== 'emoji') {
         if(pc){
           ctx.fillStyle=th.labelPiece;
           ctx.font='bold 8px sans-serif';
@@ -1612,14 +1595,10 @@ const G=(function(){
         ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(id,x,y+1);
     }
 
-    if(special[id]&&pc){
-        if(currentPieceStyle === 'alt') {
-            const spCol = pc===1 ? th.p1med : th.p2med;
-            if(pc===1) drawSnakeBody(ctx, x, y, spCol);
-            else drawBirdFeathers(ctx, x, y, spCol);
-        } else {
-            drawWavyGlobal(ctx, x, y, pc===1?th.p1wave:th.p2wave);
-        }
+    if(pc && currentPieceStyle === 'emoji') {
+        drawEmojiPiece(ctx, x, y, pc===1, special[id]);
+    } else if(special[id]&&pc){
+        drawWavyGlobal(ctx, x, y, pc===1?th.p1wave:th.p2wave);
     }
   }
 
@@ -1957,13 +1936,6 @@ const A=(function(){
     return'?';
   }
 
-  function drawWavyA(x,y,color){
-    ctx.save();ctx.strokeStyle=color;ctx.lineWidth=1.5;
-    const r=14,waves=8,amp=1.8;ctx.beginPath();
-    for(let i=0;i<=waves*10;i++){const angle=(i/(waves*10))*Math.PI*2;const wave=r+amp*Math.sin(i/10*Math.PI*2);ctx.lineTo(x+wave*Math.cos(angle),y+wave*Math.sin(angle));}
-    ctx.closePath();ctx.stroke();ctx.restore();
-  }
-
   function dSt(){
     const th=T();
     RY.forEach(ry=>{ctx.strokeStyle=th.gridLine;ctx.lineWidth=0.8;ctx.setLineDash([]);ctx.beginPath();ctx.moveTo(CX-RE-22,ry);ctx.lineTo(CX+RE+22,ry);ctx.stroke();});
@@ -1991,26 +1963,22 @@ const A=(function(){
     if(isTgt&&!ghostPl&&pc===0){ctx.fillStyle=th.tgtDot;ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();}
     if(isPlaceTgt&&pc===0){ctx.fillStyle=th.placeDot;ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();}
     if(ghostPl){ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2);ctx.fillStyle=ghostPl===1?th.ghost1:th.ghost2;ctx.fill();ctx.fillStyle=th.ghostArrow;ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('→',x,y+1);return;}
-    if(pc){
+    if(pc && currentPieceStyle !== 'emoji'){
       const col=pc===1?th.p1:th.p2,hi=pc===1?th.p1hi:th.p2hi;
       ctx.beginPath();ctx.arc(x,y,11,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();
       ctx.beginPath();ctx.arc(x-3,y-3,5,0,Math.PI*2);ctx.fillStyle=hi;ctx.fill();
     }
     
-    if (!(pc && s.special&&s.special[id] && currentPieceStyle === 'alt')) {
+    if(currentPieceStyle !== 'emoji') {
         if(pc){ctx.fillStyle=th.labelPiece;ctx.font='bold 8px sans-serif';}
         else{ctx.fillStyle=th.labelNode;ctx.font='bold 8px sans-serif';}
         ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(id,x,y+1);
     }
     
-    if(s.special&&s.special[id]&&pc){
-        if(currentPieceStyle === 'alt') {
-            const spCol = pc===1 ? th.p1med : th.p2med;
-            if(pc===1) drawSnakeBody(ctx, x, y, spCol);
-            else drawBirdFeathers(ctx, x, y, spCol);
-        } else {
-            drawWavyGlobal(ctx, x, y, pc===1?th.p1wave:th.p2wave);
-        }
+    if(pc && currentPieceStyle === 'emoji') {
+        drawEmojiPiece(ctx, x, y, pc===1, s.special&&s.special[id]);
+    } else if(s.special&&s.special[id]&&pc){
+        drawWavyGlobal(ctx, x, y, pc===1?th.p1wave:th.p2wave);
     }
   }
 
@@ -2155,13 +2123,8 @@ const A=(function(){
     navigator.clipboard.writeText(txt.trim()).then(()=>{const btn=document.querySelector('#an-right button:last-child');const o=btn.textContent;btn.textContent='✓ Copiato!';setTimeout(()=>btn.textContent=o,1500);}).catch(()=>alert(txt));
   }
   
-  // ══════════════════════════════════════════════════════════════
-  // SISTEMA TAN (Tre Anelli Notation) — equivalente FEN
-  // ══════════════════════════════════════════════════════════════
   function exportTAN(){
     const s=curNode.state;
-    // Formato: b16r/12/6 b 0:0 14 1
-    // Anello esterno (E1-E18), medio (M1-M12), interno (I1-I6)
     const rings=['E','M','I'];
     const ringLengths=[18,12,6];
     let tanParts=[];
@@ -2191,7 +2154,6 @@ const A=(function(){
   }
   
   function importTAN(tan){
-    // Parsing: "b16r/12/6 b 0:0 14 1"
     const parts=tan.trim().split(/\s+/);
     if(parts.length!==5)return false;
     
@@ -2202,7 +2164,6 @@ const A=(function(){
     const board={};AALL.forEach(c=>board[c]=0);
     const special={};
     const ringNames=['E','M','I'];
-    const ringLengths=[18,12,6];
     
     for(let ri=0;ri<3;ri++){
       const seg=rings[ri],r=ringNames[ri];
