@@ -416,7 +416,7 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
 </div>
 
 <script>
-// --- IMPOSTAZIONI GLOBALI & TEMI ---
+// --- IMPOSTAZIONI GLOBALI E TEMI ---
 function toggleSettings() {
   const menu = document.getElementById('settings-menu');
   menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
@@ -489,7 +489,7 @@ function T(){return THEMES[currentTheme]||THEMES.classic;}
   try{const p=localStorage.getItem('ta_pieces');if(p){currentPieceStyle=p;document.addEventListener('DOMContentLoaded',()=>{const sel=document.getElementById('sel-pieces');if(sel)sel.value=p;});}}catch(e){}
 })();
 
-// --- FUNZIONI DI DISEGNO ALTERNATIVE ---
+// --- FUNZIONI DI DISEGNO PEDINE ALTERNATIVE ---
 function drawSnakeBody(ctx, x, y, color) {
   ctx.save();
   const numCoils = 2, startRadius = 2, endRadius = 11, segments = 60, baseThickness = 2.8, tipThickness = 0.3, taperStart = 0.8;
@@ -582,7 +582,8 @@ const AI_SETTINGS = {
 };
 
 let aiWorkerReady = false;
-let isAiCalculating = false; // Blocca i conflitti con la barra
+let isAiCalculating = false;
+let workerTasks = []; // CODA per evitare sovrapposizioni e blocchi
 let aiWorker = new Worker('engine_worker.js');
 
 aiWorker.onmessage = function(e) {
@@ -590,19 +591,18 @@ aiWorker.onmessage = function(e) {
       aiWorkerReady = true;
   }
   else if (e.data.type === 'mossa') {
-     const isAnalysisEval = e.data._callbackId && e.data._callbackId.startsWith('analysis_');
-     const isGameEval = e.data._callbackId && e.data._callbackId.startsWith('game_eval_');
+     const currentTask = workerTasks.shift() || 'bot_move'; // Estrai il task in corso
      
-     if (isAnalysisEval) {
+     if (currentTask === 'analysis') {
          updateEvalVisuals(e.data, 'an-eval-score', 'an-eval-bar');
          document.getElementById('an-eval-box').style.opacity = '1';
          document.getElementById('an-eval-btn').style.display = 'none';
-     } else if (isGameEval) {
+     } else if (currentTask === 'game_eval') {
          updateEvalVisuals(e.data, 'lab-eval-score', 'lab-eval-bar');
          document.getElementById('game-eval-box').style.opacity = '1';
          document.getElementById('game-eval-btn').style.display = 'none';
      } else {
-         isAiCalculating = false; // Sblocca il motore dopo che l'IA ha fatto la mossa
+         isAiCalculating = false; // L'IA ha finito il suo turno
          const isAnalysisOpen = document.getElementById('analysis') && document.getElementById('analysis').style.display === 'block';
          if (!isAnalysisOpen) {
              if (gameAutoAnalysisEnabled) {
@@ -648,7 +648,7 @@ function requestGameEval() {
     if (!gameAutoAnalysisEnabled) return;
     if (G && typeof G.isVsAI === 'function' && G.isVsAI() && G.cur() === aiPlayer) return;
     if (G && typeof G.over === 'function' && G.over()) return;
-    if (isAiCalculating) return; // NON interrompe il bot mentre pensa
+    if (isAiCalculating) return; 
     doGameAnalysisCall(8);
 }
 
@@ -661,7 +661,7 @@ function doGameAnalysisCall(depth) {
     
     clearTimeout(gameEvalTimeout);
     gameEvalTimeout = setTimeout(() => {
-        if(isAiCalculating) return; // Controllo dell'ultimo secondo
+        if(isAiCalculating) return; 
         syncAiToUI();
         
         const NODI = ['E1','E2','E3','E4','E5','E6','E7','E8','E9','E10','E11','E12','E13','E14','E15','E16','E17','E18','M1','M2','M3','M4','M5','M6','M7','M8','M9','M10','M11','M12','I1','I2','I3','I4','I5','I6','C'];
@@ -688,9 +688,9 @@ function doGameAnalysisCall(depth) {
             player: G.cur(),
             max_depth: depth,
             is_beta: 1, 
-            rotN: G.getRotN(),
-            _callbackId: 'game_eval_' + Date.now() 
+            rotN: G.getRotN()
         });
+        workerTasks.push('game_eval'); // Segnala alla coda
     }, 300);
 }
 
@@ -1267,9 +1267,9 @@ const G=(function(){
     aiWorker.postMessage({
         type: 'calcola',
         board: boardArr, reserve: reserveArr, special: specialArr,
-        player: cur, max_depth: conf.maxDepth, is_beta: gameVer === 'beta' ? 1 : 0, rotN: rotN,
-        _callbackId: 'bot_move'
+        player: cur, max_depth: conf.maxDepth, is_beta: gameVer === 'beta' ? 1 : 0, rotN: rotN
     });
+    workerTasks.push('bot_move');
   }
 
   window.handleAIMove = function(msg) {
@@ -1859,9 +1859,9 @@ function doAnalysisCall(depth) {
           player: s.cur,
           max_depth: depth,
           is_beta: 1, 
-          rotN: s.rotN,
-          _callbackId: 'analysis_' + Date.now() 
+          rotN: s.rotN
       });
+      workerTasks.push('analysis');
   }, 300); 
 }
 
@@ -1988,18 +1988,8 @@ const A=(function(){
     sel=null;placing=false;prvRing=null;pendingCapMid=null;
     document.getElementById('an-mode').textContent=editMode ? 'Setup: Clicca un nodo per cambiare colore' : '';
     upd();draw();
-    
-    if (autoAnalysisEnabled) {
-        requestAnalysisEval();
-    } else {
-        document.getElementById('an-eval-box').style.opacity = '0.6';
-        document.getElementById('an-eval-btn').style.display = 'block';
-        document.getElementById('an-eval-score').textContent = '-.-';
-        document.getElementById('an-eval-score').style.color = 'var(--text2)';
-        document.getElementById('an-eval-bar').style.width = '50%';
-    }
+    requestAnalysisEval();
   }
-  
   function nodeDepth(n){let d=0;while(n.parent){d++;n=n.parent;}return d;}
 
   function navFirst(){let n=curNode;while(n.parent)n=n.parent;curNode=n;syncFromNode();renderTree();}
@@ -2280,12 +2270,8 @@ const A=(function(){
     navigator.clipboard.writeText(txt.trim()).then(()=>{const btn=document.querySelector('#an-right button:last-child');const o=btn.textContent;btn.textContent='✓ Copiato!';setTimeout(()=>btn.textContent=o,1500);}).catch(()=>alert(txt));
   }
   
-  // ══════════════════════════════════════════════════════════════
-  // SISTEMA TAN (Tre Anelli Notation) — equivalente FEN
-  // ══════════════════════════════════════════════════════════════
   function exportTAN(){
     const s=curNode.state;
-    // Formato: b16r/12/6 b 0:0 14 1
     const rings=['E','M','I'];
     const ringLengths=[18,12,6];
     let tanParts=[];
