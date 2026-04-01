@@ -30,14 +30,6 @@ body.theme-dark{
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;color:var(--text);transition:background .25s,color .25s;}
 
-/* SELETTORE TEMA */
-#theme-picker{position:absolute;top:12px;right:12px;display:flex;gap:6px;z-index:100;}
-#theme-picker button{width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:border-color .15s,transform .1s;padding:0;font-size:14px;line-height:26px;text-align:center;}
-#theme-picker button:hover{transform:scale(1.15);}
-#theme-picker button.active{border-color:var(--text3);}
-#theme-picker .tp-classic{background:#e8e8e4;}
-#theme-picker .tp-dark{background:#27272a;}
-
 #lobby{text-align:center;padding:24px 16px;max-width:520px;margin:0 auto;position:relative;}
 #lobby h1{font-size:26px;font-weight:700;margin-bottom:4px;color:var(--text);}
 #lobby>p{font-size:13px;color:var(--text4);margin-bottom:20px;}
@@ -123,11 +115,22 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
 </head>
 <body>
 
+<div id="settings-btn" style="position:absolute;top:12px;right:12px;cursor:pointer;font-size:24px;z-index:100;user-select:none;" onclick="toggleSettings()">⚙️</div>
+<div id="settings-menu" style="display:none;position:absolute;top:45px;right:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:101;text-align:left;min-width:180px;">
+  <b style="font-size:13px;color:var(--text);display:block;margin-bottom:8px;">Impostazioni</b>
+  <div style="font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:600;">Tema Grafico</div>
+  <select id="sel-theme" onchange="setTheme(this.value)" style="width:100%;font-size:12px;padding:6px;margin-bottom:10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);outline:none;cursor:pointer;">
+    <option value="classic">☀️ Chiaro</option>
+    <option value="dark">🌙 Scuro</option>
+  </select>
+  <div style="font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:600;">Stile Pedine</div>
+  <select id="sel-pieces" onchange="setPieceStyle(this.value)" style="width:100%;font-size:12px;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);outline:none;cursor:pointer;">
+    <option value="classic">Classiche</option>
+    <option value="alt">Alternative (Serpenti/Uccelli)</option>
+  </select>
+</div>
+
 <div id="lobby">
-  <div id="theme-picker">
-    <button class="tp-classic active" title="Tema chiaro" onclick="setTheme('classic')">☀</button>
-    <button class="tp-dark" title="Tema scuro" onclick="setTheme('dark')">☾</button>
-  </div>
   <h1>Tre Anelli</h1>
   <p>Gioco di strategia su scacchiera circolare</p>
   <div class="rules-box">
@@ -413,7 +416,12 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
 </div>
 
 <script>
-// SISTEMA TEMI 
+// --- IMPOSTAZIONI GLOBALI & TEMI ---
+function toggleSettings() {
+  const menu = document.getElementById('settings-menu');
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+
 const THEMES = {
   classic: {
     cvBg:'#f8f7f4',
@@ -454,16 +462,23 @@ const THEMES = {
 };
 
 let currentTheme = 'classic';
+let currentPieceStyle = 'classic';
 
 function setTheme(name) {
   currentTheme = name;
   document.body.classList.remove('theme-dark');
   if(name==='dark') document.body.classList.add('theme-dark');
-  document.querySelectorAll('#theme-picker button').forEach(b=>b.classList.remove('active'));
-  const map={classic:0,dark:1};
-  document.querySelectorAll('#theme-picker button')[map[name]].classList.add('active');
+  const sel = document.getElementById('sel-theme');
+  if(sel) sel.value = name;
   try{localStorage.setItem('ta_theme',name);}catch(e){}
-  try{if(document.getElementById('game').style.display!=='none'&&typeof G!=='undefined'){G.init&&G.init();}}catch(e){}
+  try{if(document.getElementById('game').style.display!=='none'&&typeof G!=='undefined'){G.redraw&&G.redraw();}}catch(e){}
+  try{if(document.getElementById('analysis').style.display!=='none'&&typeof A!=='undefined'){A.redraw&&A.redraw();}}catch(e){}
+}
+
+function setPieceStyle(style) {
+  currentPieceStyle = style;
+  localStorage.setItem('ta_pieces', style);
+  try{if(document.getElementById('game').style.display!=='none'&&typeof G!=='undefined'){G.redraw&&G.redraw();}}catch(e){}
   try{if(document.getElementById('analysis').style.display!=='none'&&typeof A!=='undefined'){A.redraw&&A.redraw();}}catch(e){}
 }
 
@@ -471,9 +486,64 @@ function T(){return THEMES[currentTheme]||THEMES.classic;}
 
 (function(){
   try{const s=localStorage.getItem('ta_theme');if(s)setTheme(s);}catch(e){}
+  try{const p=localStorage.getItem('ta_pieces');if(p){currentPieceStyle=p;document.addEventListener('DOMContentLoaded',()=>{const sel=document.getElementById('sel-pieces');if(sel)sel.value=p;});}}catch(e){}
 })();
 
-// MENU A SCOMPARSA E VALUTAZIONE
+// --- FUNZIONI DI DISEGNO ALTERNATIVE ---
+function drawSnakeBody(ctx, x, y, color) {
+  ctx.save();
+  const numCoils = 2, startRadius = 2, endRadius = 11, segments = 60, baseThickness = 2.8, tipThickness = 0.3, taperStart = 0.8;
+  ctx.strokeStyle = color; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  for(let i = 0; i < segments; i++) {
+    const t1 = i / segments, t2 = (i + 1) / segments;
+    const angle1 = t1 * Math.PI * 2 * numCoils, angle2 = t2 * Math.PI * 2 * numCoils;
+    const radius1 = startRadius + (endRadius - startRadius) * t1;
+    const radius2 = startRadius + (endRadius - startRadius) * t2;
+    const px1 = x + Math.cos(angle1) * radius1, py1 = y + Math.sin(angle1) * radius1;
+    const px2 = x + Math.cos(angle2) * radius2, py2 = y + Math.sin(angle2) * radius2;
+    let thickness;
+    if(t1 < taperStart) { thickness = baseThickness; } 
+    else { const taperProgress = (t1 - taperStart) / (1 - taperStart); thickness = baseThickness + (tipThickness - baseThickness) * taperProgress; }
+    ctx.lineWidth = thickness;
+    ctx.beginPath(); ctx.moveTo(px1, py1); ctx.lineTo(px2, py2); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawBirdFeathers(ctx, x, y, color) {
+  ctx.save();
+  const numFeathers = 4, featherLength = 11, featherWidth = 6;
+  ctx.fillStyle = color; ctx.strokeStyle = color; ctx.lineWidth = 0.8; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  for(let f = 0; f < numFeathers; f++) {
+    const angle = (f / numFeathers) * Math.PI * 2 - Math.PI/2 + Math.PI/4;
+    ctx.beginPath(); ctx.moveTo(x, y);
+    for(let i = 0; i <= 20; i++) {
+      const t = i / 20, dist = t * featherLength, width = featherWidth * Math.sin(t * Math.PI) * 0.55;
+      const perpAngle = angle - Math.PI/2;
+      const px = x + Math.cos(angle) * dist + Math.cos(perpAngle) * width;
+      const py = y + Math.sin(angle) * dist + Math.sin(perpAngle) * width;
+      ctx.lineTo(px, py);
+    }
+    for(let i = 20; i >= 0; i--) {
+      const t = i / 20, dist = t * featherLength, width = featherWidth * Math.sin(t * Math.PI) * 0.55;
+      const perpAngle = angle + Math.PI/2;
+      const px = x + Math.cos(angle) * dist + Math.cos(perpAngle) * width;
+      const py = y + Math.sin(angle) * dist + Math.sin(perpAngle) * width;
+      ctx.lineTo(px, py);
+    }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawWavyGlobal(ctx, x, y, color){
+  ctx.save();ctx.strokeStyle=color;ctx.lineWidth=1.5;
+  const r=14,waves=8,amp=1.8;ctx.beginPath();
+  for(let i=0;i<=waves*10;i++){const angle=(i/(waves*10))*Math.PI*2;const wave=r+amp*Math.sin(i/10*Math.PI*2);ctx.lineTo(x+wave*Math.cos(angle),y+wave*Math.sin(angle));}
+  ctx.closePath();ctx.stroke();ctx.restore();
+}
+
+// --- MENU A SCOMPARSA ---
 function toggleAiMenu() {
     const menu = document.getElementById('ai-menu');
     menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
@@ -484,6 +554,7 @@ function showCreateMenu() {
   menu.style.display = menu.style.display === 'none' ? 'block' : 'none'; 
 }
 
+// --- FUNZIONE CENTRALE PER AGGIORNARE LE BARRE VALUTAZIONE ---
 function updateEvalVisuals(msg, scoreElId, barElId) {
     const raw = msg.eval_score || 0;
     const pawns = Math.abs(raw / 100).toFixed(1);
@@ -502,6 +573,46 @@ function updateEvalVisuals(msg, scoreElId, barElId) {
       barEl.style.width = pct + '%';
     }
 }
+
+// --- CONFIGURAZIONE IA E WORKER ---
+const AI_SETTINGS = {
+  easy:   { maxDepth: 4,  ms: 1000,  o_cap: 10,  o_win: 20, o_rot: 100, o_place: 80 },
+  medium: { maxDepth: 12, ms: 3000,  o_cap: 100, o_win: 50, o_rot: 0,   o_place: 20 },
+  hard:   { maxDepth: 25, ms: 10000, o_cap: 100, o_win: 50, o_rot: -20, o_place: 10 }
+};
+
+let aiWorkerReady = false;
+let isAiCalculating = false; // Blocca i conflitti con la barra
+let aiWorker = new Worker('engine_worker.js');
+
+aiWorker.onmessage = function(e) {
+  if (e.data.type === 'ready') {
+      aiWorkerReady = true;
+  }
+  else if (e.data.type === 'mossa') {
+     const isAnalysisEval = e.data._callbackId && e.data._callbackId.startsWith('analysis_');
+     const isGameEval = e.data._callbackId && e.data._callbackId.startsWith('game_eval_');
+     
+     if (isAnalysisEval) {
+         updateEvalVisuals(e.data, 'an-eval-score', 'an-eval-bar');
+         document.getElementById('an-eval-box').style.opacity = '1';
+         document.getElementById('an-eval-btn').style.display = 'none';
+     } else if (isGameEval) {
+         updateEvalVisuals(e.data, 'lab-eval-score', 'lab-eval-bar');
+         document.getElementById('game-eval-box').style.opacity = '1';
+         document.getElementById('game-eval-btn').style.display = 'none';
+     } else {
+         isAiCalculating = false; // Sblocca il motore dopo che l'IA ha fatto la mossa
+         const isAnalysisOpen = document.getElementById('analysis') && document.getElementById('analysis').style.display === 'block';
+         if (!isAnalysisOpen) {
+             if (gameAutoAnalysisEnabled) {
+                 updateEvalVisuals(e.data, 'lab-eval-score', 'lab-eval-bar');
+             }
+             if (window.handleAIMove) window.handleAIMove(e.data);
+         }
+     }
+  }
+};
 
 // LOGICA AUTO-EVAL PARTITA
 let gameEvalTimeout = null;
@@ -526,7 +637,7 @@ function toggleGameAutoAnalysis() {
 }
 
 function forceGameAnalysisEval() {
-    if (gameAutoAnalysisEnabled) return;
+    if (gameAutoAnalysisEnabled || isAiCalculating) return;
     document.getElementById('game-eval-box').style.opacity = '1';
     document.getElementById('game-eval-btn').style.display = 'none';
     document.getElementById('lab-eval-score').textContent = '...';
@@ -537,6 +648,7 @@ function requestGameEval() {
     if (!gameAutoAnalysisEnabled) return;
     if (G && typeof G.isVsAI === 'function' && G.isVsAI() && G.cur() === aiPlayer) return;
     if (G && typeof G.over === 'function' && G.over()) return;
+    if (isAiCalculating) return; // NON interrompe il bot mentre pensa
     doGameAnalysisCall(8);
 }
 
@@ -549,6 +661,7 @@ function doGameAnalysisCall(depth) {
     
     clearTimeout(gameEvalTimeout);
     gameEvalTimeout = setTimeout(() => {
+        if(isAiCalculating) return; // Controllo dell'ultimo secondo
         syncAiToUI();
         
         const NODI = ['E1','E2','E3','E4','E5','E6','E7','E8','E9','E10','E11','E12','E13','E14','E15','E16','E17','E18','M1','M2','M3','M4','M5','M6','M7','M8','M9','M10','M11','M12','I1','I2','I3','I4','I5','I6','C'];
@@ -580,43 +693,6 @@ function doGameAnalysisCall(depth) {
         });
     }, 300);
 }
-
-// CONFIGURAZIONE IA E WORKER 
-const AI_SETTINGS = {
-  easy:   { maxDepth: 4,  ms: 1000,  o_cap: 10,  o_win: 20, o_rot: 100, o_place: 80 },
-  medium: { maxDepth: 12, ms: 3000,  o_cap: 100, o_win: 50, o_rot: 0,   o_place: 20 },
-  hard:   { maxDepth: 25, ms: 10000, o_cap: 100, o_win: 50, o_rot: -20, o_place: 10 }
-};
-
-let aiWorkerReady = false;
-let aiWorker = new Worker('engine_worker.js');
-aiWorker.onmessage = function(e) {
-  if (e.data.type === 'ready') {
-      aiWorkerReady = true;
-  }
-  else if (e.data.type === 'mossa') {
-     const isAnalysisEval = e.data._callbackId && e.data._callbackId.startsWith('analysis_');
-     const isGameEval = e.data._callbackId && e.data._callbackId.startsWith('game_eval_');
-     
-     if (isAnalysisEval) {
-         updateEvalVisuals(e.data, 'an-eval-score', 'an-eval-bar');
-         document.getElementById('an-eval-box').style.opacity = '1';
-         document.getElementById('an-eval-btn').style.display = 'none';
-     } else if (isGameEval) {
-         updateEvalVisuals(e.data, 'lab-eval-score', 'lab-eval-bar');
-         document.getElementById('game-eval-box').style.opacity = '1';
-         document.getElementById('game-eval-btn').style.display = 'none';
-     } else {
-         const isAnalysisOpen = document.getElementById('analysis') && document.getElementById('analysis').style.display === 'block';
-         if (!isAnalysisOpen) {
-             if (gameAutoAnalysisEnabled) {
-                 updateEvalVisuals(e.data, 'lab-eval-score', 'lab-eval-bar');
-             }
-             if (window.handleAIMove) window.handleAIMove(e.data);
-         }
-     }
-  }
-};
 
 function syncAiToUI() {
   const diff = document.getElementById('monitor-ai-diff').value;
@@ -1058,7 +1134,7 @@ const G=(function(){
     
     hist.push(sn());nUpd();upd();draw();
     
-    if(vsAI && cur === aiPlayer) setTimeout(aiThink, 600);
+    if(vsAI && cur === aiPlayer) aiThink();
   }
   
   function loadState(s) {
@@ -1072,12 +1148,15 @@ const G=(function(){
     notMoves = [];
     document.getElementById('notation-log').innerHTML='';
     upd(); draw();
-    if(cur === aiPlayer && vsAI) setTimeout(aiThink, 600);
+    if(cur === aiPlayer && vsAI) aiThink();
   }
   
   function undoMove() {
     if(!vsAI || over || anim || cur === aiPlayer) return;
     if(hist.length <= 2) return; 
+    
+    isAiCalculating = false;
+    clearTimeout(gameEvalTimeout);
     
     hist.pop(); 
     hist.pop(); 
@@ -1163,6 +1242,9 @@ const G=(function(){
         return;
     }
     
+    isAiCalculating = true;
+    clearTimeout(gameEvalTimeout);
+    
     document.getElementById('al').textContent = 'L\'IA sta pensando...';
     
     let boardArr = new Int8Array(37);
@@ -1185,7 +1267,8 @@ const G=(function(){
     aiWorker.postMessage({
         type: 'calcola',
         board: boardArr, reserve: reserveArr, special: specialArr,
-        player: cur, max_depth: conf.maxDepth, is_beta: gameVer === 'beta' ? 1 : 0, rotN: rotN
+        player: cur, max_depth: conf.maxDepth, is_beta: gameVer === 'beta' ? 1 : 0, rotN: rotN,
+        _callbackId: 'bot_move'
     });
   }
 
@@ -1483,9 +1566,11 @@ const G=(function(){
   }
   function surrender(){
     if(over||!live())return;
-    const winner=myPlayer===1?2:1;
-    if(gameMode==='online')sendMove({type:'surrender',player:myPlayer});
-    wG(winner,'Abbandono.');
+    if(confirm("Sei sicuro di voler abbandonare la partita?")) {
+        const winner=myPlayer===1?2:1;
+        if(gameMode==='online')sendMove({type:'surrender',player:myPlayer});
+        wG(winner,'Abbandono.');
+    }
   }
   function endT(){
     const prevPlayer=cur; 
@@ -1549,13 +1634,6 @@ const G=(function(){
         if(score) { score.textContent = '-.-'; score.style.color = 'var(--text2)'; }
         if(bar) bar.style.width = '50%';
     }
-  }
-
-  function drawWavy(x,y,color){
-    ctx.save();ctx.strokeStyle=color;ctx.lineWidth=1.5;
-    const r=14,waves=8,amp=1.8;ctx.beginPath();
-    for(let i=0;i<=waves*10;i++){const angle=(i/(waves*10))*Math.PI*2;const wave=r+amp*Math.sin(i/10*Math.PI*2);ctx.lineTo(x+wave*Math.cos(angle),y+wave*Math.sin(angle));}
-    ctx.closePath();ctx.stroke();ctx.restore();
   }
 
   function dArrow(){
@@ -1644,16 +1722,26 @@ const G=(function(){
       ctx.beginPath();ctx.arc(x-3,y-3,5,0,Math.PI*2);ctx.fillStyle=hi;ctx.fill();
     }
 
-    if(pc){
-      ctx.fillStyle=th.labelPiece;
-      ctx.font='bold 8px sans-serif';
-    } else {
-      ctx.fillStyle=th.labelNode;
-      ctx.font='bold 8px sans-serif';
+    if (!(pc && special[id] && currentPieceStyle === 'alt')) {
+        if(pc){
+          ctx.fillStyle=th.labelPiece;
+          ctx.font='bold 8px sans-serif';
+        } else {
+          ctx.fillStyle=th.labelNode;
+          ctx.font='bold 8px sans-serif';
+        }
+        ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(id,x,y+1);
     }
-    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(id,x,y+1);
 
-    if(special[id]&&pc){drawWavy(x,y,pc===1?th.p1wave:th.p2wave);}
+    if(special[id]&&pc){
+        if(currentPieceStyle === 'alt') {
+            const spCol = pc===1 ? th.p1med : th.p2med;
+            if(pc===1) drawSnakeBody(ctx, x, y, spCol);
+            else drawBirdFeathers(ctx, x, y, spCol);
+        } else {
+            drawWavyGlobal(ctx, x, y, pc===1?th.p1wave:th.p2wave);
+        }
+    }
   }
 
   function draw(){
@@ -1695,7 +1783,7 @@ const G=(function(){
       copyNotation,placeMode,applyRemote,isAnalysisAi:false,loadState,undoMove,wG,
       over:()=>over,cur:()=>cur,isVsAI:()=>vsAI,
       getBoard:()=>board, getSpecial:()=>special, getReserve:()=>reserve, getRotN:()=>rotN,
-      exportTAN,copyTAN
+      exportTAN,copyTAN,redraw:draw
   };
 })();
 
@@ -1722,7 +1810,7 @@ function toggleAutoAnalysis() {
 }
 
 function forceAnalysisEval() {
-    if (autoAnalysisEnabled) return;
+    if (autoAnalysisEnabled || isAiCalculating) return;
     document.getElementById('an-eval-box').style.opacity = '1';
     document.getElementById('an-eval-btn').style.display = 'none';
     document.getElementById('an-eval-score').textContent = '...';
@@ -1731,6 +1819,7 @@ function forceAnalysisEval() {
 
 function requestAnalysisEval() {
     if (!autoAnalysisEnabled) return;
+    if (isAiCalculating) return;
     doAnalysisCall(8); 
 }
 
@@ -1744,6 +1833,7 @@ function doAnalysisCall(depth) {
   
   clearTimeout(evalTimeout);
   evalTimeout = setTimeout(() => {
+      if(isAiCalculating) return;
       syncAiToUI(); 
       
       const s = A.getState();
@@ -1999,13 +2089,6 @@ const A=(function(){
     return'?';
   }
 
-  function drawWavyA(x,y,color){
-    ctx.save();ctx.strokeStyle=color;ctx.lineWidth=1.5;
-    const r=14,waves=8,amp=1.8;ctx.beginPath();
-    for(let i=0;i<=waves*10;i++){const angle=(i/(waves*10))*Math.PI*2;const wave=r+amp*Math.sin(i/10*Math.PI*2);ctx.lineTo(x+wave*Math.cos(angle),y+wave*Math.sin(angle));}
-    ctx.closePath();ctx.stroke();ctx.restore();
-  }
-
   function dSt(){
     const th=T();
     RY.forEach(ry=>{ctx.strokeStyle=th.gridLine;ctx.lineWidth=0.8;ctx.setLineDash([]);ctx.beginPath();ctx.moveTo(CX-RE-22,ry);ctx.lineTo(CX+RE+22,ry);ctx.stroke();});
@@ -2038,10 +2121,22 @@ const A=(function(){
       ctx.beginPath();ctx.arc(x,y,11,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();
       ctx.beginPath();ctx.arc(x-3,y-3,5,0,Math.PI*2);ctx.fillStyle=hi;ctx.fill();
     }
-    if(pc){ctx.fillStyle=th.labelPiece;ctx.font='bold 8px sans-serif';}
-    else{ctx.fillStyle=th.labelNode;ctx.font='bold 8px sans-serif';}
-    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(id,x,y+1);
-    if(s.special&&s.special[id]&&pc){drawWavyA(x,y,pc===1?th.p1wave:th.p2wave);}
+    
+    if (!(pc && s.special&&s.special[id] && currentPieceStyle === 'alt')) {
+        if(pc){ctx.fillStyle=th.labelPiece;ctx.font='bold 8px sans-serif';}
+        else{ctx.fillStyle=th.labelNode;ctx.font='bold 8px sans-serif';}
+        ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(id,x,y+1);
+    }
+    
+    if(s.special&&s.special[id]&&pc){
+        if(currentPieceStyle === 'alt') {
+            const spCol = pc===1 ? th.p1med : th.p2med;
+            if(pc===1) drawSnakeBody(ctx, x, y, spCol);
+            else drawBirdFeathers(ctx, x, y, spCol);
+        } else {
+            drawWavyGlobal(ctx, x, y, pc===1?th.p1wave:th.p2wave);
+        }
+    }
   }
 
   function draw(){
@@ -2191,7 +2286,6 @@ const A=(function(){
   function exportTAN(){
     const s=curNode.state;
     // Formato: b16r/12/6 b 0:0 14 1
-    // Anello esterno (E1-E18), medio (M1-M12), interno (I1-I6)
     const rings=['E','M','I'];
     const ringLengths=[18,12,6];
     let tanParts=[];
@@ -2221,7 +2315,6 @@ const A=(function(){
   }
   
   function importTAN(tan){
-    // Parsing: "b16r/12/6 b 0:0 14 1"
     const parts=tan.trim().split(/\s+/);
     if(parts.length!==5)return false;
     
@@ -2232,7 +2325,6 @@ const A=(function(){
     const board={};AALL.forEach(c=>board[c]=0);
     const special={};
     const ringNames=['E','M','I'];
-    const ringLengths=[18,12,6];
     
     for(let ri=0;ri<3;ri++){
       const seg=rings[ri],r=ringNames[ri];
