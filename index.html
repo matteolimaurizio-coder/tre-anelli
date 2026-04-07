@@ -342,6 +342,12 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
         <button id="an-eval-btn" onclick="forceAnalysisEval()" style="font-size:11px; padding:4px 10px; cursor:pointer; border-radius:6px; border:1px solid #9a6dd7; background:var(--beta-hover); color:var(--beta-color); font-weight:bold; outline:none;">Analizza</button>
       </div>
 
+      <div id="an-bestmove-box" style="display:none; flex-direction:column; gap:6px; margin-bottom:8px; padding:8px 12px; background:var(--surface); border-radius:9px; border:1px solid var(--beta-border); border-left: 4px solid var(--beta-border);">
+        <div style="font-size:11px; font-weight:700; color:var(--beta-color); text-transform:uppercase; letter-spacing:0.5px;">Mossa Consigliata</div>
+        <div id="an-bestmove-list" style="font-size:13px; color:var(--text); font-family:monospace; font-weight:600; display:flex; flex-direction:column; gap:4px;">
+        </div>
+      </div>
+
       <canvas id="an-cv" width="540" height="540" style="max-width:100%;display:block;border-radius:10px;background:var(--cv-bg);"></canvas>
       
       <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:8px;">
@@ -389,8 +395,8 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
       
       <div style="background:var(--surface);border-radius:10px;border:.5px solid var(--border);padding:10px;flex:1;display:flex;flex-direction:column;">
         <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Varianti</div>
-        <div style="overflow-y:auto;flex:1;max-height:340px;">
-          <div id="an-tree" style="font-family:monospace;font-size:11px;color:var(--text);line-height:2;white-space:pre-wrap;"></div>
+        <div style="overflow-y:auto;flex:1;max-height:340px;position:relative;">
+          <div id="an-tree" style="position:relative; font-family:monospace;font-size:11px;color:var(--text);line-height:2;white-space:pre-wrap;"></div>
         </div>
         <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
           <button onclick="startAiFromAnalysis()" style="font-size:11px;padding:3px 10px;cursor:pointer;border-radius:6px;border:1px solid var(--beta-border);color:var(--beta-color);background:var(--beta-hover);font-weight:bold;">🤖 Sfida IA da qui</button>
@@ -403,7 +409,7 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
   </div>
 </div>
 <script>
-// --- IMPOSTAZIONI GLOBALI & TEMI ---
+// --- IMPOSTAZIONI GLOBALI E TEMI ---
 function toggleSettings() {
   const menu = document.getElementById('settings-menu');
   menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
@@ -511,6 +517,22 @@ function toggleAiMenu() {
     menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
 }
 
+// --- DECODIFICA MOSSE (Per Pannello "Migliore Mossa") ---
+function formatEngineMove(res) {
+    if(!res) return "...";
+    const NODI = ['E1','E2','E3','E4','E5','E6','E7','E8','E9','E10','E11','E12','E13','E14','E15','E16','E17','E18','M1','M2','M3','M4','M5','M6','M7','M8','M9','M10','M11','M12','I1','I2','I3','I4','I5','I6','C'];
+    let fromIdx = Math.floor(res / 10000);
+    let toIdx = Math.floor((res % 10000) / 100);
+    if (fromIdx === 88) {
+        let r = (toIdx === 0 || toIdx === 1) ? 'E' : 'M';
+        return "↺ Anello " + r;
+    }
+    if (fromIdx === 99) {
+        return "↓ Piazza in " + NODI[toIdx];
+    }
+    return NODI[fromIdx] + " → " + NODI[toIdx];
+}
+
 // --- FUNZIONE CENTRALE PER AGGIORNARE LE BARRE VALUTAZIONE ---
 function updateEvalVisuals(msg, scoreElId, barElId) {
     const raw = msg.eval_score || 0;
@@ -548,21 +570,27 @@ aiWorker.onmessage = function(e) {
       aiWorkerReady = true;
   }
   else if (e.data.type === 'mossa') {
-     // Filtra le risposte spurie
+     const currentTask = workerTasks.shift() || 'bot_move'; // Estrai il task in corso
      if (typeof e.data.eval_score === 'undefined') return;
 
-     const isAnalysisOpen = document.getElementById('analysis') && document.getElementById('analysis').style.display === 'block';
-     const cbId = e.data._callbackId || '';
-
-     if (isAnalysisOpen) {
+     if (currentTask === 'analysis') {
          updateEvalVisuals(e.data, 'an-eval-score', 'an-eval-bar');
          document.getElementById('an-eval-box').style.opacity = '1';
          document.getElementById('an-eval-btn').style.display = 'none';
-     } else {
-         if (cbId === 'bot_move') {
-             isAiCalculating = false; 
-             if (window.handleAIMove) window.handleAIMove(e.data);
+         
+         // Aggiorna il pannello Migliore Mossa
+         const bmBox = document.getElementById('an-bestmove-box');
+         if (bmBox) {
+             bmBox.style.display = 'flex';
+             const bmList = document.getElementById('an-bestmove-list');
+             const moveStr = formatEngineMove(e.data.result);
+             const scoreStr = document.getElementById('an-eval-score').textContent;
+             // Predisposto per Multi-PV: qui in futuro si farà un loop sull'array di mosse fornite dall'engine
+             bmList.innerHTML = `<div>1. <span style="color:var(--text);">${moveStr}</span> <span style="color:var(--text4);font-size:10px;">(${scoreStr})</span></div>`;
          }
+     } else if (currentTask === 'bot_move') {
+         isAiCalculating = false; 
+         if (window.handleAIMove) window.handleAIMove(e.data);
      }
   }
 };
@@ -1139,6 +1167,7 @@ const G=(function(){
         player: cur, max_depth: conf.maxDepth, is_beta: gameVer === 'beta' ? 1 : 0, rotN: rotN,
         _callbackId: 'bot_move'
     });
+    workerTasks.push('bot_move');
   }
 
   window.handleAIMove = function(msg) {
@@ -1577,14 +1606,14 @@ const G=(function(){
       return;
     }
 
-    if(pc && currentPieceStyle !== 'emoji'){
+    if(pc){
       const col=pc===1?th.p1:th.p2;
       const hi=pc===1?th.p1hi:th.p2hi;
       ctx.beginPath();ctx.arc(x,y,11,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();
       ctx.beginPath();ctx.arc(x-3,y-3,5,0,Math.PI*2);ctx.fillStyle=hi;ctx.fill();
     }
 
-    if(currentPieceStyle !== 'emoji') {
+    if (!(pc && special[id] && currentPieceStyle === 'alt')) {
         if(pc){
           ctx.fillStyle=th.labelPiece;
           ctx.font='bold 8px sans-serif';
@@ -1595,10 +1624,14 @@ const G=(function(){
         ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(id,x,y+1);
     }
 
-    if(pc && currentPieceStyle === 'emoji') {
-        drawEmojiPiece(ctx, x, y, pc===1, special[id]);
-    } else if(special[id]&&pc){
-        drawWavyGlobal(ctx, x, y, pc===1?th.p1wave:th.p2wave);
+    if(special[id]&&pc){
+        if(currentPieceStyle === 'alt') {
+            const spCol = pc===1 ? th.p1med : th.p2med;
+            if(pc===1) drawSnakeBody(ctx, x, y, spCol);
+            else drawBirdFeathers(ctx, x, y, spCol);
+        } else {
+            drawWavyGlobal(ctx, x, y, pc===1?th.p1wave:th.p2wave);
+        }
     }
   }
 
@@ -1644,6 +1677,7 @@ const G=(function(){
       exportTAN,copyTAN,redraw:draw
   };
 })();
+
 // ── ANALYSIS ENGINE ──
 let evalTimeout = null;
 let autoAnalysisEnabled = false;
@@ -1652,6 +1686,7 @@ function toggleAutoAnalysis() {
     autoAnalysisEnabled = document.getElementById('chk-auto-eval').checked;
     const box = document.getElementById('an-eval-box');
     const btn = document.getElementById('an-eval-btn');
+    const bmBox = document.getElementById('an-bestmove-box');
     if (autoAnalysisEnabled) {
         box.style.opacity = '1';
         btn.style.display = 'none';
@@ -1662,6 +1697,7 @@ function toggleAutoAnalysis() {
         document.getElementById('an-eval-score').textContent = '-.-';
         document.getElementById('an-eval-score').style.color = 'var(--text2)';
         document.getElementById('an-eval-bar').style.width = '50%';
+        if(bmBox) bmBox.style.display = 'none';
         clearTimeout(evalTimeout);
     }
 }
@@ -1671,12 +1707,26 @@ function forceAnalysisEval() {
     document.getElementById('an-eval-box').style.opacity = '1';
     document.getElementById('an-eval-btn').style.display = 'none';
     document.getElementById('an-eval-score').textContent = '...';
+    
+    const bmBox = document.getElementById('an-bestmove-box');
+    if (bmBox) {
+        bmBox.style.display = 'flex';
+        document.getElementById('an-bestmove-list').innerHTML = '<span style="color:var(--text4);">Calcolo in corso...</span>';
+    }
+    
     doAnalysisCall(12); 
 }
 
 function requestAnalysisEval() {
     if (!autoAnalysisEnabled) return;
     if (isAiCalculating) return;
+    
+    const bmBox = document.getElementById('an-bestmove-box');
+    if (bmBox && document.getElementById('an-bestmove-list').innerHTML.indexOf('Calcolo') === -1) {
+        bmBox.style.display = 'flex';
+        document.getElementById('an-bestmove-list').innerHTML = '<span style="color:var(--text4);">Calcolo in corso...</span>';
+    }
+    
     doAnalysisCall(8); 
 }
 
@@ -1719,6 +1769,7 @@ function doAnalysisCall(depth) {
           rotN: s.rotN,
           _callbackId: 'analysis_' + Date.now() 
       });
+      workerTasks.push('analysis');
   }, 300); 
 }
 
@@ -1936,6 +1987,13 @@ const A=(function(){
     return'?';
   }
 
+  function drawWavyA(x,y,color){
+    ctx.save();ctx.strokeStyle=color;ctx.lineWidth=1.5;
+    const r=14,waves=8,amp=1.8;ctx.beginPath();
+    for(let i=0;i<=waves*10;i++){const angle=(i/(waves*10))*Math.PI*2;const wave=r+amp*Math.sin(i/10*Math.PI*2);ctx.lineTo(x+wave*Math.cos(angle),y+wave*Math.sin(angle));}
+    ctx.closePath();ctx.stroke();ctx.restore();
+  }
+
   function dSt(){
     const th=T();
     RY.forEach(ry=>{ctx.strokeStyle=th.gridLine;ctx.lineWidth=0.8;ctx.setLineDash([]);ctx.beginPath();ctx.moveTo(CX-RE-22,ry);ctx.lineTo(CX+RE+22,ry);ctx.stroke();});
@@ -2086,7 +2144,13 @@ const A=(function(){
   function renderTree(){
     const el=document.getElementById('an-tree');el.innerHTML='';
     renderNode(tree,el,0);
-    const active=el.querySelector('.an-active');if(active)active.scrollIntoView({block:'nearest'});
+    
+    // NUOVO SISTEMA DI SCORRIMENTO MOBILE: Evita che lo schermo salti!
+    const active=el.querySelector('.an-active');
+    if(active){
+        const container = el.parentElement; // Questo è il div con overflow-y:auto
+        container.scrollTop = active.offsetTop - container.offsetTop - (container.clientHeight / 2) + (active.clientHeight / 2);
+    }
   }
   function renderNode(node,container,depth){
     if(!node.parent){node.children.forEach((ch,i)=>{if(i>0){const v=document.createElement('span');v.style.color='var(--text4)';v.textContent='( ';container.appendChild(v);renderNode(ch,container,depth+1);const vc=document.createElement('span');vc.style.color='var(--text4)';vc.textContent=' ) ';container.appendChild(vc);}else renderNode(ch,container,depth);});return;}
@@ -2123,6 +2187,9 @@ const A=(function(){
     navigator.clipboard.writeText(txt.trim()).then(()=>{const btn=document.querySelector('#an-right button:last-child');const o=btn.textContent;btn.textContent='✓ Copiato!';setTimeout(()=>btn.textContent=o,1500);}).catch(()=>alert(txt));
   }
   
+  // ══════════════════════════════════════════════════════════════
+  // SISTEMA TAN (Tre Anelli Notation) — equivalente FEN
+  // ══════════════════════════════════════════════════════════════
   function exportTAN(){
     const s=curNode.state;
     const rings=['E','M','I'];
