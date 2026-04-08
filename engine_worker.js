@@ -1,4 +1,4 @@
-importScripts('engine_v2.js');
+importScripts('engine_v3.js');
 
 Module.onRuntimeInitialized = function() {
     Module.ccall('init_engine', 'null', [], []);
@@ -27,18 +27,24 @@ self.onmessage = function(e) {
                 [msg.board, msg.reserve, msg.special, msg.player, msg.max_depth, msg.is_beta, msg.rotN]
             );
             
+            // Preleva sia il punteggio calcolato nel futuro (PV) che quello statico attuale
             let eval_score = wasmCall('get_eval', 'number', [], []);
+            let static_eval = wasmCall('get_static_eval', 'number', 
+                ['array','array','array','number','number'],
+                [msg.board, msg.reserve, msg.special, msg.player, msg.is_beta ? 1 : 0]
+            );
             
-            // FIX PROSPETTIVA: Se sta calcolando il Blu (P2), il suo punteggio positivo (es. "Sto vincendo!") 
-            // deve essere invertito in negativo per farlo combaciare con la grafica assoluta della barra.
             if (msg.player === 2) {
                 eval_score = -eval_score;
+                static_eval = -static_eval;
             }
             
             postMessage({
                 type: 'mossa',
                 result: res,
-                eval_score: eval_score,
+                // Dividiamo per 10 perché ora i pezzi nel C++ valgono 1000 invece di 100
+                eval_score: eval_score / 10,
+                static_score: static_eval / 10,
                 _callbackId: msg._callbackId
             });
         }

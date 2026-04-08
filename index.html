@@ -563,34 +563,49 @@ const AI_SETTINGS = {
 let aiWorkerReady = false;
 let isAiCalculating = false;
 let workerTasks = []; // CODA per evitare sovrapposizioni e blocchi
-let aiWorker = new Worker('engine_worker.js?v=2');
+let aiWorker = new Worker('engine_worker.js?v=3');
 
 aiWorker.onmessage = function(e) {
   if (e.data.type === 'ready') {
       aiWorkerReady = true;
   }
   else if (e.data.type === 'mossa') {
-     const currentTask = workerTasks.shift() || 'bot_move'; // Estrai il task in corso
      if (typeof e.data.eval_score === 'undefined') return;
 
-     if (currentTask === 'analysis') {
+     const isAnalysisOpen = document.getElementById('analysis') && document.getElementById('analysis').style.display === 'block';
+     const cbId = e.data._callbackId || '';
+     const currentTask = workerTasks.shift() || cbId;
+
+     if (isAnalysisOpen) {
          updateEvalVisuals(e.data, 'an-eval-score', 'an-eval-bar');
          document.getElementById('an-eval-box').style.opacity = '1';
          document.getElementById('an-eval-btn').style.display = 'none';
          
-         // Aggiorna il pannello Migliore Mossa
          const bmBox = document.getElementById('an-bestmove-box');
          if (bmBox) {
              bmBox.style.display = 'flex';
              const bmList = document.getElementById('an-bestmove-list');
              const moveStr = formatEngineMove(e.data.result);
              const scoreStr = document.getElementById('an-eval-score').textContent;
-             // Predisposto per Multi-PV: qui in futuro si farà un loop sull'array di mosse fornite dall'engine
-             bmList.innerHTML = `<div>1. <span style="color:var(--text);">${moveStr}</span> <span style="color:var(--text4);font-size:10px;">(${scoreStr})</span></div>`;
+             
+             // Estrapola e formatta la valutazione statica
+             let s_raw = e.data.static_score || 0;
+             let s_pawns = Math.abs(s_raw / 100).toFixed(1);
+             let s_sign = s_raw > 0 ? '+' : (s_raw < 0 ? '-' : '');
+             let s_text = s_sign + s_pawns;
+             
+             bmList.innerHTML = `
+                <div>1. <span style="color:var(--text);">${moveStr}</span> <span style="color:var(--text4);font-size:10px;">(${scoreStr})</span></div>
+                <div style="font-size:10px; color:var(--text4); margin-top:4px; border-top: 1px solid var(--border); padding-top:4px;">
+                    Valutazione statica attuale: <b>${s_text}</b>
+                </div>
+             `;
          }
-     } else if (currentTask === 'bot_move') {
-         isAiCalculating = false; 
-         if (window.handleAIMove) window.handleAIMove(e.data);
+     } else {
+         if (cbId === 'bot_move') {
+             isAiCalculating = false; 
+             if (window.handleAIMove) window.handleAIMove(e.data);
+         }
      }
   }
 };
