@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Tre Anelli</title>
+<link rel="icon" href="data:,">
 <style>
 /* ── TEMI ─────────────────────────────────────────────────── */
 :root{
@@ -122,6 +123,11 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
   <select id="sel-theme" onchange="setTheme(this.value)" style="width:100%;font-size:12px;padding:6px;margin-bottom:10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);outline:none;cursor:pointer;">
     <option value="classic">☀️ Chiaro</option>
     <option value="dark">🌙 Scuro</option>
+  </select>
+  <div style="font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:600;">Layout Scacchiera</div>
+  <select id="sel-board" onchange="setBoardStyle(this.value)" style="width:100%;font-size:12px;padding:6px;margin-bottom:10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);outline:none;cursor:pointer;">
+    <option value="classic">Classica (Centro Connesso)</option>
+    <option value="nocenter">Aperta (Centro Vuoto)</option>
   </select>
   <div style="font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:600;">Stile Pedine</div>
   <select id="sel-pieces" onchange="setPieceStyle(this.value)" style="width:100%;font-size:12px;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);outline:none;cursor:pointer;">
@@ -456,6 +462,7 @@ const THEMES = {
 
 let currentTheme = 'classic';
 let currentPieceStyle = 'classic';
+let currentBoardStyle = 'classic';
 
 function setTheme(name) {
   currentTheme = name;
@@ -464,15 +471,26 @@ function setTheme(name) {
   const sel = document.getElementById('sel-theme');
   if(sel) sel.value = name;
   try{localStorage.setItem('ta_theme',name);}catch(e){}
-  try{if(document.getElementById('game').style.display!=='none'&&typeof G!=='undefined'){G.redraw&&G.redraw();}}catch(e){}
-  try{if(document.getElementById('analysis').style.display!=='none'&&typeof A!=='undefined'){A.redraw&&A.redraw();}}catch(e){}
+  try{if(typeof G!=='undefined' && G.redraw) G.redraw();}catch(e){}
+  try{if(typeof A!=='undefined' && A.redraw) A.redraw();}catch(e){}
 }
 
 function setPieceStyle(style) {
   currentPieceStyle = style;
   localStorage.setItem('ta_pieces', style);
-  try{if(document.getElementById('game').style.display!=='none'&&typeof G!=='undefined'){G.redraw&&G.redraw();}}catch(e){}
-  try{if(document.getElementById('analysis').style.display!=='none'&&typeof A!=='undefined'){A.redraw&&A.redraw();}}catch(e){}
+  try{if(typeof G!=='undefined' && G.redraw) G.redraw();}catch(e){}
+  try{if(typeof A!=='undefined' && A.redraw) A.redraw();}catch(e){}
+}
+
+function setBoardStyle(style) {
+  currentBoardStyle = style;
+  localStorage.setItem('ta_board', style);
+  if(typeof G !== 'undefined' && G.buildAdjacencies) G.buildAdjacencies();
+  if(typeof A !== 'undefined' && A.buildAdjacencies) A.buildAdjacencies();
+  try{if(typeof G!=='undefined' && G.redraw) G.redraw();}catch(e){}
+  try{if(typeof A!=='undefined' && A.redraw) A.redraw();}catch(e){}
+  
+  if (autoAnalysisEnabled) { forceAnalysisEval(); }
 }
 
 function T(){return THEMES[currentTheme]||THEMES.classic;}
@@ -480,6 +498,7 @@ function T(){return THEMES[currentTheme]||THEMES.classic;}
 (function(){
   try{const s=localStorage.getItem('ta_theme');if(s)setTheme(s);}catch(e){}
   try{const p=localStorage.getItem('ta_pieces');if(p){currentPieceStyle=p;document.addEventListener('DOMContentLoaded',()=>{const sel=document.getElementById('sel-pieces');if(sel)sel.value=p;});}}catch(e){}
+  try{const b=localStorage.getItem('ta_board');if(b){currentBoardStyle=b;document.addEventListener('DOMContentLoaded',()=>{const sel=document.getElementById('sel-board');if(sel)sel.value=b;});}}catch(e){}
 })();
 
 // --- FUNZIONI DI DISEGNO PEDINE EMOJI ---
@@ -519,7 +538,7 @@ function toggleAiMenu() {
 
 // --- DECODIFICA MOSSE (Per Pannello "Migliore Mossa") ---
 function formatEngineMove(res) {
-    if(!res) return "...";
+    if(!res || res === -1) return "...";
     const NODI = ['E1','E2','E3','E4','E5','E6','E7','E8','E9','E10','E11','E12','E13','E14','E15','E16','E17','E18','M1','M2','M3','M4','M5','M6','M7','M8','M9','M10','M11','M12','I1','I2','I3','I4','I5','I6','C'];
     let fromIdx = Math.floor(res / 10000);
     let toIdx = Math.floor((res % 10000) / 100);
@@ -562,8 +581,8 @@ const AI_SETTINGS = {
 
 let aiWorkerReady = false;
 let isAiCalculating = false;
-let workerTasks = []; // CODA per evitare sovrapposizioni e blocchi
-let aiWorker = new Worker('engine_worker.js?v=3');
+let workerTasks = []; 
+let aiWorker = new Worker('engine_worker.js?v=4');
 
 aiWorker.onmessage = function(e) {
   if (e.data.type === 'ready') {
@@ -577,7 +596,6 @@ aiWorker.onmessage = function(e) {
      const currentTask = workerTasks.shift() || cbId;
 
      if (isAnalysisOpen) {
-         // 1. LA BARRA SI ALLINEA ALLA VALUTAZIONE PROFONDA DELL'IA
          let deepStateMsg = { eval_score: e.data.eval_score }; 
          updateEvalVisuals(deepStateMsg, 'an-eval-score', 'an-eval-bar');
          
@@ -590,7 +608,6 @@ aiWorker.onmessage = function(e) {
              const bmList = document.getElementById('an-bestmove-list');
              const moveStr = formatEngineMove(e.data.result);
              
-             // 2. IL TESTO MOSTRA SOLO LA MOSSA (Senza punteggio ridondante)
              bmList.innerHTML = `<div>1. <span style="color:var(--text);font-weight:bold;">${moveStr}</span></div>`;
          }
      } else {
@@ -884,17 +901,32 @@ const G=(function(){
   function pos(id){const[nx,ny]=nP(id);if(RL.includes(id))return[nx,RY[0]];if(REQ.includes(id))return[nx,RY[1]];if(RH.includes(id))return[nx,RY[2]];return[nx,ny];}
 
   const ADJ={},ADJ_BETA={};
-  function ae(a,b,adj){if(!adj[a])adj[a]=[];if(!adj[b])adj[b]=[];if(!adj[a].includes(b))adj[a].push(b);if(!adj[b].includes(a))adj[b].push(a);}
-  for(let i=1;i<=18;i++){ae('E'+i,'E'+(i===18?1:i+1),ADJ);ae('E'+i,'E'+(i===18?1:i+1),ADJ_BETA);}
-  for(let i=1;i<=12;i++){ae('M'+i,'M'+(i===12?1:i+1),ADJ);ae('M'+i,'M'+(i===12?1:i+1),ADJ_BETA);}
-  for(let i=1;i<=6;i++){ae('I'+i,'I'+(i===6?1:i+1),ADJ);ae('I'+i,'I'+(i===6?1:i+1),ADJ_BETA);}
-  ae('C','I1',ADJ);ae('C','I4',ADJ);
-  ae('E1','M1',ADJ);ae('M1','I1',ADJ);ae('I1','C',ADJ);ae('C','I4',ADJ);ae('I4','M7',ADJ);ae('M7','E10',ADJ);
-  ae('E2','M2',ADJ);ae('M2','I2',ADJ);ae('I2','I3',ADJ);ae('I3','M6',ADJ);ae('M6','E9',ADJ);
-  ae('E18','M12',ADJ);ae('M12','I6',ADJ);ae('I6','I5',ADJ);ae('I5','M8',ADJ);ae('M8','E11',ADJ);
-  ae('E1','M1',ADJ_BETA);ae('M1','I1',ADJ_BETA);ae('I1','I4',ADJ_BETA);ae('I4','M7',ADJ_BETA);ae('M7','E10',ADJ_BETA);
-  ae('E2','M2',ADJ_BETA);ae('M2','I2',ADJ_BETA);ae('I2','I3',ADJ_BETA);ae('I3','M6',ADJ_BETA);ae('M6','E9',ADJ_BETA);
-  ae('E18','M12',ADJ_BETA);ae('M12','I6',ADJ_BETA);ae('I6','I5',ADJ_BETA);ae('I5','M8',ADJ_BETA);ae('M8','E11',ADJ_BETA);
+  
+  function buildAdjacencies() {
+      for(let k in ADJ) delete ADJ[k];
+      for(let k in ADJ_BETA) delete ADJ_BETA[k];
+      
+      function ae(a,b,adj){if(!adj[a])adj[a]=[];if(!adj[b])adj[b]=[];if(!adj[a].includes(b))adj[a].push(b);if(!adj[b].includes(a))adj[b].push(a);}
+      for(let i=1;i<=18;i++){ae('E'+i,'E'+(i===18?1:i+1),ADJ);ae('E'+i,'E'+(i===18?1:i+1),ADJ_BETA);}
+      for(let i=1;i<=12;i++){ae('M'+i,'M'+(i===12?1:i+1),ADJ);ae('M'+i,'M'+(i===12?1:i+1),ADJ_BETA);}
+      for(let i=1;i<=6;i++){ae('I'+i,'I'+(i===6?1:i+1),ADJ);ae('I'+i,'I'+(i===6?1:i+1),ADJ_BETA);}
+      
+      ae('C','I1',ADJ);ae('C','I4',ADJ);
+      ae('E1','M1',ADJ);ae('M1','I1',ADJ);ae('I1','C',ADJ);ae('C','I4',ADJ);ae('I4','M7',ADJ);ae('M7','E10',ADJ);
+      ae('E2','M2',ADJ);ae('M2','I2',ADJ);ae('I2','I3',ADJ);ae('I3','M6',ADJ);ae('M6','E9',ADJ);
+      ae('E18','M12',ADJ);ae('M12','I6',ADJ);ae('I6','I5',ADJ);ae('I5','M8',ADJ);ae('M8','E11',ADJ);
+      
+      ae('E1','M1',ADJ_BETA);ae('M1','I1',ADJ_BETA);ae('I4','M7',ADJ_BETA);ae('M7','E10',ADJ_BETA);
+      ae('E2','M2',ADJ_BETA);ae('M2','I2',ADJ_BETA);ae('I3','M6',ADJ_BETA);ae('M6','E9',ADJ_BETA);
+      ae('E18','M12',ADJ_BETA);ae('M12','I6',ADJ_BETA);ae('I5','M8',ADJ_BETA);ae('M8','E11',ADJ_BETA);
+      
+      if (currentBoardStyle !== 'nocenter') {
+          ae('I1','I4',ADJ_BETA);
+          ae('I2','I3',ADJ_BETA);
+          ae('I6','I5',ADJ_BETA);
+      }
+  }
+  buildAdjacencies();
 
   const WIN=['I1','I3','I5'];
   const P1S=['E3','E4','E5','E6','E7','E8','M3','M4','M5'];
@@ -1171,7 +1203,10 @@ const G=(function(){
     aiWorker.postMessage({
         type: 'calcola',
         board: boardArr, reserve: reserveArr, special: specialArr,
-        player: cur, max_depth: conf.maxDepth, is_beta: gameVer === 'beta' ? 1 : 0, rotN: rotN,
+        player: cur, max_depth: conf.maxDepth, 
+        is_beta: gameVer === 'beta' ? 1 : 0, 
+        is_nocenter: currentBoardStyle === 'nocenter',
+        rotN: rotN,
         _callbackId: 'bot_move'
     });
     workerTasks.push('bot_move');
@@ -1557,8 +1592,19 @@ const G=(function(){
   function dSt(){
     const th=T();
     RY.forEach(ry=>{
+      let dy = ry - CY;
+      let dxI = Math.sqrt(Math.max(0, RI*RI - dy*dy));
       ctx.strokeStyle=th.gridLine;ctx.lineWidth=0.8;ctx.setLineDash([]);
-      ctx.beginPath();ctx.moveTo(CX-RE-22,ry);ctx.lineTo(CX+RE+22,ry);ctx.stroke();
+      
+      // Seleziona il disegno basato sul layout
+      if (currentBoardStyle === 'nocenter' && gameVer === 'beta') {
+          // Ferma le linee all'anello interno
+          ctx.beginPath();ctx.moveTo(CX-RE-22,ry);ctx.lineTo(CX-dxI,ry);ctx.stroke();
+          ctx.beginPath();ctx.moveTo(CX+dxI,ry);ctx.lineTo(CX+RE+22,ry);ctx.stroke();
+      } else {
+          // Linee passanti per il centro (Classica)
+          ctx.beginPath();ctx.moveTo(CX-RE-22,ry);ctx.lineTo(CX+RE+22,ry);ctx.stroke();
+      }
     });
     [RE,RM,RI].forEach((r)=>{
       ctx.strokeStyle=th.ring;ctx.lineWidth=0.8;
@@ -1613,14 +1659,14 @@ const G=(function(){
       return;
     }
 
-    if(pc){
+    if(pc && currentPieceStyle !== 'emoji'){
       const col=pc===1?th.p1:th.p2;
       const hi=pc===1?th.p1hi:th.p2hi;
       ctx.beginPath();ctx.arc(x,y,11,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();
       ctx.beginPath();ctx.arc(x-3,y-3,5,0,Math.PI*2);ctx.fillStyle=hi;ctx.fill();
     }
 
-    if (!(pc && special[id] && currentPieceStyle === 'alt')) {
+    if(currentPieceStyle !== 'emoji') {
         if(pc){
           ctx.fillStyle=th.labelPiece;
           ctx.font='bold 8px sans-serif';
@@ -1631,14 +1677,10 @@ const G=(function(){
         ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(id,x,y+1);
     }
 
-    if(special[id]&&pc){
-        if(currentPieceStyle === 'alt') {
-            const spCol = pc===1 ? th.p1med : th.p2med;
-            if(pc===1) drawSnakeBody(ctx, x, y, spCol);
-            else drawBirdFeathers(ctx, x, y, spCol);
-        } else {
-            drawWavyGlobal(ctx, x, y, pc===1?th.p1wave:th.p2wave);
-        }
+    if(pc && currentPieceStyle === 'emoji') {
+        drawEmojiPiece(ctx, x, y, pc===1, special[id]);
+    } else if(special[id]&&pc){
+        drawWavyGlobal(ctx, x, y, pc===1?th.p1wave:th.p2wave);
     }
   }
 
@@ -1679,6 +1721,7 @@ const G=(function(){
   return{
       init,restart,seeBoard,surrender,rot,previewRot,clearPreview,navFirst,navPrev,navNext,navLast,
       copyNotation,placeMode,applyRemote,isAnalysisAi:false,loadState,undoMove,wG,
+      buildAdjacencies,
       over:()=>over,cur:()=>cur,isVsAI:()=>vsAI,
       getBoard:()=>board, getSpecial:()=>special, getReserve:()=>reserve, getRotN:()=>rotN,
       exportTAN,copyTAN,redraw:draw
@@ -1764,7 +1807,10 @@ function doAnalysisCall(depth) {
 
       document.getElementById('an-eval-score').textContent = '...';
 
-      aiWorker.postMessage({ type: 'set_time', ms: depth > 10 ? 3000 : 800 }); 
+      aiWorker.postMessage({ 
+          type: 'set_time', 
+          ms: depth > 10 ? 3000 : 800 
+      }); 
       aiWorker.postMessage({
           type: 'calcola',
           board: boardArr,
@@ -1773,6 +1819,7 @@ function doAnalysisCall(depth) {
           player: s.cur,
           max_depth: depth,
           is_beta: 1, 
+          is_nocenter: currentBoardStyle === 'nocenter',
           rotN: s.rotN,
           _callbackId: 'analysis_' + Date.now() 
       });
@@ -1790,13 +1837,25 @@ const A=(function(){
   const RL=['E2','M2','I2','I3','M6','E9'],REQ=['E1','M1','I1','I4','M7','E10'],RH=['E18','M12','I6','I5','M8','E11'];
 
   const AADJ={};
-  function aae(a,b){if(!AADJ[a])AADJ[a]=[];if(!AADJ[b])AADJ[b]=[];if(!AADJ[a].includes(b))AADJ[a].push(b);if(!AADJ[b].includes(a))AADJ[b].push(a);}
-  for(let i=1;i<=18;i++)aae('E'+i,'E'+(i===18?1:i+1));
-  for(let i=1;i<=12;i++)aae('M'+i,'M'+(i===12?1:i+1));
-  for(let i=1;i<=6;i++)aae('I'+i,'I'+(i===6?1:i+1));
-  aae('E1','M1');aae('M1','I1');aae('I1','I4');aae('I4','M7');aae('M7','E10');
-  aae('E2','M2');aae('M2','I2');aae('I2','I3');aae('I3','M6');aae('M6','E9');
-  aae('E18','M12');aae('M12','I6');aae('I6','I5');aae('I5','M8');aae('M8','E11');
+  
+  function buildAdjacencies() {
+      for(let k in AADJ) delete AADJ[k];
+      function aae(a,b){if(!AADJ[a])AADJ[a]=[];if(!AADJ[b])AADJ[b]=[];if(!AADJ[a].includes(b))AADJ[a].push(b);if(!AADJ[b].includes(a))AADJ[b].push(a);}
+      for(let i=1;i<=18;i++)aae('E'+i,'E'+(i===18?1:i+1));
+      for(let i=1;i<=12;i++)aae('M'+i,'M'+(i===12?1:i+1));
+      for(let i=1;i<=6;i++)aae('I'+i,'I'+(i===6?1:i+1));
+      
+      aae('E1','M1');aae('M1','I1');aae('I4','M7');aae('M7','E10');
+      aae('E2','M2');aae('M2','I2');aae('I3','M6');aae('M6','E9');
+      aae('E18','M12');aae('M12','I6');aae('I5','M8');aae('M8','E11');
+      
+      if (currentBoardStyle !== 'nocenter') {
+          aae('I1','I4'); 
+          aae('I2','I3'); 
+          aae('I6','I5');
+      }
+  }
+  buildAdjacencies();
 
   const AALL=[...Array.from({length:18},(_,i)=>'E'+(i+1)),...Array.from({length:12},(_,i)=>'M'+(i+1)),...Array.from({length:6},(_,i)=>'I'+(i+1))];
 
@@ -2003,7 +2062,18 @@ const A=(function(){
 
   function dSt(){
     const th=T();
-    RY.forEach(ry=>{ctx.strokeStyle=th.gridLine;ctx.lineWidth=0.8;ctx.setLineDash([]);ctx.beginPath();ctx.moveTo(CX-RE-22,ry);ctx.lineTo(CX+RE+22,ry);ctx.stroke();});
+    RY.forEach(ry=>{
+      let dy = ry - CY;
+      let dxI = Math.sqrt(Math.max(0, RI*RI - dy*dy));
+      ctx.strokeStyle=th.gridLine;ctx.lineWidth=0.8;ctx.setLineDash([]);
+      
+      if (currentBoardStyle === 'nocenter') {
+          ctx.beginPath();ctx.moveTo(CX-RE-22,ry);ctx.lineTo(CX-dxI,ry);ctx.stroke();
+          ctx.beginPath();ctx.moveTo(CX+dxI,ry);ctx.lineTo(CX+RE+22,ry);ctx.stroke();
+      } else {
+          ctx.beginPath();ctx.moveTo(CX-RE-22,ry);ctx.lineTo(CX+RE+22,ry);ctx.stroke();
+      }
+    });
     [RE,RM,RI].forEach(r=>{ctx.strokeStyle=th.ring;ctx.lineWidth=0.8;ctx.beginPath();ctx.arc(CX,CY,r,0,Math.PI*2);ctx.stroke();});
     const dr=new Set();
     for(const a of AALL)for(const b of(AADJ[a]||[])){const k=[a,b].sort().join(',');if(dr.has(k))continue;dr.add(k);const[ax,ay]=aPos(a),[bx,by]=aPos(b);ctx.strokeStyle=th.edge;ctx.lineWidth=0.8;ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();}
@@ -2108,7 +2178,6 @@ const A=(function(){
     if(anim)return;
     const s=curNode.state,pl=s.cur;
     
-    // GESTIONE NUOVO SETUP MANUALE
     if(editMode){
       s.board[id] = (s.board[id] + 1) % 3;
       if(s.board[id] === 0) delete s.special[id];
@@ -2152,10 +2221,9 @@ const A=(function(){
     const el=document.getElementById('an-tree');el.innerHTML='';
     renderNode(tree,el,0);
     
-    // NUOVO SISTEMA DI SCORRIMENTO MOBILE: Evita che lo schermo salti!
     const active=el.querySelector('.an-active');
     if(active){
-        const container = el.parentElement; // Questo è il div con overflow-y:auto
+        const container = el.parentElement; 
         container.scrollTop = active.offsetTop - container.offsetTop - (container.clientHeight / 2) + (active.clientHeight / 2);
     }
   }
@@ -2194,9 +2262,6 @@ const A=(function(){
     navigator.clipboard.writeText(txt.trim()).then(()=>{const btn=document.querySelector('#an-right button:last-child');const o=btn.textContent;btn.textContent='✓ Copiato!';setTimeout(()=>btn.textContent=o,1500);}).catch(()=>alert(txt));
   }
   
-  // ══════════════════════════════════════════════════════════════
-  // SISTEMA TAN (Tre Anelli Notation) — equivalente FEN
-  // ══════════════════════════════════════════════════════════════
   function exportTAN(){
     const s=curNode.state;
     const rings=['E','M','I'];
@@ -2328,7 +2393,11 @@ const A=(function(){
 
   function init(){initTree();renderTree();syncFromNode();}
 
-  return{init,navFirst,navPrev,navNext,navLast,rot,previewRot,clearPreview,flipTurn,placeMode,deleteNode,promoteVariation,loadNotation,copyTree,toggleEdit,getState:()=>curNode.state,loadTAN,copyTAN,redraw:draw};
+  return{
+      init,navFirst,navPrev,navNext,navLast,rot,previewRot,clearPreview,flipTurn,
+      placeMode,deleteNode,promoteVariation,loadNotation,copyTree,toggleEdit,
+      getState:()=>curNode.state,loadTAN,copyTAN,redraw:draw, buildAdjacencies
+  };
 })();
 </script>
 </body>

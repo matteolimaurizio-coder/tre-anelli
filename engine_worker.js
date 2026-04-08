@@ -1,4 +1,4 @@
-importScripts('engine_v3.js');
+importScripts('engine_v4.js');
 
 Module.onRuntimeInitialized = function() {
     Module.ccall('init_engine', 'null', [], []);
@@ -22,16 +22,18 @@ self.onmessage = function(e) {
             wasmCall('set_flags', 'null', ['number','number','number','number'], [msg.pvs?1:0, msg.nmp?1:0, msg.lmr?1:0, msg.fut?1:0]);
         } 
         else if (msg.type === 'calcola') {
+            // Decodifica la modalità per il C++: 0 = Orig, 1 = Beta Con Centro, 2 = Beta Senza Centro
+            let engine_mode = msg.is_beta ? (msg.is_nocenter ? 2 : 1) : 0;
+
             let res = wasmCall('calcola', 'number', 
                 ['array','array','array','number','number','number','number'],
-                [msg.board, msg.reserve, msg.special, msg.player, msg.max_depth, msg.is_beta, msg.rotN]
+                [msg.board, msg.reserve, msg.special, msg.player, msg.max_depth, engine_mode, msg.rotN]
             );
             
-            // Preleva sia il punteggio calcolato nel futuro (PV) che quello statico attuale
             let eval_score = wasmCall('get_eval', 'number', [], []);
             let static_eval = wasmCall('get_static_eval', 'number', 
                 ['array','array','array','number','number'],
-                [msg.board, msg.reserve, msg.special, msg.player, msg.is_beta ? 1 : 0]
+                [msg.board, msg.reserve, msg.special, msg.player, engine_mode]
             );
             
             if (msg.player === 2) {
@@ -42,7 +44,6 @@ self.onmessage = function(e) {
             postMessage({
                 type: 'mossa',
                 result: res,
-                // Dividiamo per 10 perché ora i pezzi nel C++ valgono 1000 invece di 100
                 eval_score: eval_score / 10,
                 static_score: static_eval / 10,
                 _callbackId: msg._callbackId
