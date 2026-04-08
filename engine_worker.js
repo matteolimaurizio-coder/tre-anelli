@@ -12,7 +12,7 @@ var Module = {
 };
 
 try {
-    importScripts('engine.js');
+    importScripts('engine_v2.js');
 } catch(e) {
     postMessage({ type:'error', message: 'Impossibile caricare engine.js: ' + e.message });
 }

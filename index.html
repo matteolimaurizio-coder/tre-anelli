@@ -563,7 +563,7 @@ const AI_SETTINGS = {
 let aiWorkerReady = false;
 let isAiCalculating = false;
 let workerTasks = []; // CODA per evitare sovrapposizioni e blocchi
-let aiWorker = new Worker('engine_worker.js');
+let aiWorker = new Worker('engine_worker.js?v=2');
 
 aiWorker.onmessage = function(e) {
   if (e.data.type === 'ready') {
