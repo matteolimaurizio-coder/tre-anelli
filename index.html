@@ -577,9 +577,9 @@ aiWorker.onmessage = function(e) {
      const currentTask = workerTasks.shift() || cbId;
 
      if (isAnalysisOpen) {
-         // 1. LA BARRA MOSTRA IL PRESENTE: Passiamo alla barra la Valutazione Statica
-         let currentStateMsg = { eval_score: e.data.static_score };
-         updateEvalVisuals(currentStateMsg, 'an-eval-score', 'an-eval-bar');
+         // 1. LA BARRA SI ALLINEA ALLA VALUTAZIONE PROFONDA DELL'IA
+         let deepStateMsg = { eval_score: e.data.eval_score }; 
+         updateEvalVisuals(deepStateMsg, 'an-eval-score', 'an-eval-bar');
          
          document.getElementById('an-eval-box').style.opacity = '1';
          document.getElementById('an-eval-btn').style.display = 'none';
@@ -590,14 +590,8 @@ aiWorker.onmessage = function(e) {
              const bmList = document.getElementById('an-bestmove-list');
              const moveStr = formatEngineMove(e.data.result);
              
-             // 2. IL TESTO MOSTRA IL FUTURO: Formattiamo il punteggio previsto dopo la mossa
-             let f_raw = e.data.eval_score || 0;
-             let f_pawns = Math.abs(f_raw / 100).toFixed(1);
-             let f_sign = f_raw > 0 ? '+' : (f_raw < 0 ? '-' : '');
-             let futureScoreStr = f_sign + f_pawns;
-             
-             // 3. RIPULIAMO L'HTML: Togliamo la scritta statica e lasciamo solo la mossa pulita
-             bmList.innerHTML = `<div>1. <span style="color:var(--text);">${moveStr}</span> <span style="color:var(--text4);font-size:10px;">(${futureScoreStr})</span></div>`;
+             // 2. IL TESTO MOSTRA SOLO LA MOSSA (Senza punteggio ridondante)
+             bmList.innerHTML = `<div>1. <span style="color:var(--text);font-weight:bold;">${moveStr}</span></div>`;
          }
      } else {
          if (cbId === 'bot_move') {
