@@ -582,18 +582,17 @@ const AI_SETTINGS = {
 let aiWorkerReady = false;
 let isAiCalculating = false;
 let workerTasks = []; 
-let aiWorker = new Worker('engine_worker.js?v=4');
+let aiWorker = new Worker('engine_worker.js?v=5');
 
 aiWorker.onmessage = function(e) {
   if (e.data.type === 'ready') {
       aiWorkerReady = true;
   }
-  else if (e.data.type === 'mossa') {
+  // Ascoltiamo sia 'mossa' (fine calcolo) che 'iterative' (calcoli intermedi in diretta)
+  else if (e.data.type === 'mossa' || e.data.type === 'iterative') {
      if (typeof e.data.eval_score === 'undefined') return;
 
      const isAnalysisOpen = document.getElementById('analysis') && document.getElementById('analysis').style.display === 'block';
-     const cbId = e.data._callbackId || '';
-     const currentTask = workerTasks.shift() || cbId;
 
      if (isAnalysisOpen) {
          let deepStateMsg = { eval_score: e.data.eval_score }; 
@@ -608,16 +607,101 @@ aiWorker.onmessage = function(e) {
              const bmList = document.getElementById('an-bestmove-list');
              const moveStr = formatEngineMove(e.data.result);
              
-             bmList.innerHTML = `<div>1. <span style="color:var(--text);font-weight:bold;">${moveStr}</span></div>`;
+             // Aggiungiamo un piccolo tag che mostra la Profondità attuale in tempo reale!
+             let depthStr = e.data.depth ? `<span style="color:var(--text4);font-size:10px;margin-left:8px;">[Profondità: ${e.data.depth}]</span>` : '';
+             
+             bmList.innerHTML = `<div>1. <span style="color:var(--text);font-weight:bold;">${moveStr}</span>${depthStr}</div>`;
          }
-     } else {
-         if (cbId === 'bot_move') {
+     } 
+     
+     // La giocata fisica contro l'IA avviene solo alla fine (type === 'mossa')
+     if (e.data.type === 'mossa') {
+         const cbId = e.data._callbackId || '';
+         const currentTask = workerTasks.shift() || cbId;
+         if (!isAnalysisOpen && cbId === 'bot_move') {
              isAiCalculating = false; 
              if (window.handleAIMove) window.handleAIMove(e.data);
          }
      }
   }
 };
+
+function forceAnalysisEval() {
+    if (autoAnalysisEnabled || isAiCalculating) return;
+    document.getElementById('an-eval-box').style.opacity = '1';
+    document.getElementById('an-eval-btn').style.display = 'none';
+    document.getElementById('an-eval-score').textContent = '...';
+    
+    const bmBox = document.getElementById('an-bestmove-box');
+    if (bmBox) {
+        bmBox.style.display = 'flex';
+        document.getElementById('an-bestmove-list').innerHTML = '<span style="color:var(--text4);">Calcolo in corso...</span>';
+    }
+    
+    // IA pensa fino a profondità 30 o per un massimo di 30 SECONDI interi!
+    doAnalysisCall(30, 30000); 
+}
+
+function requestAnalysisEval() {
+    if (!autoAnalysisEnabled) return;
+    if (isAiCalculating) return;
+    
+    const bmBox = document.getElementById('an-bestmove-box');
+    if (bmBox && document.getElementById('an-bestmove-list').innerHTML.indexOf('Calcolo') === -1) {
+        bmBox.style.display = 'flex';
+        document.getElementById('an-bestmove-list').innerHTML = '<span style="color:var(--text4);">Calcolo in corso...</span>';
+    }
+    
+    // In auto-analisi, l'IA pensa fino a profondità 15 o per 5 secondi
+    doAnalysisCall(15, 5000); 
+}
+
+function doAnalysisCall(depth, timeMs) {
+  if (!aiWorkerReady) {
+      setTimeout(() => doAnalysisCall(depth, timeMs), 500); 
+      return;
+  }
+  if (!document.getElementById('analysis') || document.getElementById('analysis').style.display === 'none') return;
+  if (!A.getState) return;
+  
+  clearTimeout(evalTimeout);
+  evalTimeout = setTimeout(() => {
+      if(isAiCalculating) return;
+      syncAiToUI(); 
+      
+      const s = A.getState();
+      const NODI = ['E1','E2','E3','E4','E5','E6','E7','E8','E9','E10','E11','E12','E13','E14','E15','E16','E17','E18','M1','M2','M3','M4','M5','M6','M7','M8','M9','M10','M11','M12','I1','I2','I3','I4','I5','I6','C'];
+      
+      let boardArr = new Int8Array(37);
+      let specialArr = new Int8Array(37);
+      let reserveArr = new Int8Array([s.reserve[0]||0, s.reserve[1]||0]);
+
+      for (let i = 0; i < NODI.length; i++) {
+          boardArr[i] = s.board[NODI[i]] || 0;
+          specialArr[i] = s.special[NODI[i]] ? 1 : 0;
+      }
+
+      document.getElementById('an-eval-score').textContent = '...';
+
+      aiWorker.postMessage({ 
+          type: 'set_time', 
+          ms: timeMs // Usiamo il nuovo tempo prolungato!
+      }); 
+      aiWorker.postMessage({
+          type: 'calcola',
+          board: boardArr,
+          reserve: reserveArr,
+          special: specialArr,
+          player: s.cur,
+          max_depth: depth,
+          is_beta: 1, 
+          is_nocenter: currentBoardStyle === 'nocenter',
+          rotN: s.rotN,
+          _callbackId: 'analysis_' + Date.now() 
+      });
+      workerTasks.push('analysis');
+  }, 300); 
+}
 
 function syncAiToUI() {
   const diff = document.getElementById('monitor-ai-diff').value;

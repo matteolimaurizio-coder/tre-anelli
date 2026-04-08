@@ -1,4 +1,4 @@
-importScripts('engine_v4.js');
+importScripts('engine_v5.js');
 
 Module.onRuntimeInitialized = function() {
     Module.ccall('init_engine', 'null', [], []);
