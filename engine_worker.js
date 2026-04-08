@@ -5,14 +5,12 @@ Module.onRuntimeInitialized = function() {
     postMessage({ type: 'ready' });
 };
 
-// Funzione di supporto per chiamare il C++
 function wasmCall(funcName, returnType, argTypes, args) {
     return Module.ccall(funcName, returnType, argTypes, args);
 }
 
 self.onmessage = function(e) {
     let msg = e.data;
-    
     try {
         if (msg.type === 'set_time') {
             wasmCall('set_time', 'null', ['number'], [msg.ms]);
@@ -28,7 +26,14 @@ self.onmessage = function(e) {
                 ['array','array','array','number','number','number','number'],
                 [msg.board, msg.reserve, msg.special, msg.player, msg.max_depth, msg.is_beta, msg.rotN]
             );
+            
             let eval_score = wasmCall('get_eval', 'number', [], []);
+            
+            // FIX PROSPETTIVA: Se sta calcolando il Blu (P2), il suo punteggio positivo (es. "Sto vincendo!") 
+            // deve essere invertito in negativo per farlo combaciare con la grafica assoluta della barra.
+            if (msg.player === 2) {
+                eval_score = -eval_score;
+            }
             
             postMessage({
                 type: 'mossa',
