@@ -577,7 +577,10 @@ aiWorker.onmessage = function(e) {
      const currentTask = workerTasks.shift() || cbId;
 
      if (isAnalysisOpen) {
-         updateEvalVisuals(e.data, 'an-eval-score', 'an-eval-bar');
+         // 1. LA BARRA MOSTRA IL PRESENTE: Passiamo alla barra la Valutazione Statica
+         let currentStateMsg = { eval_score: e.data.static_score };
+         updateEvalVisuals(currentStateMsg, 'an-eval-score', 'an-eval-bar');
+         
          document.getElementById('an-eval-box').style.opacity = '1';
          document.getElementById('an-eval-btn').style.display = 'none';
          
@@ -586,20 +589,15 @@ aiWorker.onmessage = function(e) {
              bmBox.style.display = 'flex';
              const bmList = document.getElementById('an-bestmove-list');
              const moveStr = formatEngineMove(e.data.result);
-             const scoreStr = document.getElementById('an-eval-score').textContent;
              
-             // Estrapola e formatta la valutazione statica
-             let s_raw = e.data.static_score || 0;
-             let s_pawns = Math.abs(s_raw / 100).toFixed(1);
-             let s_sign = s_raw > 0 ? '+' : (s_raw < 0 ? '-' : '');
-             let s_text = s_sign + s_pawns;
+             // 2. IL TESTO MOSTRA IL FUTURO: Formattiamo il punteggio previsto dopo la mossa
+             let f_raw = e.data.eval_score || 0;
+             let f_pawns = Math.abs(f_raw / 100).toFixed(1);
+             let f_sign = f_raw > 0 ? '+' : (f_raw < 0 ? '-' : '');
+             let futureScoreStr = f_sign + f_pawns;
              
-             bmList.innerHTML = `
-                <div>1. <span style="color:var(--text);">${moveStr}</span> <span style="color:var(--text4);font-size:10px;">(${scoreStr})</span></div>
-                <div style="font-size:10px; color:var(--text4); margin-top:4px; border-top: 1px solid var(--border); padding-top:4px;">
-                    Valutazione statica attuale: <b>${s_text}</b>
-                </div>
-             `;
+             // 3. RIPULIAMO L'HTML: Togliamo la scritta statica e lasciamo solo la mossa pulita
+             bmList.innerHTML = `<div>1. <span style="color:var(--text);">${moveStr}</span> <span style="color:var(--text4);font-size:10px;">(${futureScoreStr})</span></div>`;
          }
      } else {
          if (cbId === 'bot_move') {
