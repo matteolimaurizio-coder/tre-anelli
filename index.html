@@ -698,13 +698,19 @@ const PublicLobby = {
   renderLobbyItem(code, room) {
     const timeAgo = this.getTimeAgo(room.timestamp);
     const initial = room.hostName ? room.hostName[0].toUpperCase() : '?';
+    
+    // Mostriamo il tipo di tempo scelto
+    const tc = room.timeControl || 'unlimited';
+    const tcLabels = { 'blitz': '⚡ Blitz', 'rapid': '⏱️ Rapid', 'unlimited': '♾️ Senza limiti' };
+    const tcText = tcLabels[tc] || 'Senza limiti';
+
     return `
       <div class="lobby-item" onclick="PublicLobby.joinRoom('${code}')">
         <div class="lobby-item-info">
           <div class="lobby-item-avatar">${initial}</div>
           <div class="lobby-item-details">
             <div class="lobby-item-name">${room.hostName || 'Giocatore'}</div>
-            <div class="lobby-item-meta">${timeAgo} • <span class="status-indicator waiting"><span class="status-dot"></span> In attesa</span></div>
+            <div class="lobby-item-meta">${timeAgo} • <b>${tcText}</b> • <span class="status-indicator waiting"><span class="status-dot"></span> In attesa</span></div>
           </div>
         </div>
         <div class="lobby-item-code">${code}</div>
@@ -722,8 +728,16 @@ const PublicLobby = {
   
   publishRoom(roomCode, hostName) {
     this.currentRoomCode = roomCode; this.isPublic = true;
+    const tc = document.getElementById('time-control').value || 'unlimited';
     const roomRef = this.db.ref(`lobby/${roomCode}`);
-    roomRef.set({ hostId: this.currentUserId, hostName: hostName || this.getUsername(), status: 'waiting', isPublic: true, timestamp: firebase.database.ServerValue.TIMESTAMP });
+    roomRef.set({ 
+        hostId: this.currentUserId, 
+        hostName: hostName || this.getUsername(), 
+        status: 'waiting', 
+        isPublic: true, 
+        timeControl: tc,
+        timestamp: firebase.database.ServerValue.TIMESTAMP 
+    });
     roomRef.onDisconnect().remove();
   },
   
@@ -1026,7 +1040,7 @@ function doAnalysisCall(depth, timeMs) {
 
       aiWorker.postMessage({ 
           type: 'set_time', 
-          ms: timeMs
+          ms: timeMs 
       }); 
       aiWorker.postMessage({
           type: 'calcola',
