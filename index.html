@@ -129,7 +129,7 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
   padding: 12px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px;
   overflow: hidden;
 }
-#share-link { flex: 1; font-size: 13px; font-weight: 600; font-family: monospace; color: var(--beta-color); word-break: break-all; line-height: 1.5; overflow-y: auto; text-align: center; }
+#share-link { flex: 1; font-size: 11px; font-family: monospace; color: var(--text2); word-break: break-all; line-height: 1.5; max-height: 80px; overflow-y: auto; }
 #copy-link-btn { font-size: 12px; padding: 7px 16px; cursor: pointer; border-radius: 6px; border: 1px solid var(--btn-border); background: var(--btn-bg); color: var(--text2); white-space: nowrap; transition: all 0.2s; }
 #copy-link-btn:hover { background: var(--btn-hover); }
 #copy-link-btn.copied { background: #10b981; color: white; border-color: #10b981; }
@@ -138,8 +138,8 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
 #share-buttons button:hover { background: var(--btn-hover); }
 
 #spectator-banner {
-  background: linear-gradient(135deg, #10b981 0%, #047857 100%);
-  color: white; text-align: center; padding: 11px 16px; font-size: 13px; font-weight: 600; margin-bottom: 8px; border-radius: 8px; display: none; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white; text-align: center; padding: 11px 16px; font-size: 13px; font-weight: 600; margin-bottom: 8px; border-radius: 8px; display: none; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
 /* ── LOBBY PUBBLICA ──────────────────────────────────────────── */
@@ -308,7 +308,7 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
 
 <div id="game">
   <div id="spectator-banner">
-    <span style="font-size:16px; margin-right:6px;">🔴</span> In diretta — Modalità Spettatore
+    <span style="font-size:16px; margin-right:6px;">👁️</span> Stai guardando in modalità spettatore
   </div>
 
   <div id="mode-bar"></div>
@@ -331,7 +331,7 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
   <div id="controls">
     <button id="btn-undo" onclick="G.undoMove()" style="display:none; border-color:#9a6dd7; color:var(--beta-color); font-weight:bold;">↩ Annulla Mossa</button>
     <button onclick="G.restart()" id="btn-restart2">Ricomincia</button>
-    <button onclick="ShareFeatures.showModal()" id="btn-share" style="border-color:#9a6dd7;color:var(--beta-color);font-weight:bold;">🔗 Condividi Live</button>
+    <button onclick="ShareFeatures.showModal(G.getGameState())" id="btn-share" style="border-color:#9a6dd7;color:var(--beta-color);font-weight:bold;">🔗 Condividi</button>
     <button onclick="G.surrender()" style="border-color:#e85d24;color:#e85d24;">Abbandona</button>
     <button onclick="goMenu()">Menu</button>
   </div>
@@ -415,8 +415,8 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
 
   <div id="share-modal">
     <div id="share-box">
-      <h2>Condividi la partita in Live Stream!</h2>
-      <p>Copia questo link cortissimo e mandalo ai tuoi amici. Loro vedranno le tue mosse <b>in tempo reale</b> come spettatori!</p>
+      <h2>Condividi Partita</h2>
+      <p>Copia questo link per far vedere la partita ad altri in tempo reale (sola lettura).</p>
       <div id="share-link-container">
         <div id="share-link"></div>
         <button id="copy-link-btn" onclick="ShareFeatures.copyLink()">Copia</button>
@@ -524,351 +524,325 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
 <script>
 // --- FUNZIONI DI CONDIVISIONE / SPETTATORE LIVE ---
 const ShareFeatures = {
-  isSpectating: false,
-  
-  generateLink() {
-    return new Promise((resolve) => {
-        loadFB(() => {
-            if (window.currentGameCode) {
-                // È già una partita online o sta già trasmettendo
-                const baseUrl = window.location.origin + window.location.pathname;
-                resolve(`${baseUrl}?watch=${window.currentGameCode}`);
-            } else {
-                // Partita locale: Creiamo una stanza e iniziamo a trasmettere le mosse live
-                window.currentGameCode = genCode();
-                window.isBroadcasting = true;
-                
-                const tan = G.exportTAN();
-                db.ref('games/' + window.currentGameCode).set({
-                    status: 'playing',
-                    version: G.getGameState().gameVer || 'beta',
-                    initialTAN: tan,
-                    isBroadcast: true,
-                    moves: []
-                }).then(() => {
-                    movesRef = db.ref('games/' + window.currentGameCode + '/moves');
+    isSpectating: false,
+    
+    generateLink() {
+        return new Promise((resolve) => {
+            loadFB(() => {
+                if (window.currentGameCode) {
                     const baseUrl = window.location.origin + window.location.pathname;
                     resolve(`${baseUrl}?watch=${window.currentGameCode}`);
-                });
-            }
+                } else {
+                    window.currentGameCode = genCode();
+                    window.isBroadcasting = true;
+                    
+                    const tan = G.exportTAN();
+                    db.ref('games/' + window.currentGameCode).set({
+                        status: 'playing',
+                        version: G.getGameState().gameVer || 'beta',
+                        initialTAN: tan,
+                        isBroadcast: true,
+                        moves: []
+                    }).then(() => {
+                        movesRef = db.ref('games/' + window.currentGameCode + '/moves');
+                        const baseUrl = window.location.origin + window.location.pathname;
+                        resolve(`${baseUrl}?watch=${window.currentGameCode}`);
+                    });
+                }
+            });
         });
-    });
-  },
-  
-  showModal() {
-    const btn = document.getElementById('btn-share');
-    const oldText = btn.textContent;
-    btn.textContent = 'Generazione...';
+    },
     
-    this.generateLink().then(link => {
-        btn.textContent = oldText;
-        if (!link) { alert('Errore nella connessione al server.'); return; }
-        document.getElementById('share-link').textContent = link;
-        document.getElementById('share-modal').style.display = 'flex';
-        const copyBtn = document.getElementById('copy-link-btn');
-        copyBtn.textContent = 'Copia';
-        copyBtn.classList.remove('copied');
-    });
-  },
-  
-  closeModal() { document.getElementById('share-modal').style.display = 'none'; },
-  
-  copyLink() {
-    const link = document.getElementById('share-link').textContent;
-    const btn = document.getElementById('copy-link-btn');
-    navigator.clipboard.writeText(link).then(() => {
-        btn.textContent = '✓ Copiato!';
-        btn.classList.add('copied');
-        setTimeout(() => { btn.textContent = 'Copia'; btn.classList.remove('copied'); }, 2000);
-      }).catch(err => { prompt('Copia questo link:', link); });
-  },
-  
-  checkURL() {
-    const params = new URLSearchParams(window.location.search);
-    const watchCode = params.get('watch');
-    if (watchCode) return { watchCode: watchCode };
-    return null;
-  },
-  
-  activateSpectatorMode(code) {
-    this.isSpectating = true;
-    const banner = document.getElementById('spectator-banner');
-    if (banner) banner.style.display = 'block';
+    showModal() {
+        const btn = document.getElementById('btn-share');
+        const oldText = btn.textContent;
+        btn.textContent = 'Generazione...';
+        
+        this.generateLink().then(link => {
+            btn.textContent = oldText;
+            if (!link) { alert('Errore nella connessione al server.'); return; }
+            document.getElementById('share-link').textContent = link;
+            document.getElementById('share-modal').style.display = 'flex';
+            const copyBtn = document.getElementById('copy-link-btn');
+            copyBtn.textContent = 'Copia';
+            copyBtn.classList.remove('copied');
+        });
+    },
     
-    document.getElementById('lobby').style.display = 'none';
-    document.getElementById('game').style.display = 'block';
-    document.getElementById('mode-bar').textContent = 'In osservazione live: Partita ' + code;
+    closeModal() { document.getElementById('share-modal').style.display = 'none'; },
     
-    const controlButtons = document.querySelectorAll('#controls button, #rot-controls button, #reserve-bar button');
-    controlButtons.forEach(btn => {
-      btn.disabled = true; btn.style.opacity = '0.3'; btn.style.cursor = 'not-allowed';
-    });
+    copyLink() {
+        const link = document.getElementById('share-link').textContent;
+        const btn = document.getElementById('copy-link-btn');
+        navigator.clipboard.writeText(link).then(() => {
+            btn.textContent = '✓ Copiato!';
+            btn.classList.add('copied');
+            setTimeout(() => { btn.textContent = 'Copia'; btn.classList.remove('copied'); }, 2000);
+        }).catch(err => { prompt('Copia questo link:', link); });
+    },
     
-    const canvas = document.getElementById('cv');
-    if (canvas) { canvas.style.pointerEvents = 'none'; canvas.style.opacity = '0.95'; }
+    checkURL() {
+        const params = new URLSearchParams(window.location.search);
+        const watchCode = params.get('watch');
+        if (watchCode) return { watchCode: watchCode };
+        return null;
+    },
     
-    const hideButtons = ['btn-restart', 'btn-restart2', 'btn-share'];
-    hideButtons.forEach(btn => {
-        const el = document.getElementById(btn);
-        if (el) el.style.display = 'none';
-    });
+    activateSpectatorMode(code) {
+        this.isSpectating = true;
+        const banner = document.getElementById('spectator-banner');
+        if (banner) banner.style.display = 'block';
+        
+        document.getElementById('lobby').style.display = 'none';
+        document.getElementById('game').style.display = 'block';
+        document.getElementById('mode-bar').textContent = 'In osservazione live: Partita ' + code;
+        
+        const controlButtons = document.querySelectorAll('#controls button, #rot-controls button, #reserve-bar button');
+        controlButtons.forEach(btn => {
+            btn.disabled = true; btn.style.opacity = '0.3'; btn.style.cursor = 'not-allowed';
+        });
+        
+        const canvas = document.getElementById('cv');
+        if (canvas) { canvas.style.pointerEvents = 'none'; canvas.style.opacity = '0.95'; }
+        
+        const hideButtons = ['btn-restart', 'btn-restart2', 'btn-share'];
+        hideButtons.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+        
+        const surrenderBtn = document.querySelector('button[onclick*="surrender"]');
+        if (surrenderBtn) surrenderBtn.style.display = 'none';
+        
+        const actionLabel = document.getElementById('al');
+        if (actionLabel) actionLabel.textContent = 'Modalità Spettatore - Puoi solo osservare';
+    },
     
-    const surrenderBtn = document.querySelector('button[onclick*="surrender"]');
-    if (surrenderBtn) surrenderBtn.style.display = 'none';
+    startSpectating(code) {
+        db.ref('games/' + code).once('value').then(snap => {
+            if (!snap.exists()) { alert('Partita non trovata o terminata.'); goMenu(); return; }
+            const data = snap.val();
+            const ver = data.version || 'beta';
+            G.init('spectator', ver, false, null);
+            if (data.initialTAN) G.importTAN(data.initialTAN);
+            
+            lastProcessedMove = -1;
+            movesRef = db.ref('games/' + code + '/moves');
+            movesRef.on('value', snap => {
+                const mv = snap.val(); if(!mv) return;
+                const arr = Array.isArray(mv) ? mv : Object.values(mv);
+                arr.forEach((m, i) => {
+                    if (i > lastProcessedMove) {
+                        lastProcessedMove = i;
+                        G.applyRemote(m);
+                    }
+                });
+            });
+        });
+    },
     
-    const actionLabel = document.getElementById('al');
-    if (actionLabel) actionLabel.textContent = 'Modalità Spettatore - Puoi solo osservare';
-  },
-  
-  startSpectating(code) {
-      db.ref('games/' + code).once('value').then(snap => {
-         if (!snap.exists()) { alert('Partita non trovata o terminata.'); goMenu(); return; }
-         const data = snap.val();
-         const ver = data.version || 'beta';
-         
-         G.init('spectator', ver, false, null);
-         
-         if (data.initialTAN) {
-             G.importTAN(data.initialTAN);
-         }
-         
-         lastProcessedMove = -1;
-         movesRef = db.ref('games/' + code + '/moves');
-         movesRef.on('value', snap => {
-             const mv = snap.val(); if(!mv) return;
-             const arr = Array.isArray(mv) ? mv : Object.values(mv);
-             arr.forEach((m, i) => {
-                 if (i > lastProcessedMove) {
-                     lastProcessedMove = i;
-                     G.applyRemote(m);
-                 }
-             });
-         });
-      });
-  },
-  
-  init() {
-    const spectateData = this.checkURL();
-    if (spectateData && spectateData.watchCode) {
-      this.activateSpectatorMode(spectateData.watchCode);
-      loadFB(() => { this.startSpectating(spectateData.watchCode); });
-      return true;
+    init() {
+        const spectateData = this.checkURL();
+        if (spectateData && spectateData.watchCode) {
+            this.activateSpectatorMode(spectateData.watchCode);
+            loadFB(() => { this.startSpectating(spectateData.watchCode); });
+            return true;
+        }
+        return false;
     }
-    return false;
-  }
 };
 
 // --- LOBBY PUBBLICA FIREBASE ---
 const PublicLobby = {
-  db: null, currentUserId: null, currentRoomCode: null, isPublic: false,
-  
-  init(firebaseDatabase) {
-    this.db = firebaseDatabase;
-    this.currentUserId = this.generateUserId();
-    this.registerPresence(); this.listenToLobby();
-    window.addEventListener('beforeunload', () => { this.cleanup(); });
-  },
-  
-  generateUserId() {
-    let userId = sessionStorage.getItem('tre_anelli_user_id');
-    if (!userId) { userId = 'user_' + Math.random().toString(36).substr(2, 9); sessionStorage.setItem('tre_anelli_user_id', userId); }
-    return userId;
-  },
-  
-  registerPresence() {
-    const presenceRef = this.db.ref(`presence/${this.currentUserId}`);
-    presenceRef.set({ status: 'online', lastSeen: firebase.database.ServerValue.TIMESTAMP, username: this.getUsername() });
-    presenceRef.onDisconnect().set({ status: 'offline', lastSeen: firebase.database.ServerValue.TIMESTAMP, username: this.getUsername() });
-    setInterval(() => { presenceRef.update({ lastSeen: firebase.database.ServerValue.TIMESTAMP }); }, 30000); 
-  },
-  
-  getUsername() {
-    let username = localStorage.getItem('tre_anelli_username');
-    if (!username) {
-      const adj = ['Veloce', 'Saggio', 'Astuto', 'Coraggioso', 'Silenzioso'], noun = ['Leone', 'Aquila', 'Drago', 'Lupo', 'Fenice'];
-      username = adj[Math.floor(Math.random() * adj.length)] + noun[Math.floor(Math.random() * noun.length)];
-      localStorage.setItem('tre_anelli_username', username);
+    db: null, currentUserId: null, currentRoomCode: null, isPublic: false,
+    init(firebaseDatabase) {
+        this.db = firebaseDatabase;
+        this.currentUserId = this.generateUserId();
+        this.registerPresence(); this.listenToLobby();
+        window.addEventListener('beforeunload', () => { this.cleanup(); });
+    },
+    generateUserId() {
+        let userId = sessionStorage.getItem('tre_anelli_user_id');
+        if (!userId) { 
+            userId = 'user_' + Math.random().toString(36).substr(2, 9); 
+            sessionStorage.setItem('tre_anelli_user_id', userId); 
+        }
+        return userId;
+    },
+    registerPresence() {
+        const presenceRef = this.db.ref(`presence/${this.currentUserId}`);
+        presenceRef.set({ status: 'online', lastSeen: firebase.database.ServerValue.TIMESTAMP, username: this.getUsername() });
+        presenceRef.onDisconnect().set({ status: 'offline', lastSeen: firebase.database.ServerValue.TIMESTAMP, username: this.getUsername() });
+        setInterval(() => { presenceRef.update({ lastSeen: firebase.database.ServerValue.TIMESTAMP }); }, 30000); 
+    },
+    getUsername() {
+        let username = localStorage.getItem('tre_anelli_username');
+        if (!username) {
+            const adj = ['Veloce', 'Saggio', 'Astuto', 'Coraggioso', 'Silenzioso'], noun = ['Leone', 'Aquila', 'Drago', 'Lupo', 'Fenice'];
+            username = adj[Math.floor(Math.random() * adj.length)] + noun[Math.floor(Math.random() * noun.length)];
+            localStorage.setItem('tre_anelli_username', username);
+        }
+        return username;
+    },
+    setUsername(newUsername) {
+        localStorage.setItem('tre_anelli_username', newUsername);
+        this.db.ref(`presence/${this.currentUserId}`).update({ username: newUsername });
+    },
+    showLobby() { document.getElementById('public-lobby').style.display = 'block'; },
+    hideLobby() { document.getElementById('public-lobby').style.display = 'none'; },
+    listenToLobby() {
+        const lobbyRef = this.db.ref('lobby');
+        lobbyRef.on('value', (snapshot) => { this.renderLobby(snapshot.val() || {}); this.updateOnlineCount(); });
+    },
+    updateOnlineCount() {
+        this.db.ref('presence').once('value', (snapshot) => {
+            const users = snapshot.val() || {};
+            const onlineUsers = Object.values(users).filter(u => u.status === 'online' && (Date.now() - u.lastSeen < 60000));
+            const countEl = document.getElementById('online-count');
+            if (countEl) countEl.textContent = onlineUsers.length;
+        });
+    },
+    renderLobby(rooms) {
+        const container = document.getElementById('lobby-list-container');
+        if (!container) return;
+        const publicRooms = Object.entries(rooms).filter(([code, room]) => room.isPublic && room.status === 'waiting').sort(([, a], [, b]) => b.timestamp - a.timestamp);
+        if (publicRooms.length === 0) {
+            container.innerHTML = `<div class="lobby-empty">Nessun giocatore in cerca di partita al momento.<br><span style="font-size:11px;margin-top:4px;display:block;">Crea una partita e rendila pubblica per apparire qui!</span></div>`;
+            return;
+        }
+        container.innerHTML = `<div class="lobby-list">${publicRooms.map(([code, room]) => this.renderLobbyItem(code, room)).join('')}</div>`;
+    },
+    renderLobbyItem(code, room) {
+        const timeAgo = this.getTimeAgo(room.timestamp);
+        const tc = room.timeControl || 'unlimited';
+        const tcLabels = { 'blitz': '⚡ Blitz', 'rapid': '⏱️ Rapid', 'unlimited': '♾️ Senza limiti' };
+        const tcText = tcLabels[tc] || 'Senza limiti';
+        return `
+            <div class="lobby-item" onclick="PublicLobby.joinRoom('${code}')">
+                <div class="lobby-item-info">
+                    <div class="lobby-item-avatar">${room.hostName[0].toUpperCase()}</div>
+                    <div class="lobby-item-details">
+                        <div class="lobby-item-name">${room.hostName}</div>
+                        <div class="lobby-item-meta">${timeAgo} • <b>${tcText}</b> • <span class="status-indicator waiting"><span class="status-dot"></span> In attesa</span></div>
+                    </div>
+                </div>
+                <div class="lobby-item-code">${code}</div>
+                <button class="lobby-item-action">Unisciti</button>
+            </div>`;
+    },
+    getTimeAgo(timestamp) {
+        const seconds = Math.floor((Date.now() - timestamp) / 1000);
+        if (seconds < 60) return 'Ora';
+        if (seconds < 3600) return Math.floor(seconds / 60) + ' min fa';
+        if (seconds < 86400) return Math.floor(seconds / 3600) + ' ore fa';
+        return Math.floor(seconds / 86400) + ' giorni fa';
+    },
+    publishRoom(roomCode, hostName) {
+        this.currentRoomCode = roomCode; this.isPublic = true;
+        const tc = document.getElementById('time-control').value || 'unlimited';
+        this.db.ref(`lobby/${roomCode}`).set({ hostId: this.currentUserId, hostName: hostName || this.getUsername(), status: 'waiting', isPublic: true, timeControl: tc, timestamp: firebase.database.ServerValue.TIMESTAMP });
+        this.db.ref(`lobby/${roomCode}`).onDisconnect().remove();
+    },
+    unpublishRoom(roomCode) {
+        const code = roomCode || this.currentRoomCode;
+        if (code) this.db.ref(`lobby/${code}`).remove();
+        this.isPublic = false;
+    },
+    updateRoomStatus(roomCode, status) {
+        const code = roomCode || this.currentRoomCode;
+        if (code) this.db.ref(`lobby/${code}`).update({ status: status, lastUpdate: firebase.database.ServerValue.TIMESTAMP });
+    },
+    togglePublic(isPublic) {
+        if (isPublic) this.publishRoom(this.currentRoomCode);
+        else this.unpublishRoom();
+    },
+    joinRoom(roomCode) {
+        document.getElementById('join-code').value = roomCode.toUpperCase();
+        this.updateRoomStatus(roomCode, 'playing');
+        joinGame();
+    },
+    cleanup() {
+        if (this.currentRoomCode) this.unpublishRoom();
+        if (this.currentUserId) this.db.ref(`presence/${this.currentUserId}`).update({ status: 'offline', lastSeen: firebase.database.ServerValue.TIMESTAMP });
     }
-    return username;
-  },
-  
-  setUsername(newUsername) {
-    localStorage.setItem('tre_anelli_username', newUsername);
-    this.db.ref(`presence/${this.currentUserId}`).update({ username: newUsername });
-  },
-  
-  showLobby() { document.getElementById('public-lobby').style.display = 'block'; },
-  hideLobby() { document.getElementById('public-lobby').style.display = 'none'; },
-  
-  listenToLobby() {
-    const lobbyRef = this.db.ref('lobby');
-    lobbyRef.on('value', (snapshot) => { this.renderLobby(snapshot.val() || {}); this.updateOnlineCount(); });
-  },
-  
-  updateOnlineCount() {
-    this.db.ref('presence').once('value', (snapshot) => {
-      const users = snapshot.val() || {};
-      const onlineUsers = Object.values(users).filter(u => u.status === 'online' && (Date.now() - u.lastSeen < 60000));
-      const countEl = document.getElementById('online-count');
-      if (countEl) countEl.textContent = onlineUsers.length;
-    });
-  },
-  
-  renderLobby(rooms) {
-    const container = document.getElementById('lobby-list-container');
-    if (!container) return;
-    const publicRooms = Object.entries(rooms).filter(([code, room]) => room.isPublic && room.status === 'waiting').sort(([, a], [, b]) => b.timestamp - a.timestamp);
-    if (publicRooms.length === 0) {
-      container.innerHTML = `<div class="lobby-empty">Nessun giocatore in cerca di partita al momento.<br><span style="font-size:11px;margin-top:4px;display:block;">Crea una partita e rendila pubblica per apparire qui!</span></div>`;
-      return;
-    }
-    container.innerHTML = `<div class="lobby-list">${publicRooms.map(([code, room]) => this.renderLobbyItem(code, room)).join('')}</div>`;
-  },
-  
-  renderLobbyItem(code, room) {
-    const timeAgo = this.getTimeAgo(room.timestamp);
-    const initial = room.hostName ? room.hostName[0].toUpperCase() : '?';
-    const tc = room.timeControl || 'unlimited';
-    const tcLabels = { 'blitz': '⚡ Blitz', 'rapid': '⏱️ Rapid', 'unlimited': '♾️ Senza limiti' };
-    const tcText = tcLabels[tc] || 'Senza limiti';
-
-    return `
-      <div class="lobby-item" onclick="PublicLobby.joinRoom('${code}')">
-        <div class="lobby-item-info">
-          <div class="lobby-item-avatar">${initial}</div>
-          <div class="lobby-item-details">
-            <div class="lobby-item-name">${room.hostName || 'Giocatore'}</div>
-            <div class="lobby-item-meta">${timeAgo} • <b>${tcText}</b> • <span class="status-indicator waiting"><span class="status-dot"></span> In attesa</span></div>
-          </div>
-        </div>
-        <div class="lobby-item-code">${code}</div>
-        <button class="lobby-item-action">Unisciti</button>
-      </div>`;
-  },
-  
-  getTimeAgo(timestamp) {
-    const seconds = Math.floor((Date.now() - timestamp) / 1000);
-    if (seconds < 60) return 'Ora';
-    if (seconds < 3600) return Math.floor(seconds / 60) + ' min fa';
-    if (seconds < 86400) return Math.floor(seconds / 3600) + ' ore fa';
-    return Math.floor(seconds / 86400) + ' giorni fa';
-  },
-  
-  publishRoom(roomCode, hostName) {
-    this.currentRoomCode = roomCode; this.isPublic = true;
-    const tc = document.getElementById('time-control').value || 'unlimited';
-    const roomRef = this.db.ref(`lobby/${roomCode}`);
-    roomRef.set({ hostId: this.currentUserId, hostName: hostName || this.getUsername(), status: 'waiting', isPublic: true, timeControl: tc, timestamp: firebase.database.ServerValue.TIMESTAMP });
-    roomRef.onDisconnect().remove();
-  },
-  
-  unpublishRoom(roomCode) {
-    if (!roomCode) roomCode = this.currentRoomCode;
-    if (!roomCode) return;
-    this.db.ref(`lobby/${roomCode}`).remove(); this.isPublic = false;
-  },
-  
-  updateRoomStatus(roomCode, status) {
-    if (!roomCode) roomCode = this.currentRoomCode;
-    if (!roomCode) return;
-    this.db.ref(`lobby/${roomCode}`).update({ status: status, lastUpdate: firebase.database.ServerValue.TIMESTAMP });
-  },
-  
-  togglePublic(isPublic) {
-    const roomCode = this.currentRoomCode;
-    if (!roomCode) return;
-    if (isPublic) this.publishRoom(roomCode, this.getUsername());
-    else this.unpublishRoom(roomCode);
-  },
-  
-  joinRoom(roomCode) {
-    const codeInput = document.getElementById('join-code');
-    if (codeInput) codeInput.value = roomCode.toUpperCase();
-    this.updateRoomStatus(roomCode, 'playing');
-    if (typeof joinGame === 'function') joinGame();
-  },
-  
-  cleanup() {
-    if (this.currentRoomCode) this.unpublishRoom(this.currentRoomCode);
-    if (this.currentUserId) this.db.ref(`presence/${this.currentUserId}`).update({ status: 'offline', lastSeen: firebase.database.ServerValue.TIMESTAMP });
-  }
 };
 
-
-// --- IMPOSTAZIONI GLOBALI E TEMI ---
 function toggleSettings() {
-  const menu = document.getElementById('settings-menu');
-  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    const menu = document.getElementById('settings-menu');
+    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
 }
 
 const THEMES = {
-  classic: {
-    cvBg:'#f8f7f4', gridLine:'#c8c4bc', ring:'#b8b0a4', edge:'#aaa',
-    nodeE:'#f5f0e8', nodeM:'#eef2f8', nodeI:'#f9f7f4', nodeC:'#eeedfe', nodeWin:'#b8d98d', nodePlaceTgt:'#e8e0f8',
-    winRing:'#6aaa2a', nodeStroke:'#c8c4bc', p1:'#c04828', p1hi:'rgba(255,180,160,0.35)', p2:'#1d6fa5', p2hi:'rgba(160,200,255,0.35)',
-    p1wave:'rgba(200,60,20,0.85)', p2wave:'rgba(20,80,180,0.85)', p1med:'rgba(192,72,40,0.85)', p2med:'rgba(29,111,165,0.85)',
-    tgtDot:'rgba(29,158,117,0.65)', placeDot:'rgba(154,109,215,0.4)', ghost1:'rgba(192,72,40,0.35)', ghost2:'rgba(29,111,165,0.35)',
-    labelText:'#444', labelSpecial:'#888', labelNode:'#444', labelPiece:'rgba(255,255,255,0.95)',
-    arrow:'rgba(240,180,0,0.8)', arrowFill:'rgba(240,180,0,0.9)', arrowRing:'rgba(240,180,0,0.5)',
-    lastTo:'rgba(154,109,215,0.7)', selStroke:'#c04828', mustStroke:'#e85d24', tgtStroke:'#1d9e75', ghostStroke:'#f0a500', placeStroke:'#9a6dd7', ghostArrow:'#f0a500',
-  },
-  dark: {
-    cvBg:'#1c1c22', gridLine:'#44445a', ring:'#5a5a8a', edge:'#50507a',
-    nodeE:'#26263a', nodeM:'#222236', nodeI:'#202032', nodeC:'#2a2640', nodeWin:'#1e3a24', nodePlaceTgt:'#2a2248',
-    winRing:'#5ab040', nodeStroke:'#4a4a7a', p1:'#e09040', p1hi:'rgba(224,160,80,0.28)', p2:'#40a898', p2hi:'rgba(64,168,152,0.28)',
-    p1wave:'rgba(210,130,30,0.88)', p2wave:'rgba(30,150,138,0.88)', p1med:'rgba(210,130,30,0.85)', p2med:'rgba(30,150,138,0.85)',
-    tgtDot:'rgba(80,180,140,0.72)', placeDot:'rgba(140,110,220,0.50)', ghost1:'rgba(210,130,30,0.32)', ghost2:'rgba(30,150,138,0.32)',
-    labelText:'#b0b0c8', labelSpecial:'#8888aa', labelNode:'#c8c8e0', labelPiece:'rgba(255,255,255,0.92)',
-    arrow:'rgba(220,190,60,0.85)', arrowFill:'rgba(225,195,65,0.92)', arrowRing:'rgba(220,190,60,0.45)',
-    lastTo:'rgba(130,100,210,0.72)', selStroke:'#e09040', mustStroke:'#e07030', tgtStroke:'#40c090', ghostStroke:'#d4b840', placeStroke:'#9a7ad0', ghostArrow:'#d4b840',
-  }
+    classic: {
+        cvBg:'#f8f7f4', gridLine:'#c8c4bc', ring:'#b8b0a4', edge:'#aaa',
+        nodeE:'#f5f0e8', nodeM:'#eef2f8', nodeI:'#f9f7f4', nodeC:'#eeedfe', nodeWin:'#b8d98d', nodePlaceTgt:'#e8e0f8',
+        winRing:'#6aaa2a', nodeStroke:'#c8c4bc', p1:'#c04828', p1hi:'rgba(255,180,160,0.35)', p2:'#1d6fa5', p2hi:'rgba(160,200,255,0.35)',
+        p1wave:'rgba(200,60,20,0.85)', p2wave:'rgba(20,80,180,0.85)', p1med:'rgba(192,72,40,0.85)', p2med:'rgba(29,111,165,0.85)',
+        tgtDot:'rgba(29,158,117,0.65)', placeDot:'rgba(154,109,215,0.4)', ghost1:'rgba(192,72,40,0.35)', ghost2:'rgba(29,111,165,0.35)',
+        labelText:'#444', labelSpecial:'#888', labelNode:'#444', labelPiece:'rgba(255,255,255,0.95)',
+        arrow:'rgba(240,180,0,0.8)', arrowFill:'rgba(240,180,0,0.9)', arrowRing:'rgba(240,180,0,0.5)',
+        lastTo:'rgba(154,109,215,0.7)', selStroke:'#c04828', mustStroke:'#e85d24', tgtStroke:'#1d9e75', ghostStroke:'#f0a500', placeStroke:'#9a6dd7', ghostArrow:'#f0a500',
+    },
+    dark: {
+        cvBg:'#1c1c22', gridLine:'#44445a', ring:'#5a5a8a', edge:'#50507a',
+        nodeE:'#26263a', nodeM:'#222236', nodeI:'#202032', nodeC:'#2a2640', nodeWin:'#1e3a24', nodePlaceTgt:'#2a2248',
+        winRing:'#5ab040', nodeStroke:'#4a4a7a', p1:'#e09040', p1hi:'rgba(224,160,80,0.28)', p2:'#40a898', p2hi:'rgba(64,168,152,0.28)',
+        p1wave:'rgba(210,130,30,0.88)', p2wave:'rgba(30,150,138,0.88)', p1med:'rgba(210,130,30,0.85)', p2med:'rgba(30,150,138,0.85)',
+        tgtDot:'rgba(80,180,140,0.72)', placeDot:'rgba(140,110,220,0.50)', ghost1:'rgba(210,130,30,0.32)', ghost2:'rgba(30,150,138,0.32)',
+        labelText:'#b0b0c8', labelSpecial:'#8888aa', labelNode:'#c8c8e0', labelPiece:'rgba(255,255,255,0.92)',
+        arrow:'rgba(220,190,60,0.85)', arrowFill:'rgba(225,195,65,0.92)', arrowRing:'rgba(220,190,60,0.45)',
+        lastTo:'rgba(130,100,210,0.72)', selStroke:'#e09040', mustStroke:'#e07030', tgtStroke:'#40c090', ghostStroke:'#d4b840', placeStroke:'#9a7ad0', ghostArrow:'#d4b840',
+    }
 };
 
 let currentTheme = 'classic'; let currentPieceStyle = 'classic'; let currentBoardStyle = 'classic';
-
 function setTheme(name) {
-  currentTheme = name; document.body.classList.remove('theme-dark');
-  if(name==='dark') document.body.classList.add('theme-dark');
-  const sel = document.getElementById('sel-theme'); if(sel) sel.value = name;
-  try{localStorage.setItem('ta_theme',name);}catch(e){}
-  try{if(typeof G!=='undefined' && G.redraw) G.redraw();}catch(e){}
-  try{if(typeof A!=='undefined' && A.redraw) A.redraw();}catch(e){}
+    currentTheme = name; document.body.classList.remove('theme-dark'); if(name==='dark') document.body.classList.add('theme-dark');
+    try{localStorage.setItem('ta_theme',name);}catch(e){}
+    if(typeof G!=='undefined' && G.redraw) G.redraw();
+    if(typeof A!=='undefined' && A.redraw) A.redraw();
 }
-
 function setPieceStyle(style) {
-  currentPieceStyle = style; localStorage.setItem('ta_pieces', style);
-  try{if(typeof G!=='undefined' && G.redraw) G.redraw();}catch(e){}
-  try{if(typeof A!=='undefined' && A.redraw) A.redraw();}catch(e){}
+    currentPieceStyle = style; localStorage.setItem('ta_pieces', style);
+    if(typeof G!=='undefined' && G.redraw) G.redraw();
+    if(typeof A!=='undefined' && A.redraw) A.redraw();
 }
-
 function setBoardStyle(style) {
-  currentBoardStyle = style; localStorage.setItem('ta_board', style);
-  if(typeof G !== 'undefined' && G.buildAdjacencies) G.buildAdjacencies();
-  if(typeof A !== 'undefined' && A.buildAdjacencies) A.buildAdjacencies();
-  try{if(typeof G!=='undefined' && G.redraw) G.redraw();}catch(e){}
-  try{if(typeof A!=='undefined' && A.redraw) A.redraw();}catch(e){}
-  if (autoAnalysisEnabled) { forceAnalysisEval(); }
+    currentBoardStyle = style; localStorage.setItem('ta_board', style);
+    if(typeof G !== 'undefined' && G.buildAdjacencies) G.buildAdjacencies();
+    if(typeof A !== 'undefined' && A.buildAdjacencies) A.buildAdjacencies();
+    if(typeof G!=='undefined' && G.redraw) G.redraw();
+    if(typeof A!=='undefined' && A.redraw) A.redraw();
+    if (typeof forceAnalysisEval === 'function' && autoAnalysisEnabled) forceAnalysisEval();
 }
-
-function T(){return THEMES[currentTheme]||THEMES.classic;}
+function T() { return THEMES[currentTheme] || THEMES.classic; }
 
 (function(){
-  try{const s=localStorage.getItem('ta_theme');if(s)setTheme(s);}catch(e){}
-  try{const p=localStorage.getItem('ta_pieces');if(p){currentPieceStyle=p;document.addEventListener('DOMContentLoaded',()=>{const sel=document.getElementById('sel-pieces');if(sel)sel.value=p;});}}catch(e){}
-  try{const b=localStorage.getItem('ta_board');if(b){currentBoardStyle=b;document.addEventListener('DOMContentLoaded',()=>{const sel=document.getElementById('sel-board');if(sel)sel.value=b;});}}catch(e){}
+    try{const s=localStorage.getItem('ta_theme');if(s)setTheme(s);}catch(e){}
+    try{const p=localStorage.getItem('ta_pieces');if(p){currentPieceStyle=p;document.addEventListener('DOMContentLoaded',()=>{document.getElementById('sel-pieces').value=p;});}}catch(e){}
+    try{const b=localStorage.getItem('ta_board');if(b){currentBoardStyle=b;document.addEventListener('DOMContentLoaded',()=>{document.getElementById('sel-board').value=b;});}}catch(e){}
 })();
 
 function drawEmojiPiece(ctx, x, y, isPlayer1, isSpecial) {
-  ctx.save(); ctx.font = '18px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  let emoji = isPlayer1 ? (isSpecial ? '🔥' : '🍉') : (isSpecial ? '🌀' : '💧');
-  ctx.fillText(emoji, x, y); ctx.restore();
+    ctx.save(); ctx.font = '18px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    let emoji = isPlayer1 ? (isSpecial ? '🔥' : '🍉') : (isSpecial ? '🌀' : '💧');
+    ctx.fillText(emoji, x, y); ctx.restore();
 }
 
 function drawWavyGlobal(ctx, x, y, color){
-  ctx.save();ctx.strokeStyle=color;ctx.lineWidth=1.5;
-  const r=14,waves=8,amp=1.8;ctx.beginPath();
-  for(let i=0;i<=waves*10;i++){const angle=(i/(waves*10))*Math.PI*2;const wave=r+amp*Math.sin(i/10*Math.PI*2);ctx.lineTo(x+wave*Math.cos(angle),y+wave*Math.sin(angle));}
-  ctx.closePath();ctx.stroke();ctx.restore();
+    ctx.save();
+    ctx.strokeStyle=color;
+    ctx.lineWidth=1.5;
+    const r=14, waves=8, amp=1.8;
+    ctx.beginPath();
+    for(let i=0; i<=waves*10; i++){
+        const angle = (i/(waves*10)) * Math.PI*2;
+        const wave = r + amp * Math.sin(i/10 * Math.PI*2);
+        ctx.lineTo(x + wave * Math.cos(angle), y + wave * Math.sin(angle));
+    }
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
 }
 
 function showCreateMenu() { const menu = document.getElementById('create-menu'); menu.style.display = menu.style.display === 'none' ? 'block' : 'none'; }
@@ -892,37 +866,38 @@ function updateEvalVisuals(msg, scoreElId, barElId) {
 }
 
 const AI_SETTINGS = {
-  easy:   { maxDepth: 4,  ms: 1000,  o_cap: 10,  o_win: 20, o_rot: 100, o_place: 80 },
-  medium: { maxDepth: 12, ms: 3000,  o_cap: 100, o_win: 50, o_rot: 0,   o_place: 20 },
-  hard:   { maxDepth: 25, ms: 10000, o_cap: 100, o_win: 50, o_rot: -20, o_place: 10 }
+    easy:   { maxDepth: 4,  ms: 1000,  o_cap: 10,  o_win: 20, o_rot: 100, o_place: 80 },
+    medium: { maxDepth: 12, ms: 3000,  o_cap: 100, o_win: 50, o_rot: 0,   o_place: 20 },
+    hard:   { maxDepth: 25, ms: 10000, o_cap: 100, o_win: 50, o_rot: -20, o_place: 10 }
 };
 
 let aiWorkerReady = false, isAiCalculating = false, workerTasks = []; 
 let aiWorker = new Worker('engine_worker.js?v=5');
 
 aiWorker.onmessage = function(e) {
-  if (e.data.type === 'ready') { aiWorkerReady = true; }
-  else if (e.data.type === 'mossa' || e.data.type === 'iterative') {
-     if (typeof e.data.eval_score === 'undefined') return;
-     const isAnalysisOpen = document.getElementById('analysis') && document.getElementById('analysis').style.display === 'block';
+    if (e.data.type === 'ready') { aiWorkerReady = true; }
+    else if (e.data.type === 'mossa' || e.data.type === 'iterative') {
+        if (typeof e.data.eval_score === 'undefined') return;
+        const isAnalysisOpen = document.getElementById('analysis') && document.getElementById('analysis').style.display === 'block';
 
-     if (isAnalysisOpen) {
-         let deepStateMsg = { eval_score: e.data.eval_score }; 
-         updateEvalVisuals(deepStateMsg, 'an-eval-score', 'an-eval-bar');
-         document.getElementById('an-eval-box').style.opacity = '1'; document.getElementById('an-eval-btn').style.display = 'none';
-         const bmBox = document.getElementById('an-bestmove-box');
-         if (bmBox) {
-             bmBox.style.display = 'flex'; const bmList = document.getElementById('an-bestmove-list');
-             const moveStr = formatEngineMove(e.data.result);
-             let depthStr = e.data.depth ? `<span style="color:var(--text4);font-size:10px;margin-left:8px;">[Profondità: ${e.data.depth}]</span>` : '';
-             bmList.innerHTML = `<div>1. <span style="color:var(--text);font-weight:bold;">${moveStr}</span>${depthStr}</div>`;
-         }
-     } 
-     if (e.data.type === 'mossa') {
-         const cbId = e.data._callbackId || ''; const currentTask = workerTasks.shift() || cbId;
-         if (!isAnalysisOpen && cbId === 'bot_move') { isAiCalculating = false; if (window.handleAIMove) window.handleAIMove(e.data); }
-     }
-  }
+        if (isAnalysisOpen) {
+            let deepStateMsg = { eval_score: e.data.eval_score }; 
+            updateEvalVisuals(deepStateMsg, 'an-eval-score', 'an-eval-bar');
+            document.getElementById('an-eval-box').style.opacity = '1'; document.getElementById('an-eval-btn').style.display = 'none';
+            const bmBox = document.getElementById('an-bestmove-box');
+            if (bmBox) {
+                bmBox.style.display = 'flex'; const bmList = document.getElementById('an-bestmove-list');
+                const moveStr = formatEngineMove(e.data.result);
+                let depthStr = e.data.depth ? `<span style="color:var(--text4);font-size:10px;margin-left:8px;">[Profondità: ${e.data.depth}]</span>` : '';
+                bmList.innerHTML = `<div>1. <span style="color:var(--text);font-weight:bold;">${moveStr}</span>${depthStr}</div>`;
+            }
+        } 
+        
+        if (e.data.type === 'mossa') {
+            const cbId = e.data._callbackId || ''; const currentTask = workerTasks.shift() || cbId;
+            if (!isAnalysisOpen && cbId === 'bot_move') { isAiCalculating = false; if (window.handleAIMove) window.handleAIMove(e.data); }
+        }
+    }
 };
 
 function forceAnalysisEval() {
@@ -945,869 +920,1201 @@ function requestAnalysisEval() {
 }
 
 function doAnalysisCall(depth, timeMs) {
-  if (!aiWorkerReady) { setTimeout(() => doAnalysisCall(depth, timeMs), 500); return; }
-  if (!document.getElementById('analysis') || document.getElementById('analysis').style.display === 'none') return;
-  if (!A.getState) return;
-  clearTimeout(evalTimeout);
-  evalTimeout = setTimeout(() => {
-      if(isAiCalculating) return;
-      syncAiToUI(); const s = A.getState();
-      const NODI = ['E1','E2','E3','E4','E5','E6','E7','E8','E9','E10','E11','E12','E13','E14','E15','E16','E17','E18','M1','M2','M3','M4','M5','M6','M7','M8','M9','M10','M11','M12','I1','I2','I3','I4','I5','I6','C'];
-      let boardArr = new Int8Array(37); let specialArr = new Int8Array(37); let reserveArr = new Int8Array([s.reserve[0]||0, s.reserve[1]||0]);
-      for (let i = 0; i < NODI.length; i++) { boardArr[i] = s.board[NODI[i]] || 0; specialArr[i] = s.special[NODI[i]] ? 1 : 0; }
-      document.getElementById('an-eval-score').textContent = '...';
-      aiWorker.postMessage({ type: 'set_time', ms: timeMs }); 
-      aiWorker.postMessage({
-          type: 'calcola', board: boardArr, reserve: reserveArr, special: specialArr, player: s.cur, max_depth: depth, is_beta: 1, 
-          is_nocenter: currentBoardStyle === 'nocenter', rotN: s.rotN, _callbackId: 'analysis_' + Date.now() 
-      });
-      workerTasks.push('analysis');
-  }, 300); 
+    if (!aiWorkerReady) { setTimeout(() => doAnalysisCall(depth, timeMs), 500); return; }
+    if (!document.getElementById('analysis') || document.getElementById('analysis').style.display === 'none') return;
+    if (!A.getState) return;
+    
+    clearTimeout(evalTimeout);
+    evalTimeout = setTimeout(() => {
+        if(isAiCalculating) return;
+        syncAiToUI(); const s = A.getState();
+        const NODI = ['E1','E2','E3','E4','E5','E6','E7','E8','E9','E10','E11','E12','E13','E14','E15','E16','E17','E18','M1','M2','M3','M4','M5','M6','M7','M8','M9','M10','M11','M12','I1','I2','I3','I4','I5','I6','C'];
+        
+        let boardArr = new Int8Array(37); let specialArr = new Int8Array(37); let reserveArr = new Int8Array([s.reserve[0]||0, s.reserve[1]||0]);
+        for (let i = 0; i < NODI.length; i++) { boardArr[i] = s.board[NODI[i]] || 0; specialArr[i] = s.special[NODI[i]] ? 1 : 0; }
+        
+        document.getElementById('an-eval-score').textContent = '...';
+        aiWorker.postMessage({ type: 'set_time', ms: timeMs }); 
+        aiWorker.postMessage({
+            type: 'calcola', board: boardArr, reserve: reserveArr, special: specialArr, player: s.cur, max_depth: depth, is_beta: 1, 
+            is_nocenter: currentBoardStyle === 'nocenter', rotN: s.rotN, _callbackId: 'analysis_' + Date.now() 
+        });
+        workerTasks.push('analysis');
+    }, 300); 
 }
 
 function syncAiToUI() {
-  const diff = document.getElementById('monitor-ai-diff').value; const conf = AI_SETTINGS[diff];
-  document.getElementById('sl-ms').value = conf.ms; document.getElementById('sl-cap').value = conf.o_cap;
-  document.getElementById('sl-win').value = conf.o_win; document.getElementById('sl-rot').value = conf.o_rot;
-  document.getElementById('sl-place').value = conf.o_place;
-  updateSliderLabels(); pushSettingsToWorker();
-  const lobbyDiff = document.getElementById('lobby-ai-diff'); if(lobbyDiff) lobbyDiff.value = diff;
+    const diff = document.getElementById('monitor-ai-diff').value; const conf = AI_SETTINGS[diff];
+    document.getElementById('sl-ms').value = conf.ms; document.getElementById('sl-cap').value = conf.o_cap;
+    document.getElementById('sl-win').value = conf.o_win; document.getElementById('sl-rot').value = conf.o_rot;
+    document.getElementById('sl-place').value = conf.o_place;
+    updateSliderLabels(); pushSettingsToWorker();
+    const lobbyDiff = document.getElementById('lobby-ai-diff'); if(lobbyDiff) lobbyDiff.value = diff;
 }
 
 function changeAiDiff() { syncAiToUI(); }
-function updateSliderLabels() { ['ms','cap','win','rot','place'].forEach(id => { const el = document.getElementById('sl-'+id); if(el) document.getElementById('sl-'+id+'-v').textContent = el.value + (id==='ms'?'ms':''); }); }
+
+function updateSliderLabels() { 
+    ['ms','cap','win','rot','place'].forEach(id => { 
+        const el = document.getElementById('sl-'+id); 
+        if(el) document.getElementById('sl-'+id+'-v').textContent = el.value + (id==='ms'?'ms':''); 
+    }); 
+}
+
 function pushSettingsToWorker() {
-  if (!aiWorkerReady) return;
-  aiWorker.postMessage({ type: 'set_time', ms: parseInt(document.getElementById('sl-ms').value) });
-  aiWorker.postMessage({ type: 'set_ordering', cap: parseInt(document.getElementById('sl-cap').value), win: parseInt(document.getElementById('sl-win').value), rot: parseInt(document.getElementById('sl-rot').value), place: parseInt(document.getElementById('sl-place').value) });
-  aiWorker.postMessage({ type: 'set_flags', pvs: document.getElementById('fl-pvs').checked, nmp: document.getElementById('fl-nmp').checked, lmr: document.getElementById('fl-lmr').checked, fut: document.getElementById('fl-fut').checked });
+    if (!aiWorkerReady) return;
+    aiWorker.postMessage({ type: 'set_time', ms: parseInt(document.getElementById('sl-ms').value) });
+    aiWorker.postMessage({ type: 'set_ordering', cap: parseInt(document.getElementById('sl-cap').value), win: parseInt(document.getElementById('sl-win').value), rot: parseInt(document.getElementById('sl-rot').value), place: parseInt(document.getElementById('sl-place').value) });
+    aiWorker.postMessage({ type: 'set_flags', pvs: document.getElementById('fl-pvs').checked, nmp: document.getElementById('fl-nmp').checked, lmr: document.getElementById('fl-lmr').checked, fut: document.getElementById('fl-fut').checked });
 }
 
 ['ms','cap','win','rot','place'].forEach(id => { document.getElementById('sl-'+id).addEventListener('input', function() { updateSliderLabels(); pushSettingsToWorker(); }); });
 
-let db=null,movesRef=null,lastProcessedMove=-1,myPlayer=1;
-let clockConfig=null; let timeLeft=[0,0]; let clockInterval=null; let lastMoveTime=0;
+let db=null, movesRef=null, lastProcessedMove=-1, myPlayer=1;
+let clockConfig=null, timeLeft=[0,0], clockInterval=null, lastMoveTime=0;
 
 function formatTime(ms){
-  if(ms<=0)return'0:00';
-  const sec=Math.ceil(ms/1000),m=Math.floor(sec/60),s=sec%60;
-  return m+':'+(s<10?'0':'')+s;
+    if(ms<=0) return '0:00';
+    const sec = Math.ceil(ms/1000);
+    const m = Math.floor(sec/60);
+    const s = sec%60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
 }
 
 function updateClockDisplay(){
-  const c1=document.getElementById('clock-p1'),c2=document.getElementById('clock-p2');
-  if(!c1||!c2)return;
-  c1.textContent=formatTime(timeLeft[0]); c2.textContent=formatTime(timeLeft[1]);
-  c1.style.background=(G&&typeof G.cur==='function'&&G.cur()===1)?'var(--nlog-cur)':'var(--surface2)';
-  c2.style.background=(G&&typeof G.cur==='function'&&G.cur()===2)?'var(--nlog-cur)':'var(--surface2)';
+    const c1=document.getElementById('clock-p1'), c2=document.getElementById('clock-p2');
+    if(!c1||!c2) return;
+    c1.textContent = formatTime(timeLeft[0]); c2.textContent = formatTime(timeLeft[1]);
+    c1.style.background = (G && typeof G.cur==='function' && G.cur()===1) ? 'var(--nlog-cur)' : 'var(--surface2)';
+    c2.style.background = (G && typeof G.cur==='function' && G.cur()===2) ? 'var(--nlog-cur)' : 'var(--surface2)';
 }
 
 function startClock(player){
-  if(!clockConfig||clockConfig.type==='unlimited')return;
-  lastMoveTime=Date.now();
-  if(clockInterval)clearInterval(clockInterval);
-  clockInterval=setInterval(()=>{
-    const elapsed=Date.now()-lastMoveTime; timeLeft[player-1]-=elapsed; lastMoveTime=Date.now();
-    if(timeLeft[player-1]<=0){ timeLeft[player-1]=0; clearInterval(clockInterval); clockInterval=null; if(G&&typeof G.over==='function'&&!G.over())G.wG(player===1?2:1,'Tempo scaduto!'); }
-    updateClockDisplay();
-  },100);
+    if(!clockConfig || clockConfig.type==='unlimited') return;
+    lastMoveTime = Date.now();
+    if(clockInterval) clearInterval(clockInterval);
+    clockInterval = setInterval(() => {
+        const elapsed = Date.now() - lastMoveTime; timeLeft[player-1] -= elapsed; lastMoveTime = Date.now();
+        if(timeLeft[player-1] <= 0){ timeLeft[player-1] = 0; clearInterval(clockInterval); clockInterval = null; if(G && typeof G.over==='function' && !G.over()) G.wG(player===1 ? 2 : 1, 'Tempo scaduto!'); }
+        updateClockDisplay();
+    }, 100);
 }
 
 function stopClock(player){
-  if(clockInterval){clearInterval(clockInterval);clockInterval=null;}
-  if(!clockConfig||clockConfig.type==='unlimited')return;
-  timeLeft[player-1]+=clockConfig.increment; updateClockDisplay();
+    if(clockInterval) { clearInterval(clockInterval); clockInterval=null; }
+    if(!clockConfig || clockConfig.type==='unlimited') return;
+    timeLeft[player-1] += clockConfig.increment; updateClockDisplay();
 }
 
 function loadFB(cb){
-  if(db){cb(true);return;}
-  function inj(src,nxt){const s=document.createElement('script');s.src=src;s.onload=nxt;s.onerror=()=>{document.getElementById('lobby-status').textContent='Connessione non disponibile.';};document.head.appendChild(s);}
-  inj('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js',()=>{
-    inj('https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js',()=>{
-      try{
-        if(!firebase.apps.length)firebase.initializeApp({apiKey:"AIzaSyD0byKrvAG1AnQJyxhwab503Rp3OiUfgbw",authDomain:"tre-anelli.firebaseapp.com",databaseURL:"https://tre-anelli-default-rtdb.europe-west1.firebasedatabase.app",projectId:"tre-anelli",storageBucket:"tre-anelli.firebasestorage.app",messagingSenderId:"873864785531",appId:"1:873864785531:web:fe6b728fb97fe381b73cde"});
-        db=firebase.database();
-        PublicLobby.init(db);
-        PublicLobby.showLobby();
-        cb(true);
-      }catch(e){document.getElementById('lobby-status').textContent='Errore connessione.';cb(false);}
+    if(db) { cb(true); return; }
+    function inj(src, nxt) {
+        const s = document.createElement('script');
+        s.src = src; s.onload = nxt;
+        s.onerror = () => { document.getElementById('lobby-status').textContent='Connessione non disponibile.'; };
+        document.head.appendChild(s);
+    }
+    inj('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js', () => {
+        inj('https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js', () => {
+            try {
+                if(!firebase.apps.length) {
+                    firebase.initializeApp({
+                        apiKey: "AIzaSyD0byKrvAG1AnQJyxhwab503Rp3OiUfgbw",
+                        authDomain: "tre-anelli.firebaseapp.com",
+                        databaseURL: "https://tre-anelli-default-rtdb.europe-west1.firebasedatabase.app",
+                        projectId: "tre-anelli",
+                        storageBucket: "tre-anelli.firebasestorage.app",
+                        messagingSenderId: "873864785531",
+                        appId: "1:873864785531:web:fe6b728fb97fe381b73cde"
+                    });
+                }
+                db = firebase.database(); PublicLobby.init(db); PublicLobby.showLobby(); cb(true);
+            } catch(e) { document.getElementById('lobby-status').textContent = 'Errore connessione.'; cb(false); }
+        });
     });
-  });
 }
 
 function genCode(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ';return Array.from({length:4},()=>c[Math.floor(Math.random()*c.length)]).join('');}
 
 function createGame(ver){
-  loadFB(ok=>{
-    if(!ok)return;
-    const code=genCode();
-    window.currentGameCode = code;
-    window.isBroadcasting = false;
-    const tc=document.getElementById('time-control').value;
-    const timeData={type:tc};
-    if(tc==='blitz'){timeData.base=300000;timeData.increment=3000;} else if(tc==='rapid'){timeData.base=600000;timeData.increment=5000;} else{timeData.base=0;timeData.increment=0;} 
-    
-    db.ref('games/'+code).set({status:'waiting',version:ver,created:Date.now(),moves:[],timeControl:timeData});
-    document.getElementById('game-code').textContent=code;
-    document.getElementById('waiting').style.display='block';
-    document.getElementById('lobby-status').textContent='';
-    
-    PublicLobby.currentRoomCode = code;
-    document.getElementById('make-public-toggle').checked = false;
-    PublicLobby.isPublic = false;
-    
-    db.ref('games/'+code+'/status').on('value',snap=>{if(snap.val()==='playing')startOnline(code,1,ver);});
-  });
+    loadFB(ok=>{
+        if(!ok)return;
+        const code=genCode();
+        window.currentGameCode = code;
+        window.isBroadcasting = false;
+        const tc=document.getElementById('time-control').value;
+        const timeData={type:tc};
+        if(tc==='blitz'){timeData.base=300000;timeData.increment=3000;} else if(tc==='rapid'){timeData.base=600000;timeData.increment=5000;} else{timeData.base=0;timeData.increment=0;} 
+        
+        db.ref('games/'+code).set({status:'waiting',version:ver,created:Date.now(),moves:[],timeControl:timeData});
+        document.getElementById('game-code').textContent=code;
+        document.getElementById('waiting').style.display='block';
+        document.getElementById('lobby-status').textContent='';
+        
+        PublicLobby.currentRoomCode = code;
+        document.getElementById('make-public-toggle').checked = false;
+        PublicLobby.isPublic = false;
+        
+        db.ref('games/'+code+'/status').on('value',snap=>{if(snap.val()==='playing')startOnline(code,1,ver);});
+    });
 }
 
 function showJoin(){document.getElementById('join-box').style.display='block';document.getElementById('join-code').focus();}
 
 function joinGame(){
-  const code=document.getElementById('join-code').value.trim().toUpperCase();
-  if(code.length!==4){document.getElementById('lobby-status').textContent='Inserisci 4 lettere.';return;}
-  loadFB(ok=>{
-    if(!ok)return;
-    db.ref('games/'+code).get().then(snap=>{
-      if(!snap.exists()){document.getElementById('lobby-status').textContent='Codice non trovato.';return;}
-      const d=snap.val();
-      if(d.status!=='waiting'){document.getElementById('lobby-status').textContent='Partita non disponibile.';return;}
-      db.ref('games/'+code+'/status').set('playing');
-      startOnline(code,2,d.version||'orig');
+    const code=document.getElementById('join-code').value.trim().toUpperCase();
+    if(code.length!==4){document.getElementById('lobby-status').textContent='Inserisci 4 lettere.';return;}
+    loadFB(ok=>{
+        if(!ok)return;
+        db.ref('games/'+code).get().then(snap=>{
+            if(!snap.exists()){document.getElementById('lobby-status').textContent='Codice non trovato.';return;}
+            const d=snap.val();
+            if(d.status!=='waiting'){document.getElementById('lobby-status').textContent='Partita non disponibile.';return;}
+            db.ref('games/'+code+'/status').set('playing');
+            startOnline(code,2,d.version||'orig');
+        });
     });
-  });
 }
 
 function startOnline(code,player,ver){
-  document.getElementById('lobby').style.display='none';
-  document.getElementById('game').style.display='block';
-  document.getElementById('ai-monitor').style.display='none';
-  myPlayer=player; lastProcessedMove=-1;
-  window.currentGameCode = code; window.isBroadcasting = false;
-  document.getElementById('mode-bar').textContent='Online · Partita: '+code+' · Sei P'+(player===1?'1 (rosso)':'2 (blu)');
-  document.getElementById('btn-restart').style.display='none'; document.getElementById('btn-restart2').style.display='none';
-  
-  if (PublicLobby.isPublic && myPlayer === 1) {
-      PublicLobby.updateRoomStatus(code, 'playing');
-  }
+    document.getElementById('lobby').style.display='none';
+    document.getElementById('game').style.display='block';
+    document.getElementById('ai-monitor').style.display='none';
+    myPlayer=player; lastProcessedMove=-1;
+    window.currentGameCode = code; window.isBroadcasting = false;
+    document.getElementById('mode-bar').textContent='Online · Partita: '+code+' · Sei P'+(player===1?'1 (rosso)':'2 (blu)');
+    document.getElementById('btn-restart').style.display='none'; document.getElementById('btn-restart2').style.display='none';
+    
+    if (PublicLobby.isPublic && myPlayer === 1) { PublicLobby.updateRoomStatus(code, 'playing'); }
 
-  G.init('online',ver,false,null);
-  
-  db.ref('games/'+code+'/timeControl').once('value').then(snap=>{
-    const tc=snap.val();
-    if(tc&&tc.type!=='unlimited'){ clockConfig=tc; timeLeft=[tc.base,tc.base]; document.getElementById('clock-bar').style.display='flex'; updateClockDisplay(); startClock(1); } 
-    else { clockConfig={type:'unlimited',base:0,increment:0}; document.getElementById('clock-bar').style.display='none'; }
-    movesRef=db.ref('games/'+code+'/moves');
-    movesRef.on('value',snap=>{
-      const mv=snap.val();if(!mv)return;
-      const arr=Array.isArray(mv)?mv:Object.values(mv);
-      arr.forEach((m,i)=>{ if(i>lastProcessedMove){ lastProcessedMove=i; if(m.player!==player) G.applyRemote(m); } });
+    G.init('online',ver,false,null);
+    
+    db.ref('games/'+code+'/timeControl').once('value').then(snap=>{
+        const tc=snap.val();
+        if(tc&&tc.type!=='unlimited'){
+            clockConfig=tc; timeLeft=[tc.base,tc.base];
+            document.getElementById('clock-bar').style.display='flex'; updateClockDisplay(); startClock(1);
+        } else { clockConfig={type:'unlimited',base:0,increment:0}; document.getElementById('clock-bar').style.display='none'; }
+        
+        movesRef=db.ref('games/'+code+'/moves');
+        movesRef.on('value',snap=>{
+            const mv=snap.val();if(!mv)return;
+            const arr=Array.isArray(mv)?mv:Object.values(mv);
+            arr.forEach((m,i)=>{
+                if(i>lastProcessedMove){
+                    lastProcessedMove=i;
+                    if(m.player!==player) G.applyRemote(m);
+                }
+            });
+        });
     });
-  });
 }
 
 function sendMove(mv){
-  if(movesRef){ if(clockConfig && clockConfig.type !== 'unlimited') { mv.time = Math.max(0, timeLeft[mv.player - 1]); } movesRef.push(mv); }
+    if(movesRef){
+        if(clockConfig && clockConfig.type !== 'unlimited') { mv.time = Math.max(0, timeLeft[mv.player - 1]); }
+        movesRef.push(mv);
+    }
 }
 
 function startLocal(ver, ai){
-  document.getElementById('lobby').style.display='none';
-  document.getElementById('game').style.display='block';
-  document.getElementById('btn-restart').style.display='';
-  document.getElementById('btn-restart2').style.display='';
-  window.currentGameCode = null; window.isBroadcasting = false;
-  if(movesRef){movesRef.off();movesRef=null;}
-  
-  let aiColor = null;
-  if(ai){
-    const userColor = parseInt(document.getElementById('lobby-ai-color').value);
-    aiColor = userColor === 1 ? 2 : 1; myPlayer = userColor; 
-    document.getElementById('monitor-ai-diff').value = document.getElementById('lobby-ai-diff').value;
-  } else { myPlayer = 1; }
-  
-  document.getElementById('mode-bar').textContent = ai ? `Contro l'IA (Sei P${myPlayer})` : 'Due giocatori';
-  document.getElementById('ai-monitor').style.display = ai ? 'block' : 'none';
-  if(ai) syncAiToUI();
-  G.isAnalysisAi = false; G.init('local', ver, ai, aiColor);
+    document.getElementById('lobby').style.display='none'; document.getElementById('game').style.display='block';
+    document.getElementById('btn-restart').style.display=''; document.getElementById('btn-restart2').style.display='';
+    window.currentGameCode = null; window.isBroadcasting = false;
+    if(movesRef){movesRef.off();movesRef=null;}
+    
+    let aiColor = null;
+    if(ai){
+        const userColor = parseInt(document.getElementById('lobby-ai-color').value);
+        aiColor = userColor === 1 ? 2 : 1; myPlayer = userColor; 
+        document.getElementById('monitor-ai-diff').value = document.getElementById('lobby-ai-diff').value;
+    } else { myPlayer = 1; }
+    
+    document.getElementById('mode-bar').textContent = ai ? `Contro l'IA (Sei P${myPlayer})` : 'Due giocatori';
+    document.getElementById('ai-monitor').style.display = ai ? 'block' : 'none';
+    if(ai) syncAiToUI();
+    G.isAnalysisAi = false; G.init('local', ver, ai, aiColor);
 }
 
 function startAiFromAnalysis() {
-  const st = A.getState(); closeAnalysis();
-  document.getElementById('lobby').style.display='none'; document.getElementById('game').style.display='block';
-  document.getElementById('mode-bar').textContent="🤖 Sfida da Analisi (Difficoltà Massima)";
-  document.getElementById('btn-restart').style.display='none'; document.getElementById('btn-restart2').style.display='none';
-  window.currentGameCode = null; window.isBroadcasting = false;
-  if(movesRef){movesRef.off();movesRef=null;}
-  let aiColor = st.cur; myPlayer = aiColor === 1 ? 2 : 1; 
-  document.getElementById('ai-monitor').style.display = 'block'; document.getElementById('monitor-ai-diff').value = 'hard';
-  syncAiToUI(); G.isAnalysisAi = true; G.init('local', 'beta', true, aiColor); G.loadState(st);
+    const st = A.getState(); closeAnalysis();
+    document.getElementById('lobby').style.display='none'; document.getElementById('game').style.display='block';
+    document.getElementById('mode-bar').textContent="🤖 Sfida da Analisi (Difficoltà Massima)";
+    document.getElementById('btn-restart').style.display='none'; document.getElementById('btn-restart2').style.display='none';
+    window.currentGameCode = null; window.isBroadcasting = false;
+    if(movesRef){movesRef.off();movesRef=null;}
+    
+    let aiColor = st.cur; myPlayer = aiColor === 1 ? 2 : 1; 
+    document.getElementById('ai-monitor').style.display = 'block'; document.getElementById('monitor-ai-diff').value = 'hard';
+    syncAiToUI(); G.isAnalysisAi = true; G.init('local', 'beta', true, aiColor); G.loadState(st);
 }
 
 function goMenu(){
-  document.getElementById('game').style.display='none'; document.getElementById('analysis').style.display='none';
-  document.getElementById('lobby').style.display='block'; document.getElementById('waiting').style.display='none';
-  document.getElementById('join-box').style.display='none'; document.getElementById('lobby-status').textContent='';
-  document.getElementById('create-menu').style.display='none';
-  if(movesRef){movesRef.off();movesRef=null;}
-  if(clockInterval){clearInterval(clockInterval);clockInterval=null;}
-  clockConfig=null; document.getElementById('clock-bar').style.display='none'; isAiCalculating = false;
-  PublicLobby.unpublishRoom();
+    document.getElementById('game').style.display='none'; document.getElementById('analysis').style.display='none';
+    document.getElementById('lobby').style.display='block'; document.getElementById('waiting').style.display='none';
+    document.getElementById('join-box').style.display='none'; document.getElementById('lobby-status').textContent='';
+    document.getElementById('create-menu').style.display='none';
+    if(movesRef){movesRef.off();movesRef=null;}
+    if(clockInterval){clearInterval(clockInterval);clockInterval=null;}
+    clockConfig=null; document.getElementById('clock-bar').style.display='none'; isAiCalculating = false;
+    PublicLobby.unpublishRoom();
 }
 
-function openAnalysis(){ document.getElementById('lobby').style.display='none'; document.getElementById('analysis').style.display='block'; A.init(); toggleAutoAnalysis(); }
-function closeAnalysis(){ document.getElementById('analysis').style.display='none'; document.getElementById('lobby').style.display='block'; }
+function openAnalysis(){
+    document.getElementById('lobby').style.display='none'; document.getElementById('analysis').style.display='block';
+    A.init(); toggleAutoAnalysis(); 
+}
 
-const G=(function(){
-  const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
-  const W=540,H=540,CX=270,CY=270,RE=210,RM=130,RI=58;
+function closeAnalysis(){
+    document.getElementById('analysis').style.display='none'; document.getElementById('lobby').style.display='block';
+}
+const G = (function() {
+    const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+    const W=540, H=540, CX=270, CY=270, RE=210, RM=130, RI=58;
+    const WIN=['I1','I3','I5'];
+    const P1S=['E3','E4','E5','E6','E7','E8','M3','M4','M5'];
+    const P2S=['E12','E13','E14','E15','E16','E17','M9','M10','M11'];
+    const S20=Math.sin(20*Math.PI/180), RY=[CY+RE*S20,CY,CY-RE*S20];
+    const RL=['E2','M2','I2','I3','M6','E9'], REQ=['E1','M1','I1','C','I4','M7','E10'], RH=['E18','M12','I6','I5','M8','E11'];
 
-  function cA(ring,n){const step=ring==='E'?20:ring==='M'?30:60;let d=180-(n-1)*step;while(d<0)d+=360;return d*Math.PI/180;}
-  function nP(id){if(id==='C')return[CX,CY];const r=id[0],n=parseInt(id.slice(1)),rr=r==='E'?RE:r==='M'?RM:RI;return[CX+rr*Math.cos(cA(r,n)),CY+rr*Math.sin(cA(r,n))];}
-  function aD(id){const r=id[0],n=parseInt(id.slice(1)),step=r==='E'?20:r==='M'?30:60;let d=180-(n-1)*step;while(d<0)d+=360;return d;}
-  const S20=Math.sin(20*Math.PI/180),RY=[CY+RE*S20,CY,CY-RE*S20];
-  const RL=['E2','M2','I2','I3','M6','E9'],REQ=['E1','M1','I1','C','I4','M7','E10'],RH=['E18','M12','I6','I5','M8','E11'];
-  function pos(id){const[nx,ny]=nP(id);if(RL.includes(id))return[nx,RY[0]];if(REQ.includes(id))return[nx,RY[1]];if(RH.includes(id))return[nx,RY[2]];return[nx,ny];}
+    function cA(ring, n) { const step = ring === 'E' ? 20 : ring === 'M' ? 30 : 60; let d = 180 - (n - 1) * step; while (d < 0) d += 360; return d * Math.PI / 180; }
+    function nP(id) { if (id === 'C') return [CX, CY]; const r = id[0], n = parseInt(id.slice(1)), rr = r === 'E' ? RE : r === 'M' ? RM : RI; return [CX + rr * Math.cos(cA(r, n)), CY + rr * Math.sin(cA(r, n))]; }
+    function aD(id) { const r = id[0], n = parseInt(id.slice(1)), step = r === 'E' ? 20 : r === 'M' ? 30 : 60; let d = 180 - (n - 1) * step; while (d < 0) d += 360; return d; }
+    function pos(id) { const [nx, ny] = nP(id); if (RL.includes(id)) return [nx, RY[0]]; if (REQ.includes(id)) return [nx, RY[1]]; if (RH.includes(id)) return [nx, RY[2]]; return [nx, ny]; }
 
-  const ADJ={},ADJ_BETA={};
-  function buildAdjacencies() {
-      for(let k in ADJ) delete ADJ[k];
-      for(let k in ADJ_BETA) delete ADJ_BETA[k];
-      function ae(a,b,adj){if(!adj[a])adj[a]=[];if(!adj[b])adj[b]=[];if(!adj[a].includes(b))adj[a].push(b);if(!adj[b].includes(a))adj[b].push(a);}
-      for(let i=1;i<=18;i++){ae('E'+i,'E'+(i===18?1:i+1),ADJ);ae('E'+i,'E'+(i===18?1:i+1),ADJ_BETA);}
-      for(let i=1;i<=12;i++){ae('M'+i,'M'+(i===12?1:i+1),ADJ);ae('M'+i,'M'+(i===12?1:i+1),ADJ_BETA);}
-      for(let i=1;i<=6;i++){ae('I'+i,'I'+(i===6?1:i+1),ADJ);ae('I'+i,'I'+(i===6?1:i+1),ADJ_BETA);}
-      
-      ae('C','I1',ADJ);ae('C','I4',ADJ);
-      ae('E1','M1',ADJ);ae('M1','I1',ADJ);ae('I1','C',ADJ);ae('C','I4',ADJ);ae('I4','M7',ADJ);ae('M7','E10',ADJ);
-      ae('E2','M2',ADJ);ae('M2','I2',ADJ);ae('I2','I3',ADJ);ae('I3','M6',ADJ);ae('M6','E9',ADJ);
-      ae('E18','M12',ADJ);ae('M12','I6',ADJ);ae('I6','I5',ADJ);ae('I5','M8',ADJ);ae('M8','E11',ADJ);
-      
-      ae('E1','M1',ADJ_BETA);ae('M1','I1',ADJ_BETA);ae('I4','M7',ADJ_BETA);ae('M7','E10',ADJ_BETA);
-      ae('E2','M2',ADJ_BETA);ae('M2','I2',ADJ_BETA);ae('I3','M6',ADJ_BETA);ae('M6','E9',ADJ_BETA);
-      ae('E18','M12',ADJ_BETA);ae('M12','I6',ADJ_BETA);ae('I5','M8',ADJ_BETA);ae('M8','E11',ADJ_BETA);
-      
-      if (currentBoardStyle !== 'nocenter') { ae('I1','I4',ADJ_BETA); ae('I2','I3',ADJ_BETA); ae('I6','I5',ADJ_BETA); }
-  }
-  buildAdjacencies();
+    const ADJ = {}, ADJ_BETA = {};
+    function buildAdjacencies() {
+        for (let k in ADJ) delete ADJ[k];
+        for (let k in ADJ_BETA) delete ADJ_BETA[k];
 
-  const WIN=['I1','I3','I5'];
-  const P1S=['E3','E4','E5','E6','E7','E8','M3','M4','M5'];
-  const P2S=['E12','E13','E14','E15','E16','E17','M9','M10','M11'];
-  const ALL_ORIG=[...Array.from({length:18},(_,i)=>'E'+(i+1)),...Array.from({length:12},(_,i)=>'M'+(i+1)),...Array.from({length:6},(_,i)=>'I'+(i+1)),'C'];
-  const ALL_BETA=[...Array.from({length:18},(_,i)=>'E'+(i+1)),...Array.from({length:12},(_,i)=>'M'+(i+1)),...Array.from({length:6},(_,i)=>'I'+(i+1))];
-  function getADJ(){return gameVer==='beta'?ADJ_BETA:ADJ;}
-  function getALL(){return gameVer==='beta'?ALL_BETA:ALL_ORIG;}
-  const ROWS_ORIG=[['E18','M12','I6','I5','M8','E11'],['E1','M1','I1','C','I4','M7','E10'],['E2','M2','I2','I3','M6','E9']];
-  const ROWS_BETA=[['E18','M12','I6','I5','M8','E11'],['E1','M1','I1','I4','M7','E10'],['E2','M2','I2','I3','M6','E9']];
-  function getROWS(){return gameVer==='beta'?ROWS_BETA:ROWS_ORIG;}
-  function rowOf(id){return getROWS().findIndex(r=>r.includes(id));}
-  function rowN(id){const ri=rowOf(id);return ri===-1?[]:getROWS()[ri];}
+        function ae(a, b, adj) { if (!adj[a]) adj[a] = []; if (!adj[b]) adj[b] = []; if (!adj[a].includes(b)) adj[a].push(b); if (!adj[b].includes(a)) adj[b].push(a); }
+        for (let i = 1; i <= 18; i++) { ae('E' + i, 'E' + (i === 18 ? 1 : i + 1), ADJ); ae('E' + i, 'E' + (i === 18 ? 1 : i + 1), ADJ_BETA); }
+        for (let i = 1; i <= 12; i++) { ae('M' + i, 'M' + (i === 12 ? 1 : i + 1), ADJ); ae('M' + i, 'M' + (i === 12 ? 1 : i + 1), ADJ_BETA); }
+        for (let i = 1; i <= 6; i++) { ae('I' + i, 'I' + (i === 6 ? 1 : i + 1), ADJ); ae('I' + i, 'I' + (i === 6 ? 1 : i + 1), ADJ_BETA); }
 
-  function spMoves(b,from,pl){
-    const en=pl===1?2:1,row=rowN(from);if(!row.length)return{moves:[],caps:[]};
-    const idx=row.indexOf(from),moves=[],caps=[];
-    for(const dir of[-1,1]){let i=idx+dir;while(i>=0&&i<row.length){const cell=row[i];if(b[cell]===0){moves.push(cell);}else if(b[cell]===en){const j=i+dir;if(j>=0&&j<row.length&&b[row[j]]===0)caps.push({mid:cell,to:row[j]});break;}else break;i+=dir;}}
-    return{moves,caps};
-  }
+        ae('C', 'I1', ADJ); ae('C', 'I4', ADJ);
+        ae('E1', 'M1', ADJ); ae('M1', 'I1', ADJ); ae('I1', 'C', ADJ); ae('C', 'I4', ADJ); ae('I4', 'M7', ADJ); ae('M7', 'E10', ADJ);
+        ae('E2', 'M2', ADJ); ae('M2', 'I2', ADJ); ae('I2', 'I3', ADJ); ae('I3', 'M6', ADJ); ae('M6', 'E9', ADJ);
+        ae('E18', 'M12', ADJ); ae('M12', 'I6', ADJ); ae('I6', 'I5', ADJ); ae('I5', 'M8', ADJ); ae('M8', 'E11', ADJ);
 
-  function betaSpReach(b,from){
-    const reached=new Set(); const adj=getADJ();
-    for(const nb of(adj[from]||[])){if(b[nb]===0)reached.add(nb);}
-    for(const mid of(adj[from]||[])){
-      if(b[mid]!==0)continue;
-      for(const nb of(adj[mid]||[])){if(nb!==from&&b[nb]===0)reached.add(nb);}
+        ae('E1', 'M1', ADJ_BETA); ae('M1', 'I1', ADJ_BETA); ae('I4', 'M7', ADJ_BETA); ae('M7', 'E10', ADJ_BETA);
+        ae('E2', 'M2', ADJ_BETA); ae('M2', 'I2', ADJ_BETA); ae('I3', 'M6', ADJ_BETA); ae('M6', 'E9', ADJ_BETA);
+        ae('E18', 'M12', ADJ_BETA); ae('M12', 'I6', ADJ_BETA); ae('I5', 'M8', ADJ_BETA); ae('M8', 'E11', ADJ_BETA);
+
+        if (currentBoardStyle !== 'nocenter') {
+            ae('I1', 'I4', ADJ_BETA);
+            ae('I2', 'I3', ADJ_BETA);
+            ae('I6', 'I5', ADJ_BETA);
+        }
     }
-    return [...reached];
-  }
+    buildAdjacencies();
 
-  let special={},reserve=[0,0],placing=false,vsAI=false;
-  let board,cur,sel,mode,rotN,must,over,anim,prvRing,lastMove,hist,navI;
-  let notMoves=[],pendingHalf=null;
-  let gameVer='orig',gameMode='local';
-  let pendingSteps=null, pendingCapMid=null, aiPlayer=null;
+    const ALL_ORIG = [...Array.from({ length: 18 }, (_, i) => 'E' + (i + 1)), ...Array.from({ length: 12 }, (_, i) => 'M' + (i + 1)), ...Array.from({ length: 6 }, (_, i) => 'I' + (i + 1)), 'C'];
+    const ALL_BETA = [...Array.from({ length: 18 }, (_, i) => 'E' + (i + 1)), ...Array.from({ length: 12 }, (_, i) => 'M' + (i + 1)), ...Array.from({ length: 6 }, (_, i) => 'I' + (i + 1))];
+    function getADJ() { return gameVer === 'beta' ? ADJ_BETA : ADJ; }
+    function getALL() { return gameVer === 'beta' ? ALL_BETA : ALL_ORIG; }
+    const ROWS_ORIG = [['E18', 'M12', 'I6', 'I5', 'M8', 'E11'], ['E1', 'M1', 'I1', 'C', 'I4', 'M7', 'E10'], ['E2', 'M2', 'I2', 'I3', 'M6', 'E9']];
+    const ROWS_BETA = [['E18', 'M12', 'I6', 'I5', 'M8', 'E11'], ['E1', 'M1', 'I1', 'I4', 'M7', 'E10'], ['E2', 'M2', 'I2', 'I3', 'M6', 'E9']];
+    function getROWS() { return gameVer === 'beta' ? ROWS_BETA : ROWS_ORIG; }
+    function rowOf(id) { return getROWS().findIndex(r => r.includes(id)); }
+    function rowN(id) { const ri = rowOf(id); return ri === -1 ? [] : getROWS()[ri]; }
 
-  function notStr(lm){
-    if(!lm)return'?';
-    if(lm.type==='move'){
-      if(lm.steps&&lm.steps.length){let s=lm.from;lm.steps.forEach(st=>s+='×'+st.mid+'>'+st.to);return s;}
-      if(lm.from==='riserva')return'[◌]→'+lm.to;
-      if(lm.mid)return lm.from+'×'+lm.mid+'>'+lm.to;
-      return lm.from+'-'+lm.to;
+    function spMoves(b, from, pl) {
+        const en = pl === 1 ? 2 : 1, row = rowN(from); if (!row.length) return { moves: [], caps: [] };
+        const idx = row.indexOf(from), moves = [], caps = [];
+        for (const dir of [-1, 1]) {
+            let i = idx + dir;
+            while (i >= 0 && i < row.length) {
+                const cell = row[i];
+                if (b[cell] === 0) { moves.push(cell); } 
+                else if (b[cell] === en) {
+                    const j = i + dir;
+                    if (j >= 0 && j < row.length && b[row[j]] === 0) caps.push({ mid: cell, to: row[j] });
+                    break;
+                } else break;
+                i += dir;
+            }
+        }
+        return { moves, caps };
     }
-    if(lm.type==='rot')return'r'+lm.ring+(lm.steps>1?lm.steps:'');
-    return'?';
-  }
-  function pushNotation(lm,player){
-    const s=notStr(lm);
-    if(player===1){pendingHalf=s;} else{notMoves.push({num:notMoves.length+1,p1:pendingHalf||'?',p2:s});pendingHalf=null;}
-    renderNotation();
-  }
-  function renderNotation(){
-    const el=document.getElementById('notation-log');let html='';
-    notMoves.forEach((m,i)=>{const isCur=i===notMoves.length-1;html+=`<span>${m.num}. </span><span class="p1${isCur?' cur':''}">${m.p1}</span>  <span class="p2${isCur?' cur':''}">${m.p2||'…'}</span>\n`;});
-    if(pendingHalf)html+=`<span>${notMoves.length+1}. </span><span class="p1 cur">${pendingHalf}</span>  …\n`;
-    el.innerHTML=html;el.scrollTop=el.scrollHeight;
-  }
-  function rebuildNotation() {
-    notMoves = []; pendingHalf = null;
-    for(let i=1; i<hist.length; i++) {
-      const pl = hist[i-1].cur; const s = notStr(hist[i].lm);
-      if(pl===1) { pendingHalf = s; } else { notMoves.push({num:notMoves.length+1, p1:pendingHalf||'?', p2:s}); pendingHalf = null; }
+
+    function betaSpReach(b, from) {
+        const reached = new Set();
+        const adj = getADJ();
+        for (const nb of (adj[from] || [])) { if (b[nb] === 0) reached.add(nb); }
+        for (const mid of (adj[from] || [])) {
+            if (b[mid] !== 0) continue;
+            for (const nb of (adj[mid] || [])) { if (nb !== from && b[nb] === 0) reached.add(nb); }
+        }
+        return [...reached];
     }
-    renderNotation();
-  }
-  function copyNotation(){
-    const date=new Date().toLocaleDateString('it-IT');
-    let txt=`[${gameMode==='online'?'Online':'Locale'} · ${gameVer==='beta'?'Beta':'Originale'}]\n[${date}]\n\n`;
-    notMoves.forEach(m=>{txt+=m.num+'. '+m.p1+'  '+(m.p2||'…')+'\n';});
-    if(pendingHalf)txt+=(notMoves.length+1)+'. '+pendingHalf+'  …\n';
-    navigator.clipboard.writeText(txt).then(()=>{const btn=document.querySelector('#notation-head button');const o=btn.textContent;btn.textContent='✓ Copiato!';setTimeout(()=>btn.textContent=o,1500);}).catch(()=>alert(txt));
-  }
-  function exportTAN(){
-    const rings=['E','M','I'], ringLengths=[18,12,6]; let tanParts=[];
-    for(let ri=0;ri<3;ri++){
-      const r=rings[ri],len=ringLengths[ri]; let seg='',empty=0;
-      for(let i=1;i<=len;i++){
-        const id=r+i,pc=board[id]||0,sp=special&&special[id];
-        if(pc===0){empty++;} else{ if(empty>0){seg+=empty;empty=0;} if(pc===1)seg+=sp?'R':'r'; else seg+=sp?'B':'b'; }
-      }
-      if(empty>0)seg+=empty; tanParts.push(seg);
+
+    let special = {}, reserve = [0, 0], placing = false, vsAI = false;
+    let board, cur, sel, mode, rotN, must, over, anim, prvRing, lastMove, hist, navI;
+    let notMoves = [], pendingHalf = null;
+    let gameVer = 'orig', gameMode = 'local';
+    let pendingSteps = null, pendingCapMid = null, aiPlayer = null;
+
+    function notStr(lm) {
+        if (!lm) return '?';
+        if (lm.type === 'move') {
+            if (lm.steps && lm.steps.length) { let s = lm.from; lm.steps.forEach(st => s += '×' + st.mid + '>' + st.to); return s; }
+            if (lm.from === 'riserva') return '[◌]→' + lm.to;
+            if (lm.mid) return lm.from + '×' + lm.mid + '>' + lm.to;
+            return lm.from + '-' + lm.to;
+        }
+        if (lm.type === 'rot') return 'r' + lm.ring + (lm.steps > 1 ? lm.steps : '');
+        return '?';
     }
-    const turn=cur===1?'r':'b', res=reserve[0]+':'+reserve[1], moveN=Math.max(1, Math.ceil((hist.length)/2)), rotNum=rotN%3;
-    return tanParts.join('/')+' '+turn+' '+res+' '+moveN+' '+rotNum;
-  }
-  function copyTAN(){
-    const tan = exportTAN();
-    navigator.clipboard.writeText(tan).then(()=>{
-        const btn = document.querySelector("#game button[onclick='G.copyTAN()']");
-        const o = btn.textContent; btn.textContent = '✓ Copiato!'; setTimeout(() => btn.textContent = o, 1500);
-    });
-  }
 
-  function importTAN(tan) {
-      const parts = tan.trim().split(/\s+/);
-      if(parts.length !== 5) return false;
-      const [ringData, turnS, resS, moveS, rotS] = parts;
-      const rings = ringData.split('/');
-      
-      board = {}; getALL().forEach(c => board[c] = 0);
-      special = {};
-      const ringNames = ['E','M','I'];
-      
-      for(let ri=0; ri<3; ri++){
-          const seg = rings[ri], r = ringNames[ri];
-          let idx = 1, i = 0;
-          while(i < seg.length){
-              const ch = seg[i];
-              if(/\d/.test(ch)){
-                  let numStr = '';
-                  while(i < seg.length && /\d/.test(seg[i])) { numStr += seg[i]; i++; }
-                  idx += parseInt(numStr);
-              } else {
-                  const id = r + idx;
-                  if(ch === 'r') board[id] = 1;
-                  else if(ch === 'R'){ board[id] = 1; special[id] = true; }
-                  else if(ch === 'b') board[id] = 2;
-                  else if(ch === 'B'){ board[id] = 2; special[id] = true; }
-                  idx++; i++;
-              }
-          }
-      }
-      
-      cur = turnS === 'r' ? 1 : 2;
-      reserve = resS.split(':').map(x => parseInt(x) || 0);
-      rotN = parseInt(rotS) || 0;
-      
-      hist = [sn()]; navI = -1; notMoves = [];
-      document.getElementById('notation-log').innerHTML=''; upd(); draw();
-      return true;
-  }
-
-  function sn(){return{b:Object.assign({},board),cur,rotN,lm:lastMove?{...lastMove}:null,sp:Object.assign({},special),md:window.medium?Object.assign({},window.medium):null,rv:[...reserve]};}
-  function push(lm,player){if(lm&&player)pushNotation(lm,player);hist.push(sn());navI=-1;nUpd();}
-  function live(){return navI===-1;}
-
-  function init(gmode,ver,ai,aiPl){
-    gameMode=gmode;gameVer=ver;vsAI=ai;aiPlayer=aiPl;
-    const ALL=getALL();
-    board={};getALL().forEach(c=>board[c]=0);P1S.forEach(c=>board[c]=1);P2S.forEach(c=>board[c]=2);
-    if(ver==='beta'){ special={};['M4','E4','E6','M10','E15','E13'].forEach(c=>special[c]=true); window.medium=null; } 
-    else { special={};['E5','E6','E14','E15'].forEach(c=>special[c]=true); window.medium={}; }
-    reserve=[0,0];placing=false; cur=1;sel=null;mode='move';rotN=0;must=null;over=false;anim=false;prvRing=null;lastMove=null;
-    hist=[];navI=-1;notMoves=[];pendingHalf=null;pendingSteps=null;pendingCapMid=null;
-    document.getElementById('wo').style.display='none'; document.getElementById('rot-hint').textContent='';
-    document.getElementById('notation-log').innerHTML=''; document.getElementById('reserve-bar').style.display=ver==='beta'?'flex':'none';
-    isAiCalculating = false;
-    hist.push(sn());nUpd();upd();draw();
-    if(vsAI && cur === aiPlayer) aiThink();
-  }
-  
-  function loadState(s) {
-    board = Object.assign({}, s.board); cur = s.cur; rotN = s.rotN || 0; reserve = [...(s.reserve || [0,0])]; special = Object.assign({}, s.special || {}); lastMove = s.lastMove ? {...s.lastMove} : null;
-    if (s.history) { hist = [...s.history]; navI = -1; rebuildNotation(); } else { hist = [sn()]; navI = -1; notMoves = []; document.getElementById('notation-log').innerHTML=''; }
-    isAiCalculating = false; upd(); draw();
-    if(cur === aiPlayer && vsAI) aiThink();
-  }
-  
-  function undoMove() {
-    if(!vsAI || over || anim || cur === aiPlayer) return;
-    if(hist.length <= 2) return; 
-    isAiCalculating = false; hist.pop(); hist.pop(); 
-    rebuildNotation(); restore(hist[hist.length-1]); navI=-1; nUpd(); upd(); draw();
-    if (window.isBroadcasting) sendMove({type: 'undo', levels: 2, player: myPlayer});
-  }
-  
-  function restart(){if(gameMode==='online')return;init(gameMode,gameVer,vsAI,aiPlayer);}
-  function seeBoard(){document.getElementById('wo').style.display='none';}
-
-  function restore(s){board=Object.assign({},s.b);lastMove=s.lm?{...s.lm}:null;special=Object.assign({},s.sp||{});window.medium=s.md?Object.assign({},s.md):null;reserve=[...(s.rv||[0,0])];placing=false;}
-  function navTo(i){const s=hist[i];if(!s)return;navI=i;restore(s);nUpd();upd();draw();}
-  function navFirst(){if(gameMode==='online'&&cur!==myPlayer)return;navTo(0);}
-  function navPrev(){if(gameMode==='online'&&cur!==myPlayer)return;const i=navI===-1?hist.length-2:navI-1;if(i>=0)navTo(i);}
-  function navNext(){if(navI===-1)return;if(navI<hist.length-1)navTo(navI+1);else{navI=-1;restore(hist[hist.length-1]);nUpd();upd();draw();}}
-  function navLast(){navI=-1;restore(hist[hist.length-1]);nUpd();upd();draw();}
-  function nUpd(){
-    const tot=hist.length-1,ci=navI===-1?tot:navI;
-    document.getElementById('nl').textContent=ci+' / '+tot;
-    document.getElementById('nf').disabled=ci===0;document.getElementById('np').disabled=ci===0;
-    document.getElementById('nn').disabled=navI===-1;document.getElementById('nl2').disabled=navI===-1;
-  }
-
-  function rOf(id){if(id==='C')return'C';return id[0];}
-  function rC(r){if(r==='M')return Array.from({length:12},(_,i)=>'M'+(i+1));return Array.from({length:18},(_,i)=>'E'+(i+1));}
-  function cnt(b,pl){return getALL().filter(c=>b[c]===pl).length;}
-  function hP(pl,r){return rC(r).some(c=>board[c]===pl);}
-  function cF(b,from,pl){ const en=pl===1?2:1,res=[],adj=getADJ(); for(const mid of(adj[from]||[])){if(b[mid]!==en)continue;for(const to of(adj[mid]||[])){if(b[to]===0&&to!==from)res.push({mid,to});}} return res; }
-  function hasNormalCap(pl){return getALL().some(c=>board[c]===pl&&cF(board,c,pl).length>0);}
-  function hasSpecialCap(pl){return getALL().some(c=>board[c]===pl&&special[c]&&spMoves(board,c,pl).caps.length>0);}
-  
-  function isMyTurn() {
-    if (gameMode === 'spectator') return false;
-    if (gameMode === 'online') return cur === myPlayer;
-    if (gameMode === 'local' && vsAI) return cur !== aiPlayer;
-    return true; 
-  }
-
-  function cleanFlags(){ Object.keys(special).forEach(c=>{if(!board[c])delete special[c];}); }
-
-  function doMove(from,to,pl){
-    if(special[from]){special[to]=true;delete special[from];}
-    board[from]=0;board[to]=pl; cleanFlags();
-  }
-  function doCapture(mid,capturer){
-    const cap=capturer||cur;
-    if(gameVer==='beta'){ reserve[cap-1]++; delete special[mid]; board[mid]=0; } 
-    else { if(window.medium[mid]){ const owner=board[mid]; reserve[owner-1]++; delete window.medium[mid]; } delete special[mid];board[mid]=0; }
-  }
-  function doRotation(r,st){
-    const cells=rC(r),n=cells.length,snap={}; const spOld=Object.assign({},special),mdOld=Object.assign({},window.medium||{});
-    cells.forEach(c=>snap[c]=board[c]); for(let i=0;i<n;i++)board[cells[i]]=snap[cells[(i-st+n)%n]];
-    cells.forEach(c=>{delete special[c];if(window.medium)delete window.medium[c];});
-    cells.forEach((c,i)=>{if(spOld[c])special[cells[(i+st)%n]]=true;if(window.medium&&mdOld[c])window.medium[cells[(i+st)%n]]=true;});
-    rotN++; cleanFlags();
-  }
-
-  function aiThink(){
-    if(over||anim||cur!==aiPlayer)return;
-    if(!aiWorkerReady) { setTimeout(aiThink, 500); return; }
-    isAiCalculating = true; document.getElementById('al').textContent = 'L\'IA sta pensando...';
-    let boardArr = new Int8Array(37); let specialArr = new Int8Array(37); let reserveArr = new Int8Array([reserve[0]||0, reserve[1]||0]);
-    const NODI = ['E1','E2','E3','E4','E5','E6','E7','E8','E9','E10','E11','E12','E13','E14','E15','E16','E17','E18','M1','M2','M3','M4','M5','M6','M7','M8','M9','M10','M11','M12','I1','I2','I3','I4','I5','I6','C'];
-    for (let i = 0; i < NODI.length; i++) { let nodo = NODI[i]; boardArr[i] = board[nodo] || 0; specialArr[i] = special[nodo] ? 1 : 0; }
-    let diff = document.getElementById('monitor-ai-diff') ? document.getElementById('monitor-ai-diff').value : 'medium';
-    if (G.isAnalysisAi) diff = 'hard';
-    const conf = AI_SETTINGS[diff]; pushSettingsToWorker();
-    aiWorker.postMessage({
-        type: 'calcola', board: boardArr, reserve: reserveArr, special: specialArr,
-        player: cur, max_depth: conf.maxDepth, is_beta: gameVer === 'beta' ? 1 : 0, 
-        is_nocenter: currentBoardStyle === 'nocenter', rotN: rotN, _callbackId: 'bot_move'
-    });
-    workerTasks.push('bot_move');
-  }
-
-  window.handleAIMove = function(msg) {
-    if (over || cur !== aiPlayer || !vsAI) return;
-    document.getElementById('al').textContent = 'Mossa in corso...';
-    let fromIdx = Math.floor(msg.result / 10000); let toIdx = Math.floor((msg.result % 10000) / 100);
-    const NODI = ['E1','E2','E3','E4','E5','E6','E7','E8','E9','E10','E11','E12','E13','E14','E15','E16','E17','E18','M1','M2','M3','M4','M5','M6','M7','M8','M9','M10','M11','M12','I1','I2','I3','I4','I5','I6','C'];
-    if (fromIdx === 88) { let anello = (toIdx === 0 || toIdx === 1) ? 'E' : 'M'; rot(anello, true); } 
-    else if (fromIdx === 99) { let to_str = NODI[toIdx]; placing = true; clickC(to_str, true); } 
-    else {
-        let from_str = NODI[fromIdx]; let to_str = NODI[toIdx]; clickC(from_str, true); 
-        setTimeout(() => { clickC(to_str, true); if (must && !over && cur === aiPlayer) { aiThink(); } }, 400);
+    function pushNotation(lm, player) {
+        const s = notStr(lm);
+        if (player === 1) { pendingHalf = s; }
+        else { notMoves.push({ num: notMoves.length + 1, p1: pendingHalf || '?', p2: s }); pendingHalf = null; }
+        renderNotation();
     }
-  };
 
-  function applyRemote(mv){
-    if (mv.type === 'undo') {
-        for (let k = 0; k < mv.levels; k++) { if (hist.length > 1) hist.pop(); }
-        rebuildNotation(); restore(hist[hist.length-1]); navI=-1; nUpd(); upd(); draw(); return;
+    function renderNotation() {
+        const el = document.getElementById('notation-log'); let html = '';
+        notMoves.forEach((m, i) => { const isCur = i === notMoves.length - 1; html += `<span>${m.num}. </span><span class="p1${isCur ? ' cur' : ''}">${m.p1}</span>  <span class="p2${isCur ? ' cur' : ''}">${m.p2 || '…'}</span>\n`; });
+        if (pendingHalf) html += `<span>${notMoves.length + 1}. </span><span class="p1 cur">${pendingHalf}</span>  …\n`;
+        el.innerHTML = html; el.scrollTop = el.scrollHeight;
     }
-    if(over)return;
-    if(mv.type==='surrender'){ wG(mv.player===1?2:1,"L'avversario ha abbandonato."); return; }
-    
-    const pl=mv.player;
-    if(mv.time !== undefined && clockConfig && clockConfig.type !== 'unlimited') { timeLeft[pl-1] = mv.time; }
 
-    if(mv.type==='place'||(mv.type==='move'&&mv.from==='riserva')){
-      board[mv.to]=pl; reserve[pl-1]--; if(gameVer==='orig'&&window.medium)window.medium[mv.to]=true; lastMove={type:'move',from:'riserva',to:mv.to};
-    } else if(mv.type==='move'){
-      if(mv.steps&&mv.steps.length){
-        const oSp=!!special[mv.from],oMd=!!(window.medium&&window.medium[mv.from]);
-        delete special[mv.from];if(window.medium)delete window.medium[mv.from];board[mv.from]=0;
-        mv.steps.forEach((s,i)=>{
-          if(i>0)board[mv.steps[i-1].to]=0;
-          if(s.midWasMedium&&window.medium&&!window.medium[s.mid])window.medium[s.mid]=true;
-          doCapture(s.mid,pl);board[s.to]=pl;
+    function rebuildNotation() {
+        notMoves = []; pendingHalf = null;
+        for (let i = 1; i < hist.length; i++) {
+            const pl = hist[i - 1].cur;
+            const s = notStr(hist[i].lm);
+            if (pl === 1) { pendingHalf = s; }
+            else { notMoves.push({ num: notMoves.length + 1, p1: pendingHalf || '?', p2: s }); pendingHalf = null; }
+        }
+        renderNotation();
+    }
+
+    function copyNotation() {
+        const date = new Date().toLocaleDateString('it-IT');
+        let txt = `[${gameMode === 'online' ? 'Online' : 'Locale'} · ${gameVer === 'beta' ? 'Beta' : 'Originale'}]\n[${date}]\n\n`;
+        notMoves.forEach(m => { txt += m.num + '. ' + m.p1 + '  ' + (m.p2 || '…') + '\n'; });
+        if (pendingHalf) txt += (notMoves.length + 1) + '. ' + pendingHalf + '  …\n';
+        navigator.clipboard.writeText(txt).then(() => { const btn = document.querySelector('#notation-head button'); const o = btn.textContent; btn.textContent = '✓ Copiato!'; setTimeout(() => btn.textContent = o, 1500); }).catch(() => alert(txt));
+    }
+
+    function exportTAN() {
+        const rings = ['E', 'M', 'I'], ringLengths = [18, 12, 6];
+        let tanParts = [];
+        for (let ri = 0; ri < 3; ri++) {
+            const r = rings[ri], len = ringLengths[ri];
+            let seg = '', empty = 0;
+            for (let i = 1; i <= len; i++) {
+                const id = r + i, pc = board[id] || 0, sp = special && special[id];
+                if (pc === 0) { empty++; }
+                else {
+                    if (empty > 0) { seg += empty; empty = 0; }
+                    if (pc === 1) seg += sp ? 'R' : 'r';
+                    else seg += sp ? 'B' : 'b';
+                }
+            }
+            if (empty > 0) seg += empty;
+            tanParts.push(seg);
+        }
+        const turn = cur === 1 ? 'r' : 'b';
+        const res = reserve[0] + ':' + reserve[1];
+        const moveN = Math.max(1, Math.ceil((hist.length) / 2));
+        const rotNum = rotN % 3;
+        return tanParts.join('/') + ' ' + turn + ' ' + res + ' ' + moveN + ' ' + rotNum;
+    }
+
+    function copyTAN() {
+        const tan = exportTAN();
+        navigator.clipboard.writeText(tan).then(() => {
+            const btn = document.querySelector("#game button[onclick='G.copyTAN()']");
+            const o = btn.textContent;
+            btn.textContent = '✓ Copiato!';
+            setTimeout(() => btn.textContent = o, 1500);
         });
-        const ft=mv.steps[mv.steps.length-1].to;
-        if(oSp)special[ft]=true;if(window.medium&&oMd)window.medium[ft]=true;
-      } else if(mv.mid){
-        if(mv.midWasMedium&&window.medium&&!window.medium[mv.mid])window.medium[mv.mid]=true;
-        doCapture(mv.mid,pl); doMove(mv.from,mv.to,pl);
-      } else { doMove(mv.from,mv.to,pl); }
-      lastMove={type:'move',from:mv.from,to:mv.to};
-    } else if(mv.type==='rot'){
-      doRotation(mv.ring,mv.steps); lastMove={type:'rot',ring:mv.ring,steps:mv.steps};
     }
-    push(lastMove,pl); chkW(pl);
-    const prevPlayer = cur; cur=pl===1?2:1; upd();draw();
-    
-    if(gameMode==='online'&&clockConfig&&clockConfig.type!=='unlimited'){
-        stopClock(prevPlayer); if(!over)startClock(cur);
-    }
-  }
 
-  function previewRot(r){
-    if(over||anim||!live()||!isMyTurn()||placing)return;
-    if(!hP(cur,r))return; prvRing=r;const st=(rotN%3)+1;
-    document.getElementById('rot-hint').textContent='Anello '+{M:'medio',E:'esterno'}[r]+': +'+st+' casella'+(st>1?'e':'')+' →';
-    document.getElementById('btn-'+r).classList.add('previewing');draw();
-  }
-  function clearPreview(){prvRing=null;document.getElementById('rot-hint').textContent='';['M','E'].forEach(r=>{const b=document.getElementById('btn-'+r);if(b)b.classList.remove('previewing');});draw();}
-
-  function rot(r, isAI=false){
-    if(over||must||anim||!live()||placing)return;
-    if(!isAI && !isMyTurn())return; if(!hP(cur,r))return;
-    clearPreview(); const st=(rotN%3)+1,pl=cur;
-    animR(r,st,()=>{
-      doRotation(r,st); lastMove={type:'rot',ring:r,steps:st};
-      if(gameMode==='online' || window.isBroadcasting) sendMove({type:'rot',ring:r,steps:st,player:pl});
-      push(lastMove,pl);chkW();if(!over)endT();
-    });
-  }
-
-  function animR(ring,steps,cb){
-    anim=true;const rr=ring==='E'?RE:RM,td=steps*(ring==='E'?20:30);
-    const cells=rC(ring),pieces=cells.filter(c=>board[c]!==0).map(c=>({pl:board[c],a0:aD(c)}));
-    const dur=400,t0=performance.now();
-    function fr(now){
-      const t=Math.min((now-t0)/dur,1),e=t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2,rot_=td*e;
-      const th=T(); ctx.clearRect(0,0,W,H);ctx.fillStyle=th.cvBg;ctx.fillRect(0,0,W,H);dSt();
-      for(const id of getALL()){if(id!=='C'&&id[0]===ring)continue;dCell(id,false,false,false,0);}
-      pieces.forEach(p=>{const a=(p.a0-rot_)*Math.PI/180,x=CX+rr*Math.cos(a),y=CY+rr*Math.sin(a);ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2);ctx.fillStyle=p.pl===1?th.p1:th.p2;ctx.fill();});
-      if(t<1)requestAnimationFrame(fr);else{anim=false;cb();}
-    }
-    requestAnimationFrame(fr);
-  }
-
-  function placeMode(){
-    if(over||!live()||!isMyTurn())return; if(reserve[cur-1]===0)return;
-    if(gameVer==='orig'){ if(hasNormalCap(cur)||hasSpecialCap(cur))return; }
-    placing=true;sel=null; upd();draw();
-  }
-
-  function finMove(lm,pl){
-    push(lm,pl);
-    if(gameMode==='online' || window.isBroadcasting) sendMove({...lm,player:pl});
-    chkW();if(!over)endT();
-  }
-
-  cv.addEventListener('click',e=>{
-    if(anim||!live())return; if(prvRing){clearPreview();return;}
-    const rect=cv.getBoundingClientRect(),sx=W/rect.width,sy=H/rect.height; const mx=(e.clientX-rect.left)*sx,my=(e.clientY-rect.top)*sy;
-    for(const id of getALL()){const[x,y]=pos(id);if((mx-x)**2+(my-y)**2<=225){clickC(id);return;}}
-  });
-
-  function clickC(id, isAI=false){
-    if(over||anim||!live())return;
-    if(!isAI && !isMyTurn())return; 
-    const pl=cur;
-    if(placing){
-      if(board[id]===pl){placing=false;upd();draw();return;}
-      if(gameVer==='orig'){ if(hasNormalCap(pl)||hasSpecialCap(pl)){placing=false;upd();draw();return;} if(id==='C')return; } 
-      else { if(rOf(id)!=='E'&&rOf(id)!=='M')return; }
-      if(board[id]!==0)return;
-      board[id]=pl; if(gameVer==='orig'&&window.medium)window.medium[id]=true;
-      reserve[pl-1]--; placing=false;lastMove={type:'move',from:'riserva',to:id};
-      finMove({type:'move',from:'riserva',to:id},pl);return;
-    }
-    if(must&&gameVer==='orig'){
-      if(board[id]===0){
-        const j=cF(board,must,pl).find(j=>j.to===id);
-        if(j){
-          const from=must,isMedCap=!!(window.medium&&window.medium[j.mid]);
-          doCapture(j.mid);doMove(must,j.to,pl);
-          if(!pendingSteps)pendingSteps={from,steps:[]};
-          pendingSteps.steps.push({mid:j.mid,midWasMedium:isMedCap,to:j.to});
-          chkW();if(over){
-            lastMove={type:'move',from:pendingSteps.from,to:j.to,steps:pendingSteps.steps};
-            push(lastMove,pl);if(gameMode==='online' || window.isBroadcasting) sendMove({type:'move',from:pendingSteps.from,to:j.to,steps:pendingSteps.steps,player:pl});
-            pendingSteps=null;return;
-          }
-          const more=cF(board,j.to,pl);
-          if(more.length){must=j.to;sel=j.to;upd();draw();return;}
-          lastMove={type:'move',from:pendingSteps.from,to:j.to,steps:pendingSteps.steps}; must=null;sel=null;
-          finMove({type:'move',from:pendingSteps.from,to:j.to,steps:pendingSteps.steps},pl); pendingSteps=null;return;
+    function importTAN(tan) {
+        const parts = tan.trim().split(/\s+/);
+        if (parts.length !== 5) return false;
+        const [ringData, turnS, resS, moveS, rotS] = parts;
+        const rings = ringData.split('/');
+        
+        board = {}; getALL().forEach(c => board[c] = 0);
+        special = {};
+        const ringNames = ['E', 'M', 'I'];
+        
+        for (let ri = 0; ri < 3; ri++) {
+            const seg = rings[ri], r = ringNames[ri];
+            let idx = 1, i = 0;
+            while (i < seg.length) {
+                const ch = seg[i];
+                if (/\d/.test(ch)) {
+                    let numStr = '';
+                    while (i < seg.length && /\d/.test(seg[i])) { numStr += seg[i]; i++; }
+                    idx += parseInt(numStr);
+                } else {
+                    const id = r + idx;
+                    if (ch === 'r') board[id] = 1;
+                    else if (ch === 'R') { board[id] = 1; special[id] = true; }
+                    else if (ch === 'b') board[id] = 2;
+                    else if (ch === 'B') { board[id] = 2; special[id] = true; }
+                    idx++; i++;
+                }
+            }
         }
-      }
-      sel=must;draw();return;
+        
+        cur = turnS === 'r' ? 1 : 2;
+        reserve = resS.split(':').map(x => parseInt(x) || 0);
+        rotN = parseInt(rotS) || 0;
+        
+        hist = [sn()]; navI = -1; notMoves = [];
+        document.getElementById('notation-log').innerHTML = '';
+        upd(); draw();
+        return true;
     }
-    if(must)must=null;
-    
-    if(pendingCapMid){
-      if(board[id]===0){
-        const adj=getADJ();
-        if((adj[pendingCapMid]||[]).includes(id)&&id!==sel){
-          const from=sel,mid=pendingCapMid,isMedCap=!!(window.medium&&window.medium[mid]);
-          doCapture(mid);doMove(sel,id,pl);
-          pendingCapMid=null;lastMove={type:'move',from,to:id};sel=null;
-          finMove({type:'move',from,mid,to:id},pl);return;
-        }
-      }
-      pendingCapMid=null;draw();return;
-    }
-    
-    if(sel===null){if(board[id]===pl){sel=id;pendingCapMid=null;draw();}return;}
-    if(id===sel){sel=null;pendingCapMid=null;draw();return;}
-    if(board[id]===pl){sel=id;pendingCapMid=null;draw();return;}
 
-    const normCap=hasNormalCap(pl),specCap=hasSpecialCap(pl),anyCap=(normCap||specCap)&&gameVer==='orig',isSp=special[sel];
-    const normalCaptures=cF(board,sel,pl);
-    if(normalCaptures.length>0){
-      const victimClicked=normalCaptures.find(c=>c.mid===id);
-      if(victimClicked){ pendingCapMid=id;draw();return; }
-      const j=normalCaptures.find(j=>j.to===id);
-      if(j){
-        const from=sel,isMedCap=!!(window.medium&&window.medium[j.mid]);
-        doCapture(j.mid);doMove(sel,j.to,pl);
-        chkW();if(over){lastMove={type:'move',from,to:j.to};push(lastMove,pl);if(gameMode==='online' || window.isBroadcasting) sendMove({type:'move',from,mid:j.mid,midWasMedium:isMedCap,to:j.to,player:pl});return;}
-        if(gameVer==='orig'&&!isSp){
-          const more=cF(board,j.to,pl);
-          if(more.length){ pendingSteps={from,steps:[{mid:j.mid,midWasMedium:isMedCap,to:j.to}]}; must=j.to;sel=j.to;upd();draw();return; }
-        }
-        lastMove={type:'move',from,to:j.to};must=null;sel=null;
-        finMove({type:'move',from,mid:j.mid,midWasMedium:isMedCap,to:j.to},pl);return;
-      }
-    }
-    
-    if(gameVer==='orig'&&isSp){
-      const sc=spMoves(board,sel,pl),cap=sc.caps.find(c=>c.to===id);
-      if(cap){
-        const from=sel,isMedCap=!!(window.medium&&window.medium[cap.mid]);
-        doCapture(cap.mid);doMove(sel,cap.to,pl);
-        chkW();if(over){lastMove={type:'move',from,to:cap.to};push(lastMove,pl);if(gameMode==='online' || window.isBroadcasting) sendMove({type:'move',from,mid:cap.mid,midWasMedium:isMedCap,to:cap.to,player:pl});return;}
-        lastMove={type:'move',from,to:cap.to};must=null;sel=null;
-        finMove({type:'move',from,mid:cap.mid,midWasMedium:isMedCap,to:cap.to},pl);return;
-      }
-    }
-    if((getADJ()[sel]||[]).includes(id)&&board[id]===0){
-      if(anyCap)return; const from=sel;doMove(sel,id,pl);lastMove={type:'move',from,to:id};sel=null;
-      finMove({type:'move',from,to:id},pl);return;
-    }
-    if(gameVer==='orig'&&isSp&&board[id]===0&&rowOf(id)===rowOf(sel)&&rowOf(sel)!==-1){
-      if(anyCap)return;
-      if(spMoves(board,sel,pl).moves.includes(id)){ const from=sel;doMove(sel,id,pl);lastMove={type:'move',from,to:id};sel=null; finMove({type:'move',from,to:id},pl);return; }
-    }
-    if(gameVer==='beta'&&isSp&&board[id]===0){
-      if(pendingCapMid){
-        const en=cur===1?2:1,adj=getADJ(),validDests=(adj[pendingCapMid]||[]).filter(nb=>nb!==sel&&board[nb]===0);
-        if(validDests.includes(id)){
-          const from=sel,mid=pendingCapMid; doCapture(mid);doMove(sel,id,pl);
-          pendingCapMid=null;lastMove={type:'move',from,to:id};sel=null;
-          finMove({type:'move',from,mid,to:id},pl);return;
-        }
-        pendingCapMid=null;draw();return;
-      }
-      if(betaSpReach(board,sel).includes(id)){
-        const from=sel;doMove(sel,id,pl);lastMove={type:'move',from,to:id};sel=null;
-        finMove({type:'move',from,to:id},pl);return;
-      }
-    }
-    if(gameVer==='beta'&&isSp&&board[id]!==0&&board[id]!==pl){
-      const adj=getADJ();
-      if((adj[sel]||[]).includes(id)){
-        const validDests=(adj[id]||[]).filter(nb=>nb!==sel&&board[nb]===0);
-        if(validDests.length>0){pendingCapMid=id;draw();return;}
-      }
-    }
-  }
+    function sn() { return { b: Object.assign({}, board), cur, rotN, lm: lastMove ? { ...lastMove } : null, sp: Object.assign({}, special), md: window.medium ? Object.assign({}, window.medium) : null, rv: [...reserve] }; }
+    function push(lm, player) { if (lm && player) pushNotation(lm, player); hist.push(sn()); navI = -1; nUpd(); }
+    function live() { return navI === -1; }
 
-  function chkW(pl){
-    const p=pl||cur,en=p===1?2:1;
-    if(WIN.every(c=>board[c]===p)){wG(p,'Tre nodi (I1,I3,I5) occupati!');return;}
-    if(getALL().every(c=>board[c]!==en))wG(p,'Tutte le pietre avversarie catturate!');
-  }
-  function wG(p,r){
-    over=true;draw();upd();
-    if(clockInterval){clearInterval(clockInterval);clockInterval=null;}
-    const tag=gameMode==='online'?(p===myPlayer?' (tu)':' (avversario)'):(vsAI && p===aiPlayer ? ' (IA)' : '');
-    document.getElementById('wt').textContent='Vince P'+p+tag+'!';
-    document.getElementById('wr').textContent=r;
-    document.getElementById('wo').style.display='flex';
-    PublicLobby.unpublishRoom();
-  }
-  function surrender(){
-    if(over||!live())return;
-    if(confirm("Sei sicuro di voler abbandonare la partita?")) {
-        const winner=myPlayer===1?2:1;
-        if(gameMode==='online' || window.isBroadcasting) sendMove({type:'surrender',player:myPlayer});
-        wG(winner,'Abbandono.');
-    }
-  }
-  function endT(){
-    const prevPlayer=cur; must=null;cur=cur===1?2:1;mode='move';sel=null;placing=false;upd();draw();
-    if(gameMode==='online'&&clockConfig&&clockConfig.type!=='unlimited'){ stopClock(prevPlayer); if(!over)startClock(cur); }
-    if(vsAI && cur===aiPlayer && !over) aiThink();
-  }
-  function log(m){document.getElementById('lg').textContent=m;}
-
-  function upd(){
-    const waitOpp=(gameMode==='online'&&cur!==myPlayer) || (vsAI && cur===aiPlayer);
-    document.getElementById('tl').textContent='Turno: P'+cur+(cur===1?' (rosso)':' (blu)')+(waitOpp?' [Attesa]':'');
-    document.getElementById('al').textContent=
-      !live()?'Navigazione — ⏭ per tornare alla partita':
-      placing?'Scegli casella libera. Clic su tua pietra per annullare.':
-      waitOpp?'In attesa della mossa...':
-      must?'Cattura obbligatoria!':
-      'Seleziona pietra o ruota anello.';
-    const _c1=document.getElementById('c1');if(_c1)_c1.textContent=cnt(board,1);
-    const _c2=document.getElementById('c2');if(_c2)_c2.textContent=cnt(board,2);
-    if(gameVer==='beta'){
-      document.getElementById('r1').textContent=reserve[0]; document.getElementById('r2').textContent=reserve[1];
-      const canPlace=live()&&!over&&!must&&isMyTurn()&&reserve[cur-1]>0;
-      const bp=document.getElementById('btn-place');
-      if(bp){bp.style.display=canPlace?'':'none';bp.style.background=placing?'var(--beta-border)':'var(--beta-hover)';}
-    }
-    const s=(rotN%3)+1;
-    document.getElementById('rb').textContent='Prossima rot.: '+s+(s>1?' passi':' passo');
-    ['M','E'].forEach(r=>{const btn=document.getElementById('btn-'+r);if(!btn)return;btn.classList.toggle('off',!(live()&&!over&&!anim&&!placing&&hP(cur,r)&&isMyTurn()));});
-    
-    const btnUndo = document.getElementById('btn-undo');
-    if(btnUndo) { btnUndo.style.display = (vsAI && live() && !over && cur !== aiPlayer && hist.length > 2) ? 'inline-block' : 'none'; }
-    
-    const c1El = document.getElementById('clock-p1'), c2El = document.getElementById('clock-p2');
-    if(c1El && c2El) { c1El.style.background = (cur === 1) ? 'var(--nlog-cur)' : 'var(--surface2)'; c2El.style.background = (cur === 2) ? 'var(--nlog-cur)' : 'var(--surface2)'; }
-    
-    const tanEl = document.getElementById('game-tan'); if(tanEl) tanEl.value = exportTAN();
-  }
-
-  function drawWavy(x,y,color){
-    ctx.save();ctx.strokeStyle=color;ctx.lineWidth=1.5; const r=14,waves=8,amp=1.8;ctx.beginPath();
-    for(let i=0;i<=waves*10;i++){const angle=(i/(waves*10))*Math.PI*2;const wave=r+amp*Math.sin(i/10*Math.PI*2);ctx.lineTo(x+wave*Math.cos(angle),y+wave*Math.sin(angle));}
-    ctx.closePath();ctx.stroke();ctx.restore();
-  }
-
-  function dArrow(){
-    if(!lastMove)return; const th=T();
-    if(lastMove.type==='move'&&lastMove.from!=='riserva'){
-      const[fx,fy]=pos(lastMove.from),[tx,ty]=pos(lastMove.to),ang=Math.atan2(ty-fy,tx-fx);
-      ctx.save();ctx.strokeStyle=th.arrow;ctx.lineWidth=2.5;ctx.setLineDash([4,3]); ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(tx,ty);ctx.stroke();ctx.setLineDash([]);
-      ctx.fillStyle=th.arrowFill;ctx.beginPath();ctx.moveTo(tx,ty);ctx.lineTo(tx-11*Math.cos(ang-0.38),ty-11*Math.sin(ang-0.38));ctx.lineTo(tx-11*Math.cos(ang+0.38),ty-11*Math.sin(ang+0.38));ctx.closePath();ctx.fill();
-      ctx.strokeStyle=th.arrowRing;ctx.lineWidth=2;ctx.beginPath();ctx.arc(tx,ty,16,0,Math.PI*2);ctx.stroke();ctx.restore();
-    } else if(lastMove.type==='move'&&lastMove.from==='riserva'){ const[tx,ty]=pos(lastMove.to);ctx.save();ctx.strokeStyle=th.lastTo;ctx.lineWidth=2;ctx.beginPath();ctx.arc(tx,ty,17,0,Math.PI*2);ctx.stroke();ctx.restore(); } 
-    else if(lastMove.type==='rot'){
-      const rr=(lastMove.ring==='E'?RE:RM)+22; ctx.save();ctx.strokeStyle=th.arrow;ctx.lineWidth=2.5; ctx.beginPath();ctx.arc(CX,CY,rr,Math.PI*0.55,Math.PI*1.45,false);ctx.stroke();
-      const ea=Math.PI*1.45,ax=CX+rr*Math.cos(ea),ay=CY+rr*Math.sin(ea);
-      ctx.fillStyle=th.arrowFill;ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(ax-11*Math.cos(ea-1.1),ay-11*Math.sin(ea-1.1));ctx.lineTo(ax-11*Math.cos(ea-0.3),ay-11*Math.sin(ea-0.3));ctx.closePath();ctx.fill();ctx.restore();
-    }
-  }
-
-  function dSt(){
-    const th=T(); RY.forEach(ry=>{
-      let dy = ry - CY; let dxI = Math.sqrt(Math.max(0, RI*RI - dy*dy)); ctx.strokeStyle=th.gridLine;ctx.lineWidth=0.8;ctx.setLineDash([]);
-      if (currentBoardStyle === 'nocenter' && gameVer === 'beta') { ctx.beginPath();ctx.moveTo(CX-RE-22,ry);ctx.lineTo(CX-dxI,ry);ctx.stroke(); ctx.beginPath();ctx.moveTo(CX+dxI,ry);ctx.lineTo(CX+RE+22,ry);ctx.stroke(); } 
-      else { ctx.beginPath();ctx.moveTo(CX-RE-22,ry);ctx.lineTo(CX+RE+22,ry);ctx.stroke(); }
-    });
-    [RE,RM,RI].forEach(r=>{ctx.strokeStyle=th.ring;ctx.lineWidth=0.8;ctx.beginPath();ctx.arc(CX,CY,r,0,Math.PI*2);ctx.stroke();});
-    const dr=new Set();
-    for(const a of getALL())for(const b of(getADJ()[a]||[])){const k=[a,b].sort().join(',');if(dr.has(k))continue;dr.add(k);const[ax,ay]=pos(a),[bx,by]=pos(b);ctx.strokeStyle=th.edge;ctx.lineWidth=0.8;ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();}
-  }
-
-  function dCell(id,isSel,isMust,isTgt,ghostPl,isVictim){
-    const[x,y]=pos(id),pc=board[id],isWin=WIN.includes(id),r=rOf(id); const th=T();
-    let bg=r==='E'?th.nodeE:r==='I'?th.nodeI:th.nodeM; if(isWin)bg=th.nodeWin;
-    const isPlaceTgt=placing&&s.board[id]===0&&(r==='E'||r==='M'); if(isPlaceTgt)bg=th.nodePlaceTgt;
-    ctx.beginPath();ctx.arc(x,y,15,0,Math.PI*2);ctx.fillStyle=bg;ctx.fill();
-    if(isWin){ctx.strokeStyle=th.winRing;ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(x,y,13,0,Math.PI*2);ctx.stroke();}
-    let st=th.nodeStroke,lw=0.8; if(isSel){st=th.selStroke;lw=2.2;} if(isVictim){st=th.mustStroke;lw=2.5;}
-    if(isTgt&&!ghostPl){st=th.tgtStroke;lw=1.8;} if(ghostPl){st=th.ghostStroke;lw=2;} if(isPlaceTgt){st=th.placeStroke;lw=1.8;}
-    ctx.strokeStyle=st;ctx.lineWidth=lw;ctx.beginPath();ctx.arc(x,y,15,0,Math.PI*2);ctx.stroke();
-    if(isTgt&&!ghostPl&&pc===0){ctx.fillStyle=th.tgtDot;ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();}
-    if(isPlaceTgt&&pc===0){ctx.fillStyle=th.placeDot;ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();}
-    if(ghostPl){ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2);ctx.fillStyle=ghostPl===1?th.ghost1:th.ghost2;ctx.fill();ctx.fillStyle=th.ghostArrow;ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('→',x,y+1);return;}
-    if(pc && currentPieceStyle !== 'emoji'){
-      const col=pc===1?th.p1:th.p2,hi=pc===1?th.p1hi:th.p2hi; ctx.beginPath();ctx.arc(x,y,11,0,Math.PI*2);ctx.fillStyle=col;ctx.fill(); ctx.beginPath();ctx.arc(x-3,y-3,5,0,Math.PI*2);ctx.fillStyle=hi;ctx.fill();
-    }
-    if(currentPieceStyle !== 'emoji') { if(pc){ctx.fillStyle=th.labelPiece;ctx.font='bold 8px sans-serif';} else{ctx.fillStyle=th.labelNode;ctx.font='bold 8px sans-serif';} ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(id,x,y+1); }
-    if(pc && currentPieceStyle === 'emoji') { drawEmojiPiece(ctx, x, y, pc===1, special[id]); } else if(special[id]&&pc){ drawWavyGlobal(ctx, x, y, pc===1?th.p1wave:th.p2wave); }
-  }
-
-  function draw(){
-    const th=T(); ctx.clearRect(0,0,W,H);ctx.fillStyle=th.cvBg;ctx.fillRect(0,0,W,H);dSt();dArrow();
-    let ghostM={};
-    if(prvRing&&live()){const st=(rotN%3)+1,cells=rC(prvRing),n=cells.length;cells.forEach((c,i)=>{if(board[c]!==0)ghostM[cells[(i+st)%n]]=board[c];});}
-    for(const id of getALL()){
-      const isSel=live()&&sel===id,isMust=live()&&must===id;let isTgt=false,isVictim=false;
-      if(live()&&isMyTurn()&&!placing){
-        if(pendingCapMid){
-          if(id===pendingCapMid)isVictim=true;
-          if(board[id]===0){ const adj=getADJ(); if((adj[pendingCapMid]||[]).includes(id)&&id!==sel)isTgt=true; }
+    function init(gmode, ver, ai, aiPl) {
+        gameMode = gmode; gameVer = ver; vsAI = ai; aiPlayer = aiPl;
+        const ALL = getALL();
+        board = {}; ALL.forEach(c => board[c] = 0); P1S.forEach(c => board[c] = 1); P2S.forEach(c => board[c] = 2);
+        if (ver === 'beta') {
+            special = {}; ['M4', 'E4', 'E6', 'M10', 'E15', 'E13'].forEach(c => special[c] = true);
+            window.medium = null;
         } else {
-          const act=must||sel;
-          if(act){
-            const adj=getADJ(), anyCap=(getALL().some(c=>board[c]===cur&&cF(board,c,cur).length>0))&&gameVer==='orig';
-            if(!must&&!anyCap&&(adj[act]||[]).includes(id)&&board[id]===0)isTgt=true;
-            if(!must&&!anyCap&&gameVer==='orig'&&special[act]){const sc=spMoves(board,act,cur);if(sc.moves.includes(id))isTgt=true;}
-            if(!must&&gameVer==='beta'&&special[act]&&board[id]===0){if(betaSpReach(board,act).includes(id))isTgt=true;}
-            const normalCaptures=cF(board,act,cur); normalCaptures.forEach(c=>{if(c.mid===id)isVictim=true;if(c.to===id)isTgt=true;});
-            if(gameVer==='orig'&&special[act]){spMoves(board,act,cur).caps.forEach(c=>{if(c.to===id)isTgt=true;});}
-          }
+            special = {}; ['E5', 'E6', 'E14', 'E15'].forEach(c => special[c] = true);
+            window.medium = {};
         }
-      }
-      dCell(id,isSel,isMust,isTgt,ghostM[id]||0,isVictim);
+        reserve = [0, 0]; placing = false;
+        cur = 1; sel = null; mode = 'move'; rotN = 0; must = null; over = false; anim = false; prvRing = null; lastMove = null;
+        hist = []; navI = -1; notMoves = []; pendingHalf = null; pendingSteps = null; pendingCapMid = null;
+        document.getElementById('wo').style.display = 'none';
+        document.getElementById('rot-hint').textContent = '';
+        document.getElementById('notation-log').innerHTML = '';
+        document.getElementById('reserve-bar').style.display = ver === 'beta' ? 'flex' : 'none';
+        
+        isAiCalculating = false;
+        
+        hist.push(sn()); nUpd(); upd(); draw();
+        
+        if (vsAI && cur === aiPlayer) aiThink();
     }
-  }
+    
+    function loadState(s) {
+        board = Object.assign({}, s.board);
+        cur = s.cur;
+        rotN = s.rotN || 0;
+        reserve = [...(s.reserve || [0, 0])];
+        special = Object.assign({}, s.special || {});
+        lastMove = s.lastMove ? { ...s.lastMove } : null;
+        
+        if (s.history) {
+            hist = [...s.history];
+            navI = -1;
+            rebuildNotation();
+        } else {
+            hist = [sn()];
+            navI = -1;
+            notMoves = [];
+            document.getElementById('notation-log').innerHTML = '';
+        }
+        
+        isAiCalculating = false;
+        upd(); draw();
+        if (cur === aiPlayer && vsAI) aiThink();
+    }
+    
+    function undoMove() {
+        if (!vsAI || over || anim || cur === aiPlayer) return;
+        if (hist.length <= 2) return; 
+        
+        isAiCalculating = false;
+        
+        hist.pop(); 
+        hist.pop(); 
+        
+        rebuildNotation();
+        restore(hist[hist.length - 1]);
+        navI = -1; nUpd(); upd(); draw();
+        
+        if (window.isBroadcasting) sendMove({type: 'undo', levels: 2, player: myPlayer});
+    }
+    
+    function restart() { if (gameMode === 'online') return; init(gameMode, gameVer, vsAI, aiPlayer); }
+    function seeBoard() { document.getElementById('wo').style.display = 'none'; }
 
-  return{
-      init,restart,seeBoard,surrender,rot,previewRot,clearPreview,navFirst,navPrev,navNext,navLast,
-      copyNotation,placeMode,applyRemote,isAnalysisAi:false,loadState,undoMove,wG,
-      buildAdjacencies,
-      over:()=>over,cur:()=>cur,isVsAI:()=>vsAI,
-      getBoard:()=>board, getSpecial:()=>special, getReserve:()=>reserve, getRotN:()=>rotN,
-      exportTAN,copyTAN,importTAN,redraw:draw,
-      getGameState: () => ({ board: Object.assign({}, board), cur: cur, rotN: rotN, reserve: [...reserve], special: Object.assign({}, special), history: [...hist], lastMove: lastMove ? {...lastMove} : null, gameMode: gameMode, vsAI: vsAI, gameVer: gameVer })
-  };
+    function restore(s) { board = Object.assign({}, s.b); lastMove = s.lm ? { ...s.lm } : null; special = Object.assign({}, s.sp || {}); window.medium = s.md ? Object.assign({}, s.md) : null; reserve = [...(s.rv || [0, 0])]; placing = false; }
+    function navTo(i) { const s = hist[i]; if (!s) return; navI = i; restore(s); nUpd(); upd(); draw(); }
+    function navFirst() { if (gameMode === 'online' && cur !== myPlayer) return; navTo(0); }
+    function navPrev() { if (gameMode === 'online' && cur !== myPlayer) return; const i = navI === -1 ? hist.length - 2 : navI - 1; if (i >= 0) navTo(i); }
+    function navNext() { if (navI === -1) return; if (navI < hist.length - 1) navTo(navI + 1); else { navI = -1; restore(hist[hist.length - 1]); nUpd(); upd(); draw(); } }
+    function navLast() { navI = -1; restore(hist[hist.length - 1]); nUpd(); upd(); draw(); }
+    function nUpd() {
+        const tot = hist.length - 1, ci = navI === -1 ? tot : navI;
+        document.getElementById('nl').textContent = ci + ' / ' + tot;
+        document.getElementById('nf').disabled = ci === 0; document.getElementById('np').disabled = ci === 0;
+        document.getElementById('nn').disabled = navI === -1; document.getElementById('nl2').disabled = navI === -1;
+    }
+
+    function rOf(id) { if (id === 'C') return 'C'; return id[0]; }
+    function rC(r) { if (r === 'M') return Array.from({ length: 12 }, (_, i) => 'M' + (i + 1)); return Array.from({ length: 18 }, (_, i) => 'E' + (i + 1)); }
+    function cnt(b, pl) { return getALL().filter(c => b[c] === pl).length; }
+    function hP(pl, r) { return rC(r).some(c => board[c] === pl); }
+    function cF(b, from, pl) {
+        const en = pl === 1 ? 2 : 1, res = [], adj = getADJ();
+        for (const mid of (adj[from] || [])) { if (b[mid] !== en) continue; for (const to of (adj[mid] || [])) { if (b[to] === 0 && to !== from) res.push({ mid, to }); } }
+        return res;
+    }
+    function hasNormalCap(pl) { return getALL().some(c => board[c] === pl && cF(board, c, pl).length > 0); }
+    function hasSpecialCap(pl) { return getALL().some(c => board[c] === pl && special[c] && spMoves(board, c, pl).caps.length > 0); }
+    
+    function isMyTurn() {
+        if (gameMode === 'spectator') return false;
+        if (gameMode === 'online') return cur === myPlayer;
+        if (gameMode === 'local' && vsAI) return cur !== aiPlayer;
+        return true; 
+    }
+
+    function cleanFlags() {
+        Object.keys(special).forEach(c => { if (!board[c]) delete special[c]; });
+    }
+
+    function doMove(from, to, pl) {
+        if (special[from]) { special[to] = true; delete special[from]; }
+        board[from] = 0; board[to] = pl;
+        cleanFlags();
+    }
+    
+    function doCapture(mid, capturer) {
+        const cap = capturer || cur;
+        if (gameVer === 'beta') {
+            reserve[cap - 1]++;
+            delete special[mid];
+            board[mid] = 0;
+        } else {
+            if (window.medium[mid]) {
+                const owner = board[mid];
+                reserve[owner - 1]++;
+                delete window.medium[mid];
+            }
+            delete special[mid]; board[mid] = 0;
+        }
+    }
+    
+    function doRotation(r, st) {
+        const cells = rC(r), n = cells.length, snap = {};
+        const spOld = Object.assign({}, special), mdOld = Object.assign({}, window.medium || {});
+        cells.forEach(c => snap[c] = board[c]);
+        for (let i = 0; i < n; i++) board[cells[i]] = snap[cells[(i - st + n) % n]];
+        cells.forEach(c => { delete special[c]; if (window.medium) delete window.medium[c]; });
+        cells.forEach((c, i) => { if (spOld[c]) special[cells[(i + st) % n]] = true; if (window.medium && mdOld[c]) window.medium[cells[(i + st) % n]] = true; });
+        rotN++;
+        cleanFlags();
+    }
+
+    function aiThink() {
+        if (over || anim || cur !== aiPlayer) return;
+        if (!aiWorkerReady) {
+            setTimeout(aiThink, 500); 
+            return;
+        }
+        
+        isAiCalculating = true;
+        document.getElementById('al').textContent = 'L\'IA sta pensando...';
+        
+        let boardArr = new Int8Array(37);
+        let specialArr = new Int8Array(37);
+        let reserveArr = new Int8Array([reserve[0] || 0, reserve[1] || 0]);
+        const NODI = ['E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'E7', 'E8', 'E9', 'E10', 'E11', 'E12', 'E13', 'E14', 'E15', 'E16', 'E17', 'E18', 'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'M10', 'M11', 'M12', 'I1', 'I2', 'I3', 'I4', 'I5', 'I6', 'C'];
+
+        for (let i = 0; i < NODI.length; i++) {
+            let nodo = NODI[i];
+            boardArr[i] = board[nodo] || 0;
+            specialArr[i] = special[nodo] ? 1 : 0;
+        }
+
+        let diff = document.getElementById('monitor-ai-diff') ? document.getElementById('monitor-ai-diff').value : 'medium';
+        if (G.isAnalysisAi) diff = 'hard';
+        const conf = AI_SETTINGS[diff];
+
+        pushSettingsToWorker();
+
+        aiWorker.postMessage({
+            type: 'calcola',
+            board: boardArr, reserve: reserveArr, special: specialArr,
+            player: cur, max_depth: conf.maxDepth, 
+            is_beta: gameVer === 'beta' ? 1 : 0, 
+            is_nocenter: currentBoardStyle === 'nocenter',
+            rotN: rotN,
+            _callbackId: 'bot_move'
+        });
+        workerTasks.push('bot_move');
+    }
+
+    window.handleAIMove = function(msg) {
+        if (over || cur !== aiPlayer || !vsAI) return;
+        document.getElementById('al').textContent = 'Mossa in corso...';
+
+        let fromIdx = Math.floor(msg.result / 10000);
+        let toIdx = Math.floor((msg.result % 10000) / 100);
+        const NODI = ['E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'E7', 'E8', 'E9', 'E10', 'E11', 'E12', 'E13', 'E14', 'E15', 'E16', 'E17', 'E18', 'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'M10', 'M11', 'M12', 'I1', 'I2', 'I3', 'I4', 'I5', 'I6', 'C'];
+
+        if (fromIdx === 88) {
+            let anello = (toIdx === 0 || toIdx === 1) ? 'E' : 'M';
+            rot(anello, true); 
+        } else if (fromIdx === 99) {
+            let to_str = NODI[toIdx];
+            placing = true;
+            clickC(to_str, true); 
+        } else {
+            let from_str = NODI[fromIdx];
+            let to_str = NODI[toIdx];
+            clickC(from_str, true); 
+            setTimeout(() => {
+                clickC(to_str, true);
+                if (must && !over && cur === aiPlayer) {
+                    aiThink();
+                }
+            }, 400);
+        }
+    };
+
+    function applyRemote(mv) {
+        if (mv.type === 'undo') {
+            for (let k = 0; k < mv.levels; k++) { if (hist.length > 1) hist.pop(); }
+            rebuildNotation(); restore(hist[hist.length - 1]); navI = -1; nUpd(); upd(); draw(); return;
+        }
+        if (over) return;
+        
+        if (mv.type === 'surrender') {
+            wG(mv.player === 1 ? 2 : 1, "L'avversario ha abbandonato.");
+            return;
+        }
+        
+        const pl = mv.player;
+        if (mv.time !== undefined && clockConfig && clockConfig.type !== 'unlimited') {
+            timeLeft[pl - 1] = mv.time; 
+        }
+
+        if (mv.type === 'place' || (mv.type === 'move' && mv.from === 'riserva')) {
+            board[mv.to] = pl;
+            reserve[pl - 1]--;
+            if (gameVer === 'orig' && window.medium) window.medium[mv.to] = true;
+            lastMove = { type: 'move', from: 'riserva', to: mv.to };
+        } else if (mv.type === 'move') {
+            if (mv.steps && mv.steps.length) {
+                const oSp = !!special[mv.from], oMd = !!(window.medium && window.medium[mv.from]);
+                delete special[mv.from]; if (window.medium) delete window.medium[mv.from]; board[mv.from] = 0;
+                mv.steps.forEach((s, i) => {
+                    if (i > 0) board[mv.steps[i - 1].to] = 0;
+                    if (s.midWasMedium && window.medium && !window.medium[s.mid]) window.medium[s.mid] = true;
+                    doCapture(s.mid, pl); board[s.to] = pl;
+                });
+                const ft = mv.steps[mv.steps.length - 1].to;
+                if (oSp) special[ft] = true; if (window.medium && oMd) window.medium[ft] = true;
+            } else if (mv.mid) {
+                if (mv.midWasMedium && window.medium && !window.medium[mv.mid]) window.medium[mv.mid] = true;
+                doCapture(mv.mid, pl);
+                doMove(mv.from, mv.to, pl);
+            } else {
+                doMove(mv.from, mv.to, pl);
+            }
+            lastMove = { type: 'move', from: mv.from, to: mv.to };
+        } else if (mv.type === 'rot') {
+            doRotation(mv.ring, mv.steps);
+            lastMove = { type: 'rot', ring: mv.ring, steps: mv.steps };
+        }
+        push(lastMove, pl);
+        chkW(pl);
+        
+        const prevPlayer = cur;
+        cur = pl === 1 ? 2 : 1;
+        upd(); draw();
+        
+        if (gameMode === 'online' && clockConfig && clockConfig.type !== 'unlimited') {
+            stopClock(prevPlayer);
+            if (!over) startClock(cur);
+        }
+    }
+
+    function previewRot(r) {
+        if (over || anim || !live() || !isMyTurn() || placing) return;
+        if (!hP(cur, r)) return;
+        prvRing = r; const st = (rotN % 3) + 1;
+        document.getElementById('rot-hint').textContent = 'Anello ' + { M: 'medio', E: 'esterno' }[r] + ': +' + st + ' casella' + (st > 1 ? 'e' : '') + ' →';
+        document.getElementById('btn-' + r).classList.add('previewing'); draw();
+    }
+    function clearPreview() { prvRing = null; document.getElementById('rot-hint').textContent = ''; ['M', 'E'].forEach(r => { const b = document.getElementById('btn-' + r); if (b) b.classList.remove('previewing'); }); draw(); }
+
+    function rot(r, isAI = false) {
+        if (over || must || anim || !live() || placing) return;
+        if (!isAI && !isMyTurn()) return; 
+        if (!hP(cur, r)) return;
+        clearPreview();
+        const st = (rotN % 3) + 1, pl = cur;
+        animR(r, st, () => {
+            doRotation(r, st);
+            lastMove = { type: 'rot', ring: r, steps: st };
+            if (gameMode === 'online' || window.isBroadcasting) sendMove({ type: 'rot', ring: r, steps: st, player: pl });
+            push(lastMove, pl); chkW(); if (!over) endT();
+        });
+    }
+
+    function animR(ring, steps, cb) {
+        anim = true; const rr = ring === 'E' ? RE : RM, td = steps * (ring === 'E' ? 20 : 30);
+        const cells = rC(ring), pieces = cells.filter(c => board[c] !== 0).map(c => ({ pl: board[c], a0: aD(c) }));
+        const dur = 400, t0 = performance.now();
+        function fr(now) {
+            const t = Math.min((now - t0) / dur, 1), e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2, rot_ = td * e;
+            const th = T();
+            ctx.clearRect(0, 0, W, H); ctx.fillStyle = th.cvBg; ctx.fillRect(0, 0, W, H); dSt();
+            for (const id of getALL()) { if (id !== 'C' && id[0] === ring) continue; dCell(id, false, false, false, 0); }
+            pieces.forEach(p => { const a = (p.a0 - rot_) * Math.PI / 180, x = CX + rr * Math.cos(a), y = CY + rr * Math.sin(a); ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI * 2); ctx.fillStyle = p.pl === 1 ? th.p1 : th.p2; ctx.fill(); });
+            if (t < 1) requestAnimationFrame(fr); else { anim = false; cb(); }
+        }
+        requestAnimationFrame(fr);
+    }
+
+    function placeMode() {
+        if (over || !live() || !isMyTurn()) return;
+        if (reserve[cur - 1] === 0) return;
+        if (gameVer === 'orig') {
+            if (hasNormalCap(cur) || hasSpecialCap(cur)) return;
+        }
+        placing = true; sel = null;
+        upd(); draw();
+    }
+
+    function finMove(lm, pl) {
+        push(lm, pl);
+        if (gameMode === 'online' || window.isBroadcasting) sendMove({ ...lm, player: pl });
+        chkW(); if (!over) endT();
+    }
+
+    cv.addEventListener('click', e => {
+        if (anim || !live()) return;
+        if (prvRing) { clearPreview(); return; }
+        const rect = cv.getBoundingClientRect(), sx = W / rect.width, sy = H / rect.height;
+        const mx = (e.clientX - rect.left) * sx, my = (e.clientY - rect.top) * sy;
+        for (const id of getALL()) { const [x, y] = pos(id); if ((mx - x) ** 2 + (my - y) ** 2 <= 225) { clickC(id); return; } }
+    });
+
+    function clickC(id, isAI = false) {
+        if (over || anim || !live()) return;
+        if (!isAI && !isMyTurn()) return; 
+        const pl = cur;
+        
+        if (placing) {
+            if (board[id] === pl) { placing = false; upd(); draw(); return; }
+            if (gameVer === 'orig') { if (hasNormalCap(pl) || hasSpecialCap(pl)) { placing = false; upd(); draw(); return; } if (id === 'C') return; } 
+            else { if (rOf(id) !== 'E' && rOf(id) !== 'M') return; }
+            if (board[id] !== 0) return;
+            
+            board[id] = pl;
+            if (gameVer === 'orig' && window.medium) window.medium[id] = true;
+            reserve[pl - 1]--;
+            placing = false; lastMove = { type: 'move', from: 'riserva', to: id };
+            finMove({ type: 'move', from: 'riserva', to: id }, pl); return;
+        }
+        
+        if (must && gameVer === 'orig') {
+            if (board[id] === 0) {
+                const j = cF(board, must, pl).find(j => j.to === id);
+                if (j) {
+                    const from = must, isMedCap = !!(window.medium && window.medium[j.mid]);
+                    doCapture(j.mid); doMove(must, j.to, pl);
+                    if (!pendingSteps) pendingSteps = { from, steps: [] };
+                    pendingSteps.steps.push({ mid: j.mid, midWasMedium: isMedCap, to: j.to });
+                    chkW(); if (over) {
+                        lastMove = { type: 'move', from: pendingSteps.from, to: j.to, steps: pendingSteps.steps };
+                        push(lastMove, pl); if (gameMode === 'online' || window.isBroadcasting) sendMove({ type: 'move', from: pendingSteps.from, to: j.to, steps: pendingSteps.steps, player: pl });
+                        pendingSteps = null; return;
+                    }
+                    const more = cF(board, j.to, pl);
+                    if (more.length) { must = j.to; sel = j.to; upd(); draw(); return; }
+                    lastMove = { type: 'move', from: pendingSteps.from, to: j.to, steps: pendingSteps.steps };
+                    must = null; sel = null;
+                    finMove({ type: 'move', from: pendingSteps.from, to: j.to, steps: pendingSteps.steps }, pl);
+                    pendingSteps = null; return;
+                }
+            }
+            sel = must; draw(); return;
+        }
+        if (must) must = null;
+        
+        if (pendingCapMid) {
+            if (board[id] === 0) {
+                const adj = getADJ();
+                if ((adj[pendingCapMid] || []).includes(id) && id !== sel) {
+                    const from = sel, mid = pendingCapMid, isMedCap = !!(window.medium && window.medium[mid]);
+                    doCapture(mid); doMove(sel, id, pl);
+                    pendingCapMid = null; lastMove = { type: 'move', from, to: id }; sel = null;
+                    finMove({ type: 'move', from, mid, to: id }, pl); return;
+                }
+            }
+            pendingCapMid = null; draw(); return;
+        }
+        
+        if (sel === null) { if (board[id] === pl) { sel = id; pendingCapMid = null; draw(); } return; }
+        if (id === sel) { sel = null; pendingCapMid = null; draw(); return; }
+        if (board[id] === pl) { sel = id; pendingCapMid = null; draw(); return; }
+
+        const normCap = hasNormalCap(pl), specCap = hasSpecialCap(pl);
+        const anyCap = (normCap || specCap) && gameVer === 'orig';
+        const isSp = special[sel];
+
+        const normalCaptures = cF(board, sel, pl);
+        if (normalCaptures.length > 0) {
+            const victimClicked = normalCaptures.find(c => c.mid === id);
+            if (victimClicked) {
+                pendingCapMid = id; draw(); return;
+            }
+            const j = normalCaptures.find(j => j.to === id);
+            if (j) {
+                const from = sel, isMedCap = !!(window.medium && window.medium[j.mid]);
+                doCapture(j.mid); doMove(sel, j.to, pl);
+                chkW(); if (over) { lastMove = { type: 'move', from, to: j.to }; push(lastMove, pl); if (gameMode === 'online' || window.isBroadcasting) sendMove({ type: 'move', from, mid: j.mid, midWasMedium: isMedCap, to: j.to, player: pl }); return; }
+                if (gameVer === 'orig' && !isSp) {
+                    const more = cF(board, j.to, pl);
+                    if (more.length) {
+                        pendingSteps = { from, steps: [{ mid: j.mid, midWasMedium: isMedCap, to: j.to }] };
+                        must = j.to; sel = j.to; upd(); draw(); return;
+                    }
+                }
+                lastMove = { type: 'move', from, to: j.to }; must = null; sel = null;
+                finMove({ type: 'move', from, mid: j.mid, midWasMedium: isMedCap, to: j.to }, pl); return;
+            }
+        }
+        
+        if (gameVer === 'orig' && isSp) {
+            const sc = spMoves(board, sel, pl), cap = sc.caps.find(c => c.to === id);
+            if (cap) {
+                const from = sel, isMedCap = !!(window.medium && window.medium[cap.mid]);
+                doCapture(cap.mid); doMove(sel, cap.to, pl);
+                chkW(); if (over) { lastMove = { type: 'move', from, to: cap.to }; push(lastMove, pl); if (gameMode === 'online' || window.isBroadcasting) sendMove({ type: 'move', from, mid: cap.mid, midWasMedium: isMedCap, to: cap.to, player: pl }); return; }
+                lastMove = { type: 'move', from, to: cap.to }; must = null; sel = null;
+                finMove({ type: 'move', from, mid: cap.mid, midWasMedium: isMedCap, to: cap.to }, pl); return;
+            }
+        }
+        if ((getADJ()[sel] || []).includes(id) && board[id] === 0) {
+            if (anyCap) return;
+            const from = sel; doMove(sel, id, pl); lastMove = { type: 'move', from, to: id }; sel = null;
+            finMove({ type: 'move', from, to: id }, pl); return;
+        }
+        if (gameVer === 'orig' && isSp && board[id] === 0 && rowOf(id) === rowOf(sel) && rowOf(sel) !== -1) {
+            if (anyCap) return;
+            if (spMoves(board, sel, pl).moves.includes(id)) {
+                const from = sel; doMove(sel, id, pl); lastMove = { type: 'move', from, to: id }; sel = null;
+                finMove({ type: 'move', from, to: id }, pl); return;
+            }
+        }
+        if (gameVer === 'beta' && isSp && board[id] === 0) {
+            if (pendingCapMid) {
+                const en = cur === 1 ? 2 : 1;
+                const adj = getADJ();
+                const validDests = (adj[pendingCapMid] || []).filter(nb => nb !== sel && board[nb] === 0);
+                if (validDests.includes(id)) {
+                    const from = sel, mid = pendingCapMid;
+                    doCapture(mid); doMove(sel, id, pl);
+                    pendingCapMid = null; lastMove = { type: 'move', from, to: id }; sel = null;
+                    finMove({ type: 'move', from, mid, to: id }, pl); return;
+                }
+                pendingCapMid = null; draw(); return;
+            }
+            if (betaSpReach(board, sel).includes(id)) {
+                const from = sel; doMove(sel, id, pl); lastMove = { type: 'move', from, to: id }; sel = null;
+                finMove({ type: 'move', from, to: id }, pl); return;
+            }
+        }
+        if (gameVer === 'beta' && isSp && board[id] !== 0 && board[id] !== pl) {
+            const adj = getADJ();
+            if ((adj[sel] || []).includes(id)) {
+                const validDests = (adj[id] || []).filter(nb => nb !== sel && board[nb] === 0);
+                if (validDests.length > 0) { pendingCapMid = id; draw(); return; }
+            }
+        }
+    }
+
+    function chkW(pl) {
+        const p = pl || cur;
+        const en = p === 1 ? 2 : 1;
+        if (WIN.every(c => board[c] === p)) { wG(p, 'Tre nodi (I1,I3,I5) occupati!'); return; }
+        if (getALL().every(c => board[c] !== en)) wG(p, 'Tutte le pietre avversarie catturate!');
+    }
+    
+    function wG(p, r) {
+        over = true; draw(); upd();
+        if (clockInterval) { clearInterval(clockInterval); clockInterval = null; }
+        const tag = gameMode === 'online' ? (p === myPlayer ? ' (tu)' : ' (avversario)') : (vsAI && p === aiPlayer ? ' (IA)' : '');
+        document.getElementById('wt').textContent = 'Vince P' + p + tag + '!';
+        document.getElementById('wr').textContent = r;
+        document.getElementById('wo').style.display = 'flex';
+        PublicLobby.unpublishRoom();
+    }
+    
+    function surrender() {
+        if (over || !live()) return;
+        if (confirm("Sei sicuro di voler abbandonare la partita?")) {
+            const winner = myPlayer === 1 ? 2 : 1;
+            if (gameMode === 'online' || window.isBroadcasting) sendMove({ type: 'surrender', player: myPlayer });
+            wG(winner, 'Abbandono.');
+        }
+    }
+    
+    function endT() {
+        const prevPlayer = cur; 
+        must = null; cur = cur === 1 ? 2 : 1; mode = 'move'; sel = null; placing = false; upd(); draw();
+        
+        if (gameMode === 'online' && clockConfig && clockConfig.type !== 'unlimited') {
+            stopClock(prevPlayer);
+            if (!over) startClock(cur);
+        }
+        
+        if (vsAI && cur === aiPlayer && !over) aiThink();
+    }
+    
+    function log(m) { document.getElementById('lg').textContent = m; }
+
+    function upd() {
+        const waitOpp = (gameMode === 'online' && cur !== myPlayer) || (vsAI && cur === aiPlayer);
+        document.getElementById('tl').textContent = 'Turno: P' + cur + (cur === 1 ? ' (rosso)' : ' (blu)') + (waitOpp ? ' [Attesa]' : '');
+        document.getElementById('al').textContent =
+            !live() ? 'Navigazione — ⏭ per tornare alla partita' :
+            placing ? 'Scegli casella libera. Clic su tua pietra per annullare.' :
+            waitOpp ? 'In attesa della mossa...' :
+            must ? 'Cattura obbligatoria!' :
+            'Seleziona pietra o ruota anello.';
+        const _c1 = document.getElementById('c1'); if (_c1) _c1.textContent = cnt(board, 1);
+        const _c2 = document.getElementById('c2'); if (_c2) _c2.textContent = cnt(board, 2);
+        if (gameVer === 'beta') {
+            document.getElementById('r1').textContent = reserve[0];
+            document.getElementById('r2').textContent = reserve[1];
+            const canPlace = live() && !over && !must && isMyTurn() && reserve[cur - 1] > 0;
+            const bp = document.getElementById('btn-place');
+            if (bp) { bp.style.display = canPlace ? '' : 'none'; bp.style.background = placing ? 'var(--beta-border)' : 'var(--beta-hover)'; }
+        }
+        const s = (rotN % 3) + 1;
+        document.getElementById('rb').textContent = 'Prossima rot.: ' + s + (s > 1 ? ' passi' : ' passo');
+        ['M', 'E'].forEach(r => { const btn = document.getElementById('btn-' + r); if (btn) btn.classList.toggle('off', !(live() && !over && !anim && !placing && hP(cur, r) && isMyTurn())); });
+        
+        const btnUndo = document.getElementById('btn-undo');
+        if (btnUndo) {
+           btnUndo.style.display = (vsAI && live() && !over && cur !== aiPlayer && hist.length > 2) ? 'inline-block' : 'none';
+        }
+        
+        const c1El = document.getElementById('clock-p1');
+        const c2El = document.getElementById('clock-p2');
+        if (c1El && c2El) {
+            c1El.style.background = (cur === 1) ? 'var(--nlog-cur)' : 'var(--surface2)';
+            c2El.style.background = (cur === 2) ? 'var(--nlog-cur)' : 'var(--surface2)';
+        }
+        
+        const tanEl = document.getElementById('game-tan');
+        if (tanEl) tanEl.value = exportTAN();
+    }
+
+    function drawWavy(x, y, color) {
+        ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+        const r = 14, waves = 8, amp = 1.8; ctx.beginPath();
+        for (let i = 0; i <= waves * 10; i++) { const angle = (i / (waves * 10)) * Math.PI * 2; const wave = r + amp * Math.sin(i / 10 * Math.PI * 2); ctx.lineTo(x + wave * Math.cos(angle), y + wave * Math.sin(angle)); }
+        ctx.closePath(); ctx.stroke(); ctx.restore();
+    }
+
+    function dArrow() {
+        if (!lastMove) return;
+        const th = T();
+        if (lastMove.type === 'move' && lastMove.from !== 'riserva') {
+            const [fx, fy] = pos(lastMove.from), [tx, ty] = pos(lastMove.to), ang = Math.atan2(ty - fy, tx - fx);
+            ctx.save(); ctx.strokeStyle = th.arrow; ctx.lineWidth = 2.5; ctx.setLineDash([4, 3]);
+            ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(tx, ty); ctx.stroke(); ctx.setLineDash([]);
+            ctx.fillStyle = th.arrowFill; ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx - 11 * Math.cos(ang - 0.38), ty - 11 * Math.sin(ang - 0.38)); ctx.lineTo(tx - 11 * Math.cos(ang + 0.38), ty - 11 * Math.sin(ang + 0.38)); ctx.closePath(); ctx.fill();
+            ctx.strokeStyle = th.arrowRing; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(tx, ty, 16, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+        } else if (lastMove.type === 'move' && lastMove.from === 'riserva') {
+            const [tx, ty] = pos(lastMove.to); ctx.save(); ctx.strokeStyle = th.lastTo; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(tx, ty, 17, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+        } else if (lastMove.type === 'rot') {
+            const rr = (lastMove.ring === 'E' ? RE : RM) + 22;
+            ctx.save(); ctx.strokeStyle = th.arrow; ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.arc(CX, CY, rr, Math.PI * 0.55, Math.PI * 1.45, false); ctx.stroke();
+            const ea = Math.PI * 1.45, ax = CX + rr * Math.cos(ea), ay = CY + rr * Math.sin(ea);
+            ctx.fillStyle = th.arrowFill; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ax - 11 * Math.cos(ea - 1.1), ay - 11 * Math.sin(ea - 1.1)); ctx.lineTo(ax - 11 * Math.cos(ea - 0.3), ay - 11 * Math.sin(ea - 0.3)); ctx.closePath(); ctx.fill(); ctx.restore();
+        }
+    }
+
+    function dSt() {
+        const th = T();
+        RY.forEach(ry => {
+            let dy = ry - CY;
+            let dxI = Math.sqrt(Math.max(0, RI * RI - dy * dy));
+            ctx.strokeStyle = th.gridLine; ctx.lineWidth = 0.8; ctx.setLineDash([]);
+            
+            if (currentBoardStyle === 'nocenter' && gameVer === 'beta') {
+                ctx.beginPath(); ctx.moveTo(CX - RE - 22, ry); ctx.lineTo(CX - dxI, ry); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(CX + dxI, ry); ctx.lineTo(CX + RE + 22, ry); ctx.stroke();
+            } else {
+                ctx.beginPath(); ctx.moveTo(CX - RE - 22, ry); ctx.lineTo(CX + RE + 22, ry); ctx.stroke();
+            }
+        });
+        [RE, RM, RI].forEach((r) => {
+            ctx.strokeStyle = th.ring; ctx.lineWidth = 0.8;
+            ctx.beginPath(); ctx.arc(CX, CY, r, 0, Math.PI * 2); ctx.stroke();
+        });
+        const dr = new Set();
+        for (const a of getALL()) for (const b of (getADJ()[a] || [])) {
+            const k = [a, b].sort().join(','); if (dr.has(k)) continue; dr.add(k);
+            const [ax, ay] = pos(a), [bx, by] = pos(b);
+            ctx.strokeStyle = th.edge; ctx.lineWidth = 0.8;
+            ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+        }
+    }
+
+    function dCell(id, isSel, isMust, isTgt, ghostPl, isVictim) {
+        const [x, y] = pos(id), pc = board[id], isWin = WIN.includes(id), r = rOf(id);
+        const th = T();
+
+        let bg = r === 'E' ? th.nodeE : r === 'C' ? th.nodeC : r === 'I' ? th.nodeI : th.nodeM;
+        if (isWin) bg = th.nodeWin;
+        const isPlaceTgt = placing && live() && isMyTurn() && board[id] === 0 && (gameVer === 'orig' ? id !== 'C' : rOf(id) === 'E' || rOf(id) === 'M');
+        if (isPlaceTgt) bg = th.nodePlaceTgt;
+
+        ctx.beginPath(); ctx.arc(x, y, 15, 0, Math.PI * 2); ctx.fillStyle = bg; ctx.fill();
+
+        if (isWin) {
+            ctx.strokeStyle = th.winRing; ctx.lineWidth = 1.2;
+            ctx.beginPath(); ctx.arc(x, y, 13, 0, Math.PI * 2); ctx.stroke();
+        }
+
+        if (window.medium && window.medium[id] && pc) {
+            ctx.save(); ctx.strokeStyle = pc === 1 ? th.p1med : th.p2med;
+            ctx.lineWidth = 1.5; const s = 12; ctx.strokeRect(x - s, y - s, s * 2, s * 2); ctx.restore();
+        }
+
+        let st = th.nodeStroke, lw = 0.8;
+        if (isSel) { st = th.selStroke; lw = 2.2; }
+        if (isMust) { st = th.mustStroke; lw = 2.5; }
+        if (isVictim) { st = th.mustStroke; lw = 2.5; }
+        if (isTgt && !ghostPl) { st = th.tgtStroke; lw = 1.8; }
+        if (ghostPl) { st = th.ghostStroke; lw = 2; }
+        if (isPlaceTgt) { st = th.placeStroke; lw = 1.8; }
+        ctx.strokeStyle = st; ctx.lineWidth = lw; ctx.beginPath(); ctx.arc(x, y, 15, 0, Math.PI * 2); ctx.stroke();
+
+        if (isTgt && !ghostPl && pc === 0) { ctx.fillStyle = th.tgtDot; ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill(); }
+        if (isPlaceTgt && pc === 0) { ctx.fillStyle = th.placeDot; ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill(); }
+
+        if (ghostPl) {
+            ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI * 2);
+            ctx.fillStyle = ghostPl === 1 ? th.ghost1 : th.ghost2; ctx.fill();
+            ctx.fillStyle = th.ghostArrow; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('→', x, y + 1);
+            return;
+        }
+
+        if (pc && currentPieceStyle !== 'emoji') {
+            const col = pc === 1 ? th.p1 : th.p2;
+            const hi = pc === 1 ? th.p1hi : th.p2hi;
+            ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
+            ctx.beginPath(); ctx.arc(x - 3, y - 3, 5, 0, Math.PI * 2); ctx.fillStyle = hi; ctx.fill();
+        }
+
+        if (currentPieceStyle !== 'emoji') {
+            if (pc) {
+                ctx.fillStyle = th.labelPiece;
+                ctx.font = 'bold 8px sans-serif';
+            } else {
+                ctx.fillStyle = th.labelNode;
+                ctx.font = 'bold 8px sans-serif';
+            }
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(id, x, y + 1);
+        }
+
+        if (pc && currentPieceStyle === 'emoji') {
+            drawEmojiPiece(ctx, x, y, pc === 1, special[id]);
+        } else if (special[id] && pc) {
+            drawWavyGlobal(ctx, x, y, pc === 1 ? th.p1wave : th.p2wave);
+        }
+    }
+
+    function draw() {
+        const th = T();
+        ctx.clearRect(0, 0, W, H); ctx.fillStyle = th.cvBg; ctx.fillRect(0, 0, W, H); dSt(); dArrow();
+        let ghostM = {};
+        if (prvRing && live()) { const st = (rotN % 3) + 1, cells = rC(prvRing), n = cells.length; cells.forEach((c, i) => { if (board[c] !== 0) ghostM[cells[(i + st) % n]] = board[c]; }); }
+        for (const id of getALL()) {
+            const isSel = live() && sel === id, isMust = live() && must === id; let isTgt = false, isVictim = false;
+            if (live() && isMyTurn() && !placing) {
+                if (pendingCapMid) {
+                    if (id === pendingCapMid) isVictim = true;
+                    if (board[id] === 0) {
+                        const adj = getADJ();
+                        if ((adj[pendingCapMid] || []).includes(id) && id !== sel) isTgt = true;
+                    }
+                } else {
+                    const act = must || sel;
+                    if (act) {
+                        const adj = getADJ();
+                        const anyCap = (getALL().some(c => board[c] === cur && cF(board, c, cur).length > 0)) && gameVer === 'orig';
+                        if (!must && !anyCap && (adj[act] || []).includes(id) && board[id] === 0) isTgt = true;
+                        if (!must && !anyCap && gameVer === 'orig' && special[act]) { const sc = spMoves(board, act, cur); if (sc.moves.includes(id)) isTgt = true; }
+                        if (!must && gameVer === 'beta' && special[act] && board[id] === 0) { if (betaSpReach(board, act).includes(id)) isTgt = true; }
+                        
+                        const normalCaptures = cF(board, act, cur);
+                        normalCaptures.forEach(c => { if (c.mid === id) isVictim = true; if (c.to === id) isTgt = true; });
+                        
+                        if (gameVer === 'orig' && special[act]) { spMoves(board, act, cur).caps.forEach(c => { if (c.to === id) isTgt = true; }); }
+                    }
+                }
+            }
+            dCell(id, isSel, isMust, isTgt, ghostM[id] || 0, isVictim);
+        }
+    }
+
+    return {
+        init, restart, seeBoard, surrender, rot, previewRot, clearPreview, navFirst, navPrev, navNext, navLast,
+        copyNotation, placeMode, applyRemote, isAnalysisAi: false, loadState, undoMove, wG,
+        buildAdjacencies,
+        over: () => over, cur: () => cur, isVsAI: () => vsAI,
+        getBoard: () => board, getSpecial: () => special, getReserve: () => reserve, getRotN: () => rotN,
+        exportTAN, copyTAN, importTAN, redraw: draw,
+        getGameState: () => ({
+            board: Object.assign({}, board), cur: cur, rotN: rotN, reserve: [...reserve],
+            special: Object.assign({}, special), history: [...hist], lastMove: lastMove ? { ...lastMove } : null,
+            gameMode: gameMode, vsAI: vsAI, gameVer: gameVer
+        })
+    };
 })();
 
-// ── INIZIALIZZAZIONE DI SHARE E LOBBY ──────────────────────────
+// --- INIZIALIZZAZIONE DI SHARE E LOBBY ──────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     loadFB(() => { console.log('Firebase caricato all\'avvio'); });
+    
     const isSpectating = ShareFeatures.init(G);
-    if (isSpectating) { document.getElementById('lobby').style.display = 'none'; document.getElementById('game').style.display = 'block'; }
+    if (isSpectating) {
+        document.getElementById('lobby').style.display = 'none';
+        document.getElementById('game').style.display = 'block';
+    }
 });
 
-// ── ANALYSIS ENGINE ──
+// --- ANALYSIS ENGINE ---
 let evalTimeout = null;
 let autoAnalysisEnabled = false;
 
 function toggleAutoAnalysis() {
     autoAnalysisEnabled = document.getElementById('chk-auto-eval').checked;
-    const box = document.getElementById('an-eval-box'), btn = document.getElementById('an-eval-btn'), bmBox = document.getElementById('an-bestmove-box');
+    const box = document.getElementById('an-eval-box');
+    const btn = document.getElementById('an-eval-btn');
+    const bmBox = document.getElementById('an-bestmove-box');
     if (autoAnalysisEnabled) {
-        box.style.opacity = '1'; btn.style.display = 'none'; requestAnalysisEval();
+        box.style.opacity = '1';
+        btn.style.display = 'none';
+        requestAnalysisEval();
     } else {
-        box.style.opacity = '0.6'; btn.style.display = 'block';
-        document.getElementById('an-eval-score').textContent = '-.-'; document.getElementById('an-eval-score').style.color = 'var(--text2)';
+        box.style.opacity = '0.6';
+        btn.style.display = 'block';
+        document.getElementById('an-eval-score').textContent = '-.-';
+        document.getElementById('an-eval-score').style.color = 'var(--text2)';
         document.getElementById('an-eval-bar').style.width = '50%';
         if(bmBox) bmBox.style.display = 'none';
         clearTimeout(evalTimeout);
@@ -1816,38 +2123,74 @@ function toggleAutoAnalysis() {
 
 function forceAnalysisEval() {
     if (autoAnalysisEnabled || isAiCalculating) return;
-    document.getElementById('an-eval-box').style.opacity = '1'; document.getElementById('an-eval-btn').style.display = 'none'; document.getElementById('an-eval-score').textContent = '...';
+    document.getElementById('an-eval-box').style.opacity = '1';
+    document.getElementById('an-eval-btn').style.display = 'none';
+    document.getElementById('an-eval-score').textContent = '...';
+    
     const bmBox = document.getElementById('an-bestmove-box');
-    if (bmBox) { bmBox.style.display = 'flex'; document.getElementById('an-bestmove-list').innerHTML = '<span style="color:var(--text4);">Calcolo in corso...</span>'; }
-    doAnalysisCall(30, 30000); 
+    if (bmBox) {
+        bmBox.style.display = 'flex';
+        document.getElementById('an-bestmove-list').innerHTML = '<span style="color:var(--text4);">Calcolo in corso...</span>';
+    }
+    
+    doAnalysisCall(12); 
 }
 
 function requestAnalysisEval() {
     if (!autoAnalysisEnabled) return;
     if (isAiCalculating) return;
+    
     const bmBox = document.getElementById('an-bestmove-box');
     if (bmBox && document.getElementById('an-bestmove-list').innerHTML.indexOf('Calcolo') === -1) {
-        bmBox.style.display = 'flex'; document.getElementById('an-bestmove-list').innerHTML = '<span style="color:var(--text4);">Calcolo in corso...</span>';
+        bmBox.style.display = 'flex';
+        document.getElementById('an-bestmove-list').innerHTML = '<span style="color:var(--text4);">Calcolo in corso...</span>';
     }
-    doAnalysisCall(15, 5000); 
+    
+    doAnalysisCall(8); 
 }
 
-function doAnalysisCall(depth, timeMs) {
-  if (!aiWorkerReady) { setTimeout(() => doAnalysisCall(depth, timeMs), 500); return; }
+function doAnalysisCall(depth) {
+  if (!aiWorkerReady) {
+      setTimeout(() => doAnalysisCall(depth), 500); 
+      return;
+  }
   if (!document.getElementById('analysis') || document.getElementById('analysis').style.display === 'none') return;
   if (!A.getState) return;
+  
   clearTimeout(evalTimeout);
   evalTimeout = setTimeout(() => {
       if(isAiCalculating) return;
-      syncAiToUI(); const s = A.getState();
+      syncAiToUI(); 
+      
+      const s = A.getState();
       const NODI = ['E1','E2','E3','E4','E5','E6','E7','E8','E9','E10','E11','E12','E13','E14','E15','E16','E17','E18','M1','M2','M3','M4','M5','M6','M7','M8','M9','M10','M11','M12','I1','I2','I3','I4','I5','I6','C'];
-      let boardArr = new Int8Array(37); let specialArr = new Int8Array(37); let reserveArr = new Int8Array([s.reserve[0]||0, s.reserve[1]||0]);
-      for (let i = 0; i < NODI.length; i++) { boardArr[i] = s.board[NODI[i]] || 0; specialArr[i] = s.special[NODI[i]] ? 1 : 0; }
+      
+      let boardArr = new Int8Array(37);
+      let specialArr = new Int8Array(37);
+      let reserveArr = new Int8Array([s.reserve[0]||0, s.reserve[1]||0]);
+
+      for (let i = 0; i < NODI.length; i++) {
+          boardArr[i] = s.board[NODI[i]] || 0;
+          specialArr[i] = s.special[NODI[i]] ? 1 : 0;
+      }
+
       document.getElementById('an-eval-score').textContent = '...';
-      aiWorker.postMessage({ type: 'set_time', ms: timeMs }); 
+
+      aiWorker.postMessage({ 
+          type: 'set_time', 
+          ms: depth > 10 ? 3000 : 800 
+      }); 
       aiWorker.postMessage({
-          type: 'calcola', board: boardArr, reserve: reserveArr, special: specialArr, player: s.cur, max_depth: depth, is_beta: 1, 
-          is_nocenter: currentBoardStyle === 'nocenter', rotN: s.rotN, _callbackId: 'analysis_' + Date.now() 
+          type: 'calcola',
+          board: boardArr,
+          reserve: reserveArr,
+          special: specialArr,
+          player: s.cur,
+          max_depth: depth,
+          is_beta: 1, 
+          is_nocenter: currentBoardStyle === 'nocenter',
+          rotN: s.rotN,
+          _callbackId: 'analysis_' + Date.now() 
       });
       workerTasks.push('analysis');
   }, 300); 
@@ -1863,38 +2206,61 @@ const A=(function(){
   const RL=['E2','M2','I2','I3','M6','E9'],REQ=['E1','M1','I1','I4','M7','E10'],RH=['E18','M12','I6','I5','M8','E11'];
 
   const AADJ={};
+  
   function buildAdjacencies() {
       for(let k in AADJ) delete AADJ[k];
       function aae(a,b){if(!AADJ[a])AADJ[a]=[];if(!AADJ[b])AADJ[b]=[];if(!AADJ[a].includes(b))AADJ[a].push(b);if(!AADJ[b].includes(a))AADJ[b].push(a);}
       for(let i=1;i<=18;i++)aae('E'+i,'E'+(i===18?1:i+1));
       for(let i=1;i<=12;i++)aae('M'+i,'M'+(i===12?1:i+1));
       for(let i=1;i<=6;i++)aae('I'+i,'I'+(i===6?1:i+1));
-      aae('E1','M1');aae('M1','I1');aae('I4','M7');aae('M7','E10'); aae('E2','M2');aae('M2','I2');aae('I3','M6');aae('M6','E9'); aae('E18','M12');aae('M12','I6');aae('I5','M8');aae('M8','E11');
-      if (currentBoardStyle !== 'nocenter') { aae('I1','I4'); aae('I2','I3'); aae('I6','I5'); }
+      
+      aae('E1','M1');aae('M1','I1');aae('I4','M7');aae('M7','E10');
+      aae('E2','M2');aae('M2','I2');aae('I3','M6');aae('M6','E9');
+      aae('E18','M12');aae('M12','I6');aae('I5','M8');aae('M8','E11');
+      
+      if (currentBoardStyle !== 'nocenter') {
+          aae('I1','I4'); 
+          aae('I2','I3'); 
+          aae('I6','I5');
+      }
   }
   buildAdjacencies();
 
   const AALL=[...Array.from({length:18},(_,i)=>'E'+(i+1)),...Array.from({length:12},(_,i)=>'M'+(i+1)),...Array.from({length:6},(_,i)=>'I'+(i+1))];
 
   function aPos(id){
-    const r=id[0],n=parseInt(id.slice(1)); const step=r==='E'?20:r==='M'?30:60; let d=180-(n-1)*step;while(d<0)d+=360;
-    const rr=r==='E'?RE:r==='M'?RM:RI; const nx=CX+rr*Math.cos(d*Math.PI/180),ny=CY+rr*Math.sin(d*Math.PI/180);
-    if(RL.includes(id))return[nx,RY[0]];if(REQ.includes(id))return[nx,RY[1]];if(RH.includes(id))return[nx,RY[2]]; return[nx,ny];
+    const r=id[0],n=parseInt(id.slice(1));
+    const step=r==='E'?20:r==='M'?30:60;
+    let d=180-(n-1)*step;while(d<0)d+=360;
+    const rr=r==='E'?RE:r==='M'?RM:RI;
+    const nx=CX+rr*Math.cos(d*Math.PI/180),ny=CY+rr*Math.sin(d*Math.PI/180);
+    if(RL.includes(id))return[nx,RY[0]];if(REQ.includes(id))return[nx,RY[1]];if(RH.includes(id))return[nx,RY[2]];
+    return[nx,ny];
   }
   function aD(id){const r=id[0],n=parseInt(id.slice(1)),step=r==='E'?20:r==='M'?30:60;let d=180-(n-1)*step;while(d<0)d+=360;return d;}
   function rOf(id){return id[0];}
   function rC(r){if(r==='M')return Array.from({length:12},(_,i)=>'M'+(i+1));return Array.from({length:18},(_,i)=>'E'+(i+1));}
   function cnt(b,pl){return AALL.filter(c=>b[c]===pl).length;}
   function hPl(b,pl,r){return rC(r).some(c=>b[c]===pl);}
-  function cF(b,from,pl){ const en=pl===1?2:1,res=[]; for(const mid of(AADJ[from]||[])){if(b[mid]!==en)continue;for(const to of(AADJ[mid]||[])){if(b[to]===0&&to!==from)res.push({mid,to});}} return res; }
+  function cF(b,from,pl){
+    const en=pl===1?2:1,res=[];
+    for(const mid of(AADJ[from]||[])){if(b[mid]!==en)continue;for(const to of(AADJ[mid]||[])){if(b[to]===0&&to!==from)res.push({mid,to});}}
+    return res;
+  }
   function aSpReach(b,from){
-    const reached=new Set(); for(const nb of(AADJ[from]||[])){if(b[nb]===0)reached.add(nb);}
-    for(const mid of(AADJ[from]||[])){ if(b[mid]!==0)continue; for(const nb of(AADJ[mid]||[])){if(nb!==from&&b[nb]===0)reached.add(nb);} }
+    const reached=new Set();
+    for(const nb of(AADJ[from]||[])){if(b[nb]===0)reached.add(nb);}
+    for(const mid of(AADJ[from]||[])){
+      if(b[mid]!==0)continue;
+      for(const nb of(AADJ[mid]||[])){if(nb!==from&&b[nb]===0)reached.add(nb);}
+    }
     return [...reached];
   }
 
   let tree=null,curNode=null,nodeCounter=0;
-  let sel=null,placing=false,prvRing=null,anim=false, pendingCapMid=null, editMode=false;
+  let sel=null,placing=false,prvRing=null,anim=false;
+  let pendingCapMid=null;
+  let editMode=false;
 
   function makeState(board,cur,rotN,reserve,special){return{board:{...board},cur,rotN,reserve:[...reserve],special:{...special}};}
   function cloneState(s){return{board:{...s.board},cur:s.cur,rotN:s.rotN,reserve:[...s.reserve],special:{...s.special}};}
@@ -1903,77 +2269,146 @@ const A=(function(){
     const board={};AALL.forEach(c=>board[c]=0);P1S.forEach(c=>board[c]=1);P2S.forEach(c=>board[c]=2);
     const special={};['M4','E4','E6','M10','E15','E13'].forEach(c=>special[c]=true);
     const st=makeState(board,1,0,[0,0],special);
-    nodeCounter=0; tree={id:nodeCounter++,move:null,moveStr:'start',player:0,state:st,children:[],parent:null}; curNode=tree;
+    nodeCounter=0;
+    tree={id:nodeCounter++,move:null,moveStr:'start',player:0,state:st,children:[],parent:null};
+    curNode=tree;
   }
 
   function applyMove(s,mv,pl){
     const ns=cloneState(s);
     if(mv.type==='move'){
-      if(mv.from==='riserva'){ ns.board[mv.to]=pl;ns.reserve[pl-1]--; } 
-      else if(mv.mid){
+      if(mv.from==='riserva'){
+        ns.board[mv.to]=pl;ns.reserve[pl-1]--;
+      } else if(mv.mid){
         if(ns.special[mv.from]){ns.special[mv.to]=true;delete ns.special[mv.from];}
-        ns.board[mv.from]=0; ns.board[mv.to]=pl; delete ns.special[mv.mid]; ns.board[mv.mid]=0; ns.reserve[pl-1]++;
+        ns.board[mv.from]=0;
+        ns.board[mv.to]=pl;
+        delete ns.special[mv.mid];
+        ns.board[mv.mid]=0;
+        ns.reserve[pl-1]++;
       } else {
-        const en=pl===1?2:1; let inferredMid=null;
-        if(!(AADJ[mv.from]||[]).includes(mv.to)){ for(const nb of(AADJ[mv.from]||[])){ if(ns.board[nb]===en&&(AADJ[nb]||[]).includes(mv.to)){inferredMid=nb;break;} } }
+        const en=pl===1?2:1;
+        let inferredMid=null;
+        if(!(AADJ[mv.from]||[]).includes(mv.to)){
+          for(const nb of(AADJ[mv.from]||[])){
+            if(ns.board[nb]===en&&(AADJ[nb]||[]).includes(mv.to)){inferredMid=nb;break;}
+          }
+        }
         if(inferredMid){
           if(ns.special[mv.from]){ns.special[mv.to]=true;delete ns.special[mv.from];}
-          ns.board[mv.from]=0;ns.board[mv.to]=pl; delete ns.special[inferredMid];ns.board[inferredMid]=0;ns.reserve[pl-1]++;
+          ns.board[mv.from]=0;ns.board[mv.to]=pl;
+          delete ns.special[inferredMid];ns.board[inferredMid]=0;ns.reserve[pl-1]++;
         } else {
-          if(ns.special[mv.from]){ns.special[mv.to]=true;delete ns.special[mv.from];} ns.board[mv.from]=0;ns.board[mv.to]=pl;
+          if(ns.special[mv.from]){ns.special[mv.to]=true;delete ns.special[mv.from];}
+          ns.board[mv.from]=0;ns.board[mv.to]=pl;
         }
       }
       Object.keys(ns.special).forEach(c=>{if(!ns.board[c])delete ns.special[c];});
     } else if(mv.type==='rot'){
-      const r=mv.ring,st=(ns.rotN%3)+1,cells=rC(r),n=cells.length; const old={...ns.board},osp={...ns.special};
-      cells.forEach((c,i)=>ns.board[cells[i]]=old[cells[(i-st+n)%n]]); cells.forEach(c=>delete ns.special[c]);
+      const r=mv.ring,st=(ns.rotN%3)+1,cells=rC(r),n=cells.length;
+      const old={...ns.board},osp={...ns.special};
+      cells.forEach((c,i)=>ns.board[cells[i]]=old[cells[(i-st+n)%n]]);
+      cells.forEach(c=>delete ns.special[c]);
       cells.forEach((c,i)=>{if(osp[c])ns.special[cells[(i+st)%n]]=true;});
-      Object.keys(ns.special).forEach(c=>{if(!ns.board[c])delete ns.special[c];}); ns.rotN++;
+      Object.keys(ns.special).forEach(c=>{if(!ns.board[c])delete ns.special[c];});
+      ns.rotN++;
     }
-    ns.cur=pl===1?2:1; return ns;
+    ns.cur=pl===1?2:1;
+    return ns;
   }
 
   function addMove(mv,moveStr){
-    const pl=curNode.state.cur; const existing=curNode.children.find(ch=>ch.moveStr===moveStr);
+    const pl=curNode.state.cur;
+    const existing=curNode.children.find(ch=>ch.moveStr===moveStr);
     if(existing){curNode=existing;syncFromNode();return;}
-    const ns=applyMove(curNode.state,mv,pl); const node={id:nodeCounter++,move:mv,moveStr,player:pl,state:ns,children:[],parent:curNode};
-    curNode.children.push(node);curNode=node; syncFromNode();renderTree();
+    const ns=applyMove(curNode.state,mv,pl);
+    const node={id:nodeCounter++,move:mv,moveStr,player:pl,state:ns,children:[],parent:curNode};
+    curNode.children.push(node);curNode=node;
+    syncFromNode();renderTree();
   }
 
-  function syncFromNode(){ sel=null;placing=false;prvRing=null;pendingCapMid=null; document.getElementById('an-mode').textContent=editMode ? 'Setup: Clicca un nodo per cambiare colore' : ''; upd();draw(); requestAnalysisEval(); }
+  function syncFromNode(){
+    sel=null;placing=false;prvRing=null;pendingCapMid=null;
+    document.getElementById('an-mode').textContent=editMode ? 'Setup: Clicca un nodo per cambiare colore' : '';
+    upd();draw();
+    requestAnalysisEval();
+  }
   function nodeDepth(n){let d=0;while(n.parent){d++;n=n.parent;}return d;}
+
   function navFirst(){let n=curNode;while(n.parent)n=n.parent;curNode=n;syncFromNode();renderTree();}
   function navPrev(){if(curNode.parent){curNode=curNode.parent;syncFromNode();renderTree();}}
   function navNext(){if(curNode.children.length>0){curNode=curNode.children[0];syncFromNode();renderTree();}}
   function navLast(){let n=curNode;while(n.children.length>0)n=n.children[0];curNode=n;syncFromNode();renderTree();}
   function navToNode(node){curNode=node;syncFromNode();renderTree();}
-  function deleteNode(){ if(!curNode.parent){alert('Non puoi eliminare la posizione iniziale.');return;} const par=curNode.parent;par.children=par.children.filter(ch=>ch!==curNode); curNode=par;syncFromNode();renderTree(); }
-  function promoteVariation(){ if(!curNode.parent)return; const par=curNode.parent,idx=par.children.indexOf(curNode); if(idx<=0)return; [par.children[0],par.children[idx]]=[par.children[idx],par.children[0]]; renderTree(); }
+
+  function deleteNode(){
+    if(!curNode.parent){alert('Non puoi eliminare la posizione iniziale.');return;}
+    const par=curNode.parent;par.children=par.children.filter(ch=>ch!==curNode);
+    curNode=par;syncFromNode();renderTree();
+  }
+  function promoteVariation(){
+    if(!curNode.parent)return;
+    const par=curNode.parent,idx=par.children.indexOf(curNode);
+    if(idx<=0)return;
+    [par.children[0],par.children[idx]]=[par.children[idx],par.children[0]];
+    renderTree();
+  }
   function flipTurn(){curNode.state.cur=curNode.state.cur===1?2:1;syncFromNode();}
-  function placeMode(){ if(editMode) toggleEdit(); const s=curNode.state; if(s.reserve[s.cur-1]===0){return;} placing=true;sel=null; document.getElementById('an-mode').textContent='Modalità piazza — clicca un nodo libero'; upd();draw(); }
-  function toggleEdit(){ editMode = !editMode; const btn = document.getElementById('an-edit-btn'); btn.style.background = editMode ? 'var(--beta-hover)' : 'var(--btn-bg)'; placing = false; sel = null; pendingCapMid = null; syncFromNode(); }
+  function placeMode(){
+    if(editMode) toggleEdit();
+    const s=curNode.state;
+    if(s.reserve[s.cur-1]===0){return;}
+    placing=true;sel=null;
+    document.getElementById('an-mode').textContent='Modalità piazza — clicca un nodo libero';
+    upd();draw();
+  }
+  
+  function toggleEdit(){
+    editMode = !editMode;
+    const btn = document.getElementById('an-edit-btn');
+    btn.style.background = editMode ? 'var(--beta-hover)' : 'var(--btn-bg)';
+    placing = false; sel = null; pendingCapMid = null;
+    syncFromNode();
+  }
 
   function rot(r){
-    if(anim)return; const s=curNode.state; if(!hPl(s.board,s.cur,r))return; clearPreview(); const st=(s.rotN%3)+1;
-    animR(r,st,()=>{ const mv={type:'rot',ring:r,steps:st}; addMove(mv,'r'+r+(st>1?st:'')); });
+    if(anim)return;
+    const s=curNode.state;
+    if(!hPl(s.board,s.cur,r))return;
+    clearPreview();
+    const st=(s.rotN%3)+1;
+    animR(r,st,()=>{
+      const mv={type:'rot',ring:r,steps:st};
+      addMove(mv,'r'+r+(st>1?st:''));
+    });
   }
   function previewRot(r){
-    if(anim)return; const s=curNode.state; if(!hPl(s.board,s.cur,r))return; prvRing=r;
+    if(anim)return;
+    const s=curNode.state;
+    if(!hPl(s.board,s.cur,r))return;
+    prvRing=r;
     document.getElementById('an-rot-hint').textContent='Anello '+{M:'medio',E:'esterno'}[r]+': +'+(s.rotN%3+1)+' →';
     document.getElementById('an-btn-'+r).classList.add('previewing');draw();
   }
-  function clearPreview(){ prvRing=null;document.getElementById('an-rot-hint').textContent=''; ['M','E'].forEach(r=>{const b=document.getElementById('an-btn-'+r);if(b)b.classList.remove('previewing');}); draw(); }
+  function clearPreview(){
+    prvRing=null;document.getElementById('an-rot-hint').textContent='';
+    ['M','E'].forEach(r=>{const b=document.getElementById('an-btn-'+r);if(b)b.classList.remove('previewing');});
+    draw();
+  }
 
   function animR(ring,steps,cb){
-    anim=true; const s=curNode.state,rr=ring==='E'?RE:RM,td=steps*(ring==='E'?20:30);
+    anim=true;
+    const s=curNode.state,rr=ring==='E'?RE:RM,td=steps*(ring==='E'?20:30);
     const cells=rC(ring),pieces=cells.filter(c=>s.board[c]!==0).map(c=>({pl:s.board[c],a0:aD(c)}));
     const dur=350,t0=performance.now();
     function fr(now){
       const t=Math.min((now-t0)/dur,1),e=t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2,rot_=td*e;
-      const th=T(); ctx.clearRect(0,0,W,H);ctx.fillStyle=th.cvBg;ctx.fillRect(0,0,W,H);dSt();
+      const th=T();
+      ctx.clearRect(0,0,W,H);ctx.fillStyle=th.cvBg;ctx.fillRect(0,0,W,H);dSt();
       for(const id of AALL){if(id[0]===ring)continue;dCell(id,s,false,false,false,0);}
       pieces.forEach(p=>{const a=(p.a0-rot_)*Math.PI/180,x=CX+rr*Math.cos(a),y=CY+rr*Math.sin(a);
-        ctx.beginPath();ctx.arc(x,y,11,0,Math.PI*2);ctx.fillStyle=p.pl===1?th.p1:th.p2;ctx.fill(); ctx.beginPath();ctx.arc(x-3,y-3,4,0,Math.PI*2);ctx.fillStyle=p.pl===1?th.p1hi:th.p2hi;ctx.fill();
+        ctx.beginPath();ctx.arc(x,y,11,0,Math.PI*2);ctx.fillStyle=p.pl===1?th.p1:th.p2;ctx.fill();
+        ctx.beginPath();ctx.arc(x-3,y-3,4,0,Math.PI*2);ctx.fillStyle=p.pl===1?th.p1hi:th.p2hi;ctx.fill();
       });
       if(t<1)requestAnimationFrame(fr);else{anim=false;cb();}
     }
@@ -1983,20 +2418,30 @@ const A=(function(){
   function mvStr(mv){
     if(!mv)return'?';
     if(mv.type==='move'){if(mv.from==='riserva')return'[◌]→'+mv.to;if(mv.mid)return mv.from+'×'+mv.mid+'>'+mv.to;return mv.from+'-'+mv.to;}
-    if(mv.type==='rot')return'r'+mv.ring+(mv.steps>1?mv.steps:''); return'?';
+    if(mv.type==='rot')return'r'+mv.ring+(mv.steps>1?mv.steps:'');
+    return'?';
   }
 
   function drawWavyA(x,y,color){
-    ctx.save();ctx.strokeStyle=color;ctx.lineWidth=1.5; const r=14,waves=8,amp=1.8;ctx.beginPath();
+    ctx.save();ctx.strokeStyle=color;ctx.lineWidth=1.5;
+    const r=14,waves=8,amp=1.8;ctx.beginPath();
     for(let i=0;i<=waves*10;i++){const angle=(i/(waves*10))*Math.PI*2;const wave=r+amp*Math.sin(i/10*Math.PI*2);ctx.lineTo(x+wave*Math.cos(angle),y+wave*Math.sin(angle));}
     ctx.closePath();ctx.stroke();ctx.restore();
   }
 
   function dSt(){
-    const th=T(); RY.forEach(ry=>{
-      let dy = ry - CY; let dxI = Math.sqrt(Math.max(0, RI*RI - dy*dy)); ctx.strokeStyle=th.gridLine;ctx.lineWidth=0.8;ctx.setLineDash([]);
-      if (currentBoardStyle === 'nocenter') { ctx.beginPath();ctx.moveTo(CX-RE-22,ry);ctx.lineTo(CX-dxI,ry);ctx.stroke(); ctx.beginPath();ctx.moveTo(CX+dxI,ry);ctx.lineTo(CX+RE+22,ry);ctx.stroke(); } 
-      else { ctx.beginPath();ctx.moveTo(CX-RE-22,ry);ctx.lineTo(CX+RE+22,ry);ctx.stroke(); }
+    const th=T();
+    RY.forEach(ry=>{
+      let dy = ry - CY;
+      let dxI = Math.sqrt(Math.max(0, RI*RI - dy*dy));
+      ctx.strokeStyle=th.gridLine;ctx.lineWidth=0.8;ctx.setLineDash([]);
+      
+      if (currentBoardStyle === 'nocenter') {
+          ctx.beginPath();ctx.moveTo(CX-RE-22,ry);ctx.lineTo(CX-dxI,ry);ctx.stroke();
+          ctx.beginPath();ctx.moveTo(CX+dxI,ry);ctx.lineTo(CX+RE+22,ry);ctx.stroke();
+      } else {
+          ctx.beginPath();ctx.moveTo(CX-RE-22,ry);ctx.lineTo(CX+RE+22,ry);ctx.stroke();
+      }
     });
     [RE,RM,RI].forEach(r=>{ctx.strokeStyle=th.ring;ctx.lineWidth=0.8;ctx.beginPath();ctx.arc(CX,CY,r,0,Math.PI*2);ctx.stroke();});
     const dr=new Set();
@@ -2005,35 +2450,59 @@ const A=(function(){
 
   function dCell(id,s,isSel,_isMust,isTgt,ghostPl,isVictim){
     const[x,y]=aPos(id),pc=s.board[id],isWin=WIN.includes(id),r=rOf(id);
-    const th=T(); let bg=r==='E'?th.nodeE:r==='I'?th.nodeI:th.nodeM; if(isWin)bg=th.nodeWin;
-    const isPlaceTgt=placing&&s.board[id]===0&&(r==='E'||r==='M'); if(isPlaceTgt)bg=th.nodePlaceTgt;
+    const th=T();
+    let bg=r==='E'?th.nodeE:r==='I'?th.nodeI:th.nodeM;
+    if(isWin)bg=th.nodeWin;
+    const isPlaceTgt=placing&&s.board[id]===0&&(r==='E'||r==='M');
+    if(isPlaceTgt)bg=th.nodePlaceTgt;
     ctx.beginPath();ctx.arc(x,y,15,0,Math.PI*2);ctx.fillStyle=bg;ctx.fill();
     if(isWin){ctx.strokeStyle=th.winRing;ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(x,y,13,0,Math.PI*2);ctx.stroke();}
-    let st=th.nodeStroke,lw=0.8; if(isSel){st=th.selStroke;lw=2.2;} if(isVictim){st=th.mustStroke;lw=2.5;}
-    if(isTgt&&!ghostPl){st=th.tgtStroke;lw=1.8;} if(ghostPl){st=th.ghostStroke;lw=2;} if(isPlaceTgt){st=th.placeStroke;lw=1.8;}
+    let st=th.nodeStroke,lw=0.8;
+    if(isSel){st=th.selStroke;lw=2.2;}
+    if(isVictim){st=th.mustStroke;lw=2.5;}
+    if(isTgt&&!ghostPl){st=th.tgtStroke;lw=1.8;}
+    if(ghostPl){st=th.ghostStroke;lw=2;}
+    if(isPlaceTgt){st=th.placeStroke;lw=1.8;}
     ctx.strokeStyle=st;ctx.lineWidth=lw;ctx.beginPath();ctx.arc(x,y,15,0,Math.PI*2);ctx.stroke();
     if(isTgt&&!ghostPl&&pc===0){ctx.fillStyle=th.tgtDot;ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();}
     if(isPlaceTgt&&pc===0){ctx.fillStyle=th.placeDot;ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();}
     if(ghostPl){ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2);ctx.fillStyle=ghostPl===1?th.ghost1:th.ghost2;ctx.fill();ctx.fillStyle=th.ghostArrow;ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('→',x,y+1);return;}
     if(pc && currentPieceStyle !== 'emoji'){
-      const col=pc===1?th.p1:th.p2,hi=pc===1?th.p1hi:th.p2hi; ctx.beginPath();ctx.arc(x,y,11,0,Math.PI*2);ctx.fillStyle=col;ctx.fill(); ctx.beginPath();ctx.arc(x-3,y-3,5,0,Math.PI*2);ctx.fillStyle=hi;ctx.fill();
+      const col=pc===1?th.p1:th.p2,hi=pc===1?th.p1hi:th.p2hi;
+      ctx.beginPath();ctx.arc(x,y,11,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();
+      ctx.beginPath();ctx.arc(x-3,y-3,5,0,Math.PI*2);ctx.fillStyle=hi;ctx.fill();
     }
-    if(currentPieceStyle !== 'emoji') { if(pc){ctx.fillStyle=th.labelPiece;ctx.font='bold 8px sans-serif';} else{ctx.fillStyle=th.labelNode;ctx.font='bold 8px sans-serif';} ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(id,x,y+1); }
-    if(pc && currentPieceStyle === 'emoji') { drawEmojiPiece(ctx, x, y, pc===1, s.special&&s.special[id]); } else if(s.special&&s.special[id]&&pc){ drawWavyGlobal(ctx, x, y, pc===1?th.p1wave:th.p2wave); }
+    
+    if(currentPieceStyle !== 'emoji') {
+        if(pc){ctx.fillStyle=th.labelPiece;ctx.font='bold 8px sans-serif';}
+        else{ctx.fillStyle=th.labelNode;ctx.font='bold 8px sans-serif';}
+        ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(id,x,y+1);
+    }
+    
+    if(pc && currentPieceStyle === 'emoji') {
+        drawEmojiPiece(ctx, x, y, pc===1, s.special&&s.special[id]);
+    } else if(s.special&&s.special[id]&&pc){
+        drawWavyGlobal(ctx, x, y, pc===1?th.p1wave:th.p2wave);
+    }
   }
 
   function draw(){
-    const s=curNode.state; const th=T(); ctx.clearRect(0,0,W,H);ctx.fillStyle=th.cvBg;ctx.fillRect(0,0,W,H);dSt();
+    const s=curNode.state;
+    const th=T();
+    ctx.clearRect(0,0,W,H);ctx.fillStyle=th.cvBg;ctx.fillRect(0,0,W,H);dSt();
     let ghostM={};
     if(prvRing){const st=(s.rotN%3)+1,cells=rC(prvRing),n=cells.length;cells.forEach((c,i)=>{if(s.board[c]!==0)ghostM[cells[(i+st)%n]]=s.board[c];});}
     if(curNode.move){
       const mv=curNode.move;
       if(mv.type==='move'&&mv.from!=='riserva'){
         const[fx,fy]=aPos(mv.from),[tx,ty]=aPos(mv.to),ang=Math.atan2(ty-fy,tx-fx);
-        ctx.save();ctx.strokeStyle=th.arrow;ctx.lineWidth=2.5;ctx.setLineDash([4,3]); ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(tx,ty);ctx.stroke();ctx.setLineDash([]);
+        ctx.save();ctx.strokeStyle=th.arrow;ctx.lineWidth=2.5;ctx.setLineDash([4,3]);
+        ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(tx,ty);ctx.stroke();ctx.setLineDash([]);
         ctx.fillStyle=th.arrowFill;ctx.beginPath();ctx.moveTo(tx,ty);ctx.lineTo(tx-11*Math.cos(ang-0.38),ty-11*Math.sin(ang-0.38));ctx.lineTo(tx-11*Math.cos(ang+0.38),ty-11*Math.sin(ang+0.38));ctx.closePath();ctx.fill();
         ctx.strokeStyle=th.arrowRing;ctx.lineWidth=2;ctx.beginPath();ctx.arc(tx,ty,16,0,Math.PI*2);ctx.stroke();ctx.restore();
-      } else if(mv.type==='move'&&mv.from==='riserva'){ const[tx,ty]=aPos(mv.to);ctx.save();ctx.strokeStyle=th.lastTo;ctx.lineWidth=2;ctx.beginPath();ctx.arc(tx,ty,17,0,Math.PI*2);ctx.stroke();ctx.restore(); }
+      } else if(mv.type==='move'&&mv.from==='riserva'){
+        const[tx,ty]=aPos(mv.to);ctx.save();ctx.strokeStyle=th.lastTo;ctx.lineWidth=2;ctx.beginPath();ctx.arc(tx,ty,17,0,Math.PI*2);ctx.stroke();ctx.restore();
+      }
     }
     for(const id of AALL){
       const isSel=sel===id;let isTgt=false,isVictim=false;
@@ -2052,62 +2521,98 @@ const A=(function(){
   }
 
   function upd(){
-    const s=curNode.state; document.getElementById('an-tl').textContent='Turno: P'+s.cur+(s.cur===1?' (rosso)':' (blu)');
+    const s=curNode.state;
+    document.getElementById('an-tl').textContent='Turno: P'+s.cur+(s.cur===1?' (rosso)':' (blu)');
     document.getElementById('an-al').textContent=editMode?'Setup: Clicca i nodi per cambiare il colore dei pezzi':placing?'Clicca un nodo libero. Clicca tua pietra per annullare.':sel?'Clicca destinazione.':'Clicca un pezzo o ruota un anello.';
-    document.getElementById('an-c1').textContent=cnt(s.board,1); document.getElementById('an-c2').textContent=cnt(s.board,2);
-    document.getElementById('an-r1').textContent=s.reserve[0]; document.getElementById('an-r2').textContent=s.reserve[1];
-    const nx=(s.rotN%3)+1; document.getElementById('an-rb').textContent='Prossima rot.: '+nx+(nx>1?' passi':' passo');
-    document.getElementById('an-place-btn').style.display=s.reserve[s.cur-1]>0?'':'none'; const depth=nodeDepth(curNode); document.getElementById('an-nl').textContent=depth+' ply';
+    document.getElementById('an-c1').textContent=cnt(s.board,1);
+    document.getElementById('an-c2').textContent=cnt(s.board,2);
+    document.getElementById('an-r1').textContent=s.reserve[0];
+    document.getElementById('an-r2').textContent=s.reserve[1];
+    const nx=(s.rotN%3)+1;
+    document.getElementById('an-rb').textContent='Prossima rot.: '+nx+(nx>1?' passi':' passo');
+    document.getElementById('an-place-btn').style.display=s.reserve[s.cur-1]>0?'':'none';
+    const depth=nodeDepth(curNode);
+    document.getElementById('an-nl').textContent=depth+' ply';
     ['M','E'].forEach(r=>{const btn=document.getElementById('an-btn-'+r);if(btn)btn.classList.toggle('off',!hPl(s.board,s.cur,r));});
   }
 
   cv.addEventListener('click',e=>{
     if(anim)return;if(prvRing){clearPreview();return;}
-    const rect=cv.getBoundingClientRect(),sx=W/rect.width,sy=H/rect.height; const mx=(e.clientX-rect.left)*sx,my=(e.clientY-rect.top)*sy;
+    const rect=cv.getBoundingClientRect(),sx=W/rect.width,sy=H/rect.height;
+    const mx=(e.clientX-rect.left)*sx,my=(e.clientY-rect.top)*sy;
     for(const id of AALL){const[x,y]=aPos(id);if((mx-x)**2+(my-y)**2<=225){clickC(id);return;}}
   });
 
   function clickC(id){
-    if(anim)return; const s=curNode.state,pl=s.cur;
-    if(editMode){ s.board[id] = (s.board[id] + 1) % 3; if(s.board[id] === 0) delete s.special[id]; syncFromNode(); return; }
+    if(anim)return;
+    const s=curNode.state,pl=s.cur;
+    
+    if(editMode){
+      s.board[id] = (s.board[id] + 1) % 3;
+      if(s.board[id] === 0) delete s.special[id];
+      syncFromNode();
+      return;
+    }
+    
     if(placing){
       if(s.board[id]===pl){placing=false;pendingCapMid=null;document.getElementById('an-mode').textContent='';upd();draw();return;}
-      if(rOf(id)!=='E'&&rOf(id)!=='M')return; if(s.board[id]!==0)return;
-      placing=false;document.getElementById('an-mode').textContent=''; addMove({type:'move',from:'riserva',to:id},mvStr({type:'move',from:'riserva',to:id}));return;
+      if(rOf(id)!=='E'&&rOf(id)!=='M')return;
+      if(s.board[id]!==0)return;
+      placing=false;document.getElementById('an-mode').textContent='';
+      addMove({type:'move',from:'riserva',to:id},mvStr({type:'move',from:'riserva',to:id}));return;
     }
     if(pendingCapMid){
       if(s.board[id]===0&&(AADJ[pendingCapMid]||[]).includes(id)&&id!==sel){
-        const from=sel,mid=pendingCapMid;pendingCapMid=null; const mv={type:'move',from,mid,to:id};sel=null;addMove(mv,mvStr(mv));return;
+        const from=sel,mid=pendingCapMid;pendingCapMid=null;
+        const mv={type:'move',from,mid,to:id};sel=null;addMove(mv,mvStr(mv));return;
       }
       pendingCapMid=null;draw();return;
     }
-    if(sel===null){if(s.board[id]===pl){sel=id;pendingCapMid=null;draw();}return;} if(id===sel){sel=null;pendingCapMid=null;draw();return;} if(s.board[id]===pl){sel=id;pendingCapMid=null;draw();return;}
+    if(sel===null){if(s.board[id]===pl){sel=id;pendingCapMid=null;draw();}return;}
+    if(id===sel){sel=null;pendingCapMid=null;draw();return;}
+    if(s.board[id]===pl){sel=id;pendingCapMid=null;draw();return;}
     const cap=cF(s.board,sel,pl).find(j=>j.to===id);
     if(cap){const mv={type:'move',from:sel,mid:cap.mid,to:id};sel=null;addMove(mv,mvStr(mv));return;}
     if(s.special&&s.special[sel]&&s.board[id]!==0&&s.board[id]!==pl){
-      if((AADJ[sel]||[]).includes(id)){ const validDests=(AADJ[id]||[]).filter(nb=>nb!==sel&&s.board[nb]===0); if(validDests.length>0){pendingCapMid=id;draw();return;} }
+      if((AADJ[sel]||[]).includes(id)){
+        const validDests=(AADJ[id]||[]).filter(nb=>nb!==sel&&s.board[nb]===0);
+        if(validDests.length>0){pendingCapMid=id;draw();return;}
+      }
     }
-    if(s.special&&s.special[sel]&&s.board[id]===0){ if(aSpReach(s.board,sel).includes(id)){const mv={type:'move',from:sel,to:id};sel=null;addMove(mv,mvStr(mv));return;} }
+    if(s.special&&s.special[sel]&&s.board[id]===0){
+      if(aSpReach(s.board,sel).includes(id)){const mv={type:'move',from:sel,to:id};sel=null;addMove(mv,mvStr(mv));return;}
+    }
     if((AADJ[sel]||[]).includes(id)&&s.board[id]===0){const mv={type:'move',from:sel,to:id};sel=null;addMove(mv,mvStr(mv));return;}
     sel=null;pendingCapMid=null;draw();
   }
 
   function renderTree(){
-    const el=document.getElementById('an-tree');el.innerHTML=''; renderNode(tree,el,0);
+    const el=document.getElementById('an-tree');el.innerHTML='';
+    renderNode(tree,el,0);
+    
     const active=el.querySelector('.an-active');
-    if(active){ const container = el.parentElement; container.scrollTop = active.offsetTop - container.offsetTop - (container.clientHeight / 2) + (active.clientHeight / 2); }
+    if(active){
+        const container = el.parentElement; 
+        container.scrollTop = active.offsetTop - container.offsetTop - (container.clientHeight / 2) + (active.clientHeight / 2);
+    }
   }
   function renderNode(node,container,depth){
     if(!node.parent){node.children.forEach((ch,i)=>{if(i>0){const v=document.createElement('span');v.style.color='var(--text4)';v.textContent='( ';container.appendChild(v);renderNode(ch,container,depth+1);const vc=document.createElement('span');vc.style.color='var(--text4)';vc.textContent=' ) ';container.appendChild(vc);}else renderNode(ch,container,depth);});return;}
     const isCur=(node===curNode),isPl1=(node.player===1),mn=Math.ceil(nodeDepth(node)/2);
     if(node.player===1){const ns=document.createElement('span');ns.textContent=mn+'. ';ns.style.color='var(--text5)';container.appendChild(ns);}
-    const span=document.createElement('span'); span.style.cssText='cursor:pointer;padding:0 2px;border-radius:2px;color:'+(isPl1?'#c04828':'#1d6fa5')+(isCur?';background:var(--nlog-cur);font-weight:700':'')+(depth>0?';opacity:.8':'');
-    span.className=isCur?'an-active':''; span.textContent=node.moveStr; span.addEventListener('click',()=>navToNode(node));
+    const span=document.createElement('span');
+    span.style.cssText='cursor:pointer;padding:0 2px;border-radius:2px;color:'+(isPl1?'#c04828':'#1d6fa5')+(isCur?';background:var(--nlog-cur);font-weight:700':'')+(depth>0?';opacity:.8':'');
+    span.className=isCur?'an-active':'';
+    span.textContent=node.moveStr;
+    span.addEventListener('click',()=>navToNode(node));
     container.appendChild(span);container.appendChild(document.createTextNode(' '));
-    if(node.children.length===0)return; renderNode(node.children[0],container,depth);
+    if(node.children.length===0)return;
+    renderNode(node.children[0],container,depth);
     for(let i=1;i<node.children.length;i++){
-      container.appendChild(document.createTextNode('\n')); const o=document.createElement('span');o.style.color='var(--text4)';o.textContent='  ( ';container.appendChild(o);
-      renderNode(node.children[i],container,depth+1); const c=document.createElement('span');c.style.color='var(--text4)';c.textContent=' )';container.appendChild(c);
+      container.appendChild(document.createTextNode('\n'));
+      const o=document.createElement('span');o.style.color='var(--text4)';o.textContent='  ( ';container.appendChild(o);
+      renderNode(node.children[i],container,depth+1);
+      const c=document.createElement('span');c.style.color='var(--text4)';c.textContent=' )';container.appendChild(c);
     }
   }
 
@@ -2115,76 +2620,142 @@ const A=(function(){
     let txt='';
     function walk(node,depth){
       if(!node.parent){node.children.forEach((ch,i)=>{if(i>0){txt+='( ';walk(ch,depth+1);txt+=' ) ';}else walk(ch,depth);}); return;}
-      const mn=Math.ceil(nodeDepth(node)/2); if(node.player===1)txt+=mn+'. '; txt+=node.moveStr+' ';
-      if(node.children.length===0)return; walk(node.children[0],depth);
+      const mn=Math.ceil(nodeDepth(node)/2);
+      if(node.player===1)txt+=mn+'. ';
+      txt+=node.moveStr+' ';
+      if(node.children.length===0)return;
+      walk(node.children[0],depth);
       for(let i=1;i<node.children.length;i++){txt+='\n  ( ';walk(node.children[i],depth+1);txt+=' )\n';}
     }
-    walk(tree,0); navigator.clipboard.writeText(txt.trim()).then(()=>{const btn=document.querySelector('#an-right button:last-child');const o=btn.textContent;btn.textContent='✓ Copiato!';setTimeout(()=>btn.textContent=o,1500);}).catch(()=>alert(txt));
+    walk(tree,0);
+    navigator.clipboard.writeText(txt.trim()).then(()=>{const btn=document.querySelector('#an-right button:last-child');const o=btn.textContent;btn.textContent='✓ Copiato!';setTimeout(()=>btn.textContent=o,1500);}).catch(()=>alert(txt));
   }
   
   function exportTAN(){
-    const s=curNode.state, rings=['E','M','I'], ringLengths=[18,12,6]; let tanParts=[];
+    const s=curNode.state;
+    const rings=['E','M','I'];
+    const ringLengths=[18,12,6];
+    let tanParts=[];
+    
     for(let ri=0;ri<3;ri++){
-      const r=rings[ri],len=ringLengths[ri]; let seg='',empty=0;
+      const r=rings[ri],len=ringLengths[ri];
+      let seg='',empty=0;
       for(let i=1;i<=len;i++){
         const id=r+i,pc=s.board[id]||0,sp=s.special&&s.special[id];
-        if(pc===0){empty++;} else{ if(empty>0){seg+=empty;empty=0;} if(pc===1)seg+=sp?'R':'r'; else seg+=sp?'B':'b'; }
+        if(pc===0){empty++;}
+        else{
+          if(empty>0){seg+=empty;empty=0;}
+          if(pc===1)seg+=sp?'R':'r';
+          else seg+=sp?'B':'b';
+        }
       }
-      if(empty>0)seg+=empty; tanParts.push(seg);
+      if(empty>0)seg+=empty;
+      tanParts.push(seg);
     }
-    const turn=s.cur===1?'r':'b', res=s.reserve[0]+':'+s.reserve[1], moveN=Math.ceil(nodeDepth(curNode)/2)||1, rotN=s.rotN%3;
+    
+    const turn=s.cur===1?'r':'b';
+    const res=s.reserve[0]+':'+s.reserve[1];
+    const moveN=Math.ceil(nodeDepth(curNode)/2)||1;
+    const rotN=s.rotN%3;
+    
     return tanParts.join('/')+' '+turn+' '+res+' '+moveN+' '+rotN;
   }
   
   function importTAN(tan){
-    const parts=tan.trim().split(/\s+/); if(parts.length!==5)return false;
-    const [ringData,turnS,resS,moveS,rotS]=parts, rings=ringData.split('/'); if(rings.length!==3)return false;
-    const board={}, special={}, ringNames=['E','M','I']; AALL.forEach(c=>board[c]=0);
+    const parts=tan.trim().split(/\s+/);
+    if(parts.length!==5)return false;
+    
+    const [ringData,turnS,resS,moveS,rotS]=parts;
+    const rings=ringData.split('/');
+    if(rings.length!==3)return false;
+    
+    const board={};AALL.forEach(c=>board[c]=0);
+    const special={};
+    const ringNames=['E','M','I'];
+    
     for(let ri=0;ri<3;ri++){
-      const seg=rings[ri],r=ringNames[ri]; let idx=1,i=0;
+      const seg=rings[ri],r=ringNames[ri];
+      let idx=1,i=0;
       while(i<seg.length){
         const ch=seg[i];
-        if(/\d/.test(ch)){ let numStr = ''; while(i < seg.length && /\d/.test(seg[i])) { numStr += seg[i]; i++; } idx += parseInt(numStr); }
-        else{ const id=r+idx; if(ch==='r')board[id]=1; else if(ch==='R'){board[id]=1;special[id]=true;} else if(ch==='b')board[id]=2; else if(ch==='B'){board[id]=2;special[id]=true;} idx++;i++; }
+        if(/\d/.test(ch)){
+          let numStr = '';
+          while(i < seg.length && /\d/.test(seg[i])) { numStr += seg[i]; i++; }
+          idx += parseInt(numStr);
+        }
+        else{
+          const id=r+idx;
+          if(ch==='r')board[id]=1;
+          else if(ch==='R'){board[id]=1;special[id]=true;}
+          else if(ch==='b')board[id]=2;
+          else if(ch==='B'){board[id]=2;special[id]=true;}
+          idx++;i++;
+        }
       }
     }
-    const cur=turnS==='r'?1:2, reserve=resS.split(':').map(x=>parseInt(x)||0), rotN=parseInt(rotS)||0;
-    const st=makeState(board,cur,rotN,reserve,special); nodeCounter=0;
-    tree={id:nodeCounter++,move:null,moveStr:'TAN import',player:0,state:st,children:[],parent:null}; curNode=tree; syncFromNode();renderTree(); return true;
+    
+    const cur=turnS==='r'?1:2;
+    const reserve=resS.split(':').map(x=>parseInt(x)||0);
+    const rotN=parseInt(rotS)||0;
+    
+    const st=makeState(board,cur,rotN,reserve,special);
+    nodeCounter=0;
+    tree={id:nodeCounter++,move:null,moveStr:'TAN import',player:0,state:st,children:[],parent:null};
+    curNode=tree;
+    syncFromNode();renderTree();
+    return true;
   }
 
   function parseNotation(text){
-    const lines=text.split('\n').map(l=>l.trim()).filter(l=>l&&!l.startsWith('[')); const tokens=[];
-    for(const line of lines){const parts=line.split(/\s+/);for(const p of parts){if(!p||/^\d+\.$/.test(p))continue;tokens.push(p);}} return tokens;
+    const lines=text.split('\n').map(l=>l.trim()).filter(l=>l&&!l.startsWith('['));
+    const tokens=[];
+    for(const line of lines){const parts=line.split(/\s+/);for(const p of parts){if(!p||/^\d+\.$/.test(p))continue;tokens.push(p);}}
+    return tokens;
   }
   function parseMoveToken(tok){
     if(/^r[ME]\d*$/.test(tok)){const ring=tok[1],steps=tok.length>2?parseInt(tok.slice(2)):1;return{type:'rot',ring,steps};}
     if(tok.includes('→')){const to=tok.split('→')[1];if(to)return{type:'move',from:'riserva',to};}
     if(tok.includes('×')&&tok.includes('>')){const from=tok.split('×')[0],rest=tok.split('×')[1],mid=rest.split('>')[0],to=rest.split('>')[1];return{type:'move',from,mid,to};}
-    if(tok.includes('-')){const[from,to]=tok.split('-');if(from&&to)return{type:'move',from,to};} return null;
+    if(tok.includes('-')){const[from,to]=tok.split('-');if(from&&to)return{type:'move',from,to};}
+    return null;
   }
   function loadNotation(){
-    const text=document.getElementById('an-paste').value, errEl=document.getElementById('an-paste-err');errEl.textContent='';
-    initTree(); const tokens=parseNotation(text); if(tokens.length===0){errEl.textContent='Nessuna mossa trovata.';return;}
+    const text=document.getElementById('an-paste').value;
+    const errEl=document.getElementById('an-paste-err');errEl.textContent='';
+    initTree();
+    const tokens=parseNotation(text);
+    if(tokens.length===0){errEl.textContent='Nessuna mossa trovata.';return;}
     let errors=0;
     for(const tok of tokens){
       const mv=parseMoveToken(tok);if(!mv){errors++;continue;}
-      const s=curNode.state,pl=s.cur, ms=mv.type==='rot'?'r'+mv.ring+(mv.steps>1?mv.steps:''):mvStr(mv), ns=applyMove(s,mv,pl);
-      const node={id:nodeCounter++,move:mv,moveStr:ms,player:pl,state:ns,children:[],parent:curNode}; curNode.children.push(node);curNode=node;
+      const s=curNode.state,pl=s.cur;
+      const ms=mv.type==='rot'?'r'+mv.ring+(mv.steps>1?mv.steps:''):mvStr(mv);
+      const ns=applyMove(s,mv,pl);
+      const node={id:nodeCounter++,move:mv,moveStr:ms,player:pl,state:ns,children:[],parent:curNode};
+      curNode.children.push(node);curNode=node;
     }
-    navFirst();renderTree(); if(errors>0)errEl.textContent=errors+' token non riconosciuti (ignorati).';
+    navFirst();renderTree();
+    if(errors>0)errEl.textContent=errors+' token non riconosciuti (ignorati).';
   }
 
   function loadTAN(){
-    const tan=document.getElementById('an-tan').value.trim(), err=document.getElementById('an-tan-err'); err.textContent='';
-    if(!tan){err.textContent='Inserisci una stringa TAN valida.';return;} if(!importTAN(tan)){err.textContent='Formato TAN non valido.';return;}
-    err.style.color='#1d9e75'; err.textContent='✓ Posizione caricata!'; setTimeout(()=>{err.textContent='';err.style.color='#e85d24';},2000);
+    const tan=document.getElementById('an-tan').value.trim();
+    const err=document.getElementById('an-tan-err');
+    err.textContent='';
+    if(!tan){err.textContent='Inserisci una stringa TAN valida.';return;}
+    if(!importTAN(tan)){err.textContent='Formato TAN non valido.';return;}
+    err.style.color='#1d9e75';
+    err.textContent='✓ Posizione caricata!';
+    setTimeout(()=>{err.textContent='';err.style.color='#e85d24';},2000);
   }
   
   function copyTAN(){
-    const tan=exportTAN(); document.getElementById('an-tan').value=tan;
+    const tan=exportTAN();
+    document.getElementById('an-tan').value=tan;
     navigator.clipboard.writeText(tan).then(()=>{
-      const err=document.getElementById('an-tan-err'); err.style.color='#1d9e75'; err.textContent='✓ TAN copiato negli appunti!';
+      const err=document.getElementById('an-tan-err');
+      err.style.color='#1d9e75';
+      err.textContent='✓ TAN copiato negli appunti!';
       setTimeout(()=>{err.textContent='';err.style.color='#e85d24';},2000);
     }).catch(()=>alert(tan));
   }
