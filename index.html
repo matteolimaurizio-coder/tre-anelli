@@ -120,15 +120,16 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
 }
 #share-box {
   background: var(--surface); border-radius: 13px; padding: 24px 28px;
-  max-width: 500px; width: 100%; box-shadow: 0 4px 24px rgba(0,0,0,0.3); color: var(--text);
+  max-width: 500px; width: 90%; box-shadow: 0 4px 24px rgba(0,0,0,0.3); color: var(--text);
 }
 #share-box h2 { font-size: 18px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
 #share-box p { font-size: 13px; color: var(--text4); margin-bottom: 16px; line-height: 1.6; }
 #share-link-container {
   background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
   padding: 12px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px;
+  overflow: hidden;
 }
-#share-link { flex: 1; font-size: 11px; font-family: monospace; color: var(--text2); word-break: break-all; line-height: 1.5; }
+#share-link { flex: 1; font-size: 11px; font-family: monospace; color: var(--text2); word-break: break-all; line-height: 1.5; max-height: 80px; overflow-y: auto; }
 #copy-link-btn { font-size: 12px; padding: 7px 16px; cursor: pointer; border-radius: 6px; border: 1px solid var(--btn-border); background: var(--btn-bg); color: var(--text2); white-space: nowrap; transition: all 0.2s; }
 #copy-link-btn:hover { background: var(--btn-hover); }
 #copy-link-btn.copied { background: #10b981; color: white; border-color: #10b981; }
@@ -527,10 +528,12 @@ const ShareFeatures = {
   
   generateLink(gameState) {
     try {
-      const stateStr = JSON.stringify(gameState);
-      const encoded = btoa(encodeURIComponent(stateStr));
+      // Usiamo il TAN per un link cortissimo!
+      const tan = G.exportTAN();
+      const minState = { t: tan, v: gameState.gameVer || 'beta' };
+      const encoded = btoa(JSON.stringify(minState));
       const baseUrl = window.location.origin + window.location.pathname;
-      return `${baseUrl}?spectate=${encoded}`;
+      return `${baseUrl}?s=${encoded}`;
     } catch (error) {
       console.error('Errore generazione link:', error);
       return null;
@@ -561,16 +564,61 @@ const ShareFeatures = {
   
   checkURL() {
     const params = new URLSearchParams(window.location.search);
-    const spectateData = params.get('spectate');
+    const spectateData = params.get('s') || params.get('spectate');
     if (spectateData) {
       try {
-        return JSON.parse(decodeURIComponent(atob(spectateData)));
+        let decodedStr = atob(spectateData);
+        if (decodedStr.includes('%')) decodedStr = decodeURIComponent(decodedStr);
+        const parsed = JSON.parse(decodedStr);
+        
+        if (parsed.board) return parsed;
+        if (parsed.t) return this.decodeTAN(parsed.t, parsed.v);
       } catch (error) {
         alert('Link di condivisione non valido o corrotto');
         return null;
       }
     }
     return null;
+  },
+  
+  decodeTAN(tan, gameVer) {
+    const parts = tan.trim().split(/\s+/);
+    if(parts.length !== 5) return null;
+    const [ringData, turnS, resS, moveS, rotS] = parts;
+    const rings = ringData.split('/');
+    const board = {}; const special = {};
+    const AALL = [...Array.from({length:18},(_,i)=>'E'+(i+1)),...Array.from({length:12},(_,i)=>'M'+(i+1)),...Array.from({length:6},(_,i)=>'I'+(i+1)),'C'];
+    AALL.forEach(c => board[c] = 0);
+    const ringNames = ['E','M','I'];
+    
+    for(let ri=0; ri<3; ri++){
+      const seg = rings[ri], r = ringNames[ri];
+      let idx = 1, i = 0;
+      while(i < seg.length){
+        const ch = seg[i];
+        if(/\d/.test(ch)){
+          let numStr = '';
+          while(i < seg.length && /\d/.test(seg[i])) { numStr += seg[i]; i++; }
+          idx += parseInt(numStr);
+        } else {
+          const id = r + idx;
+          if(ch === 'r') board[id] = 1;
+          else if(ch === 'R') { board[id] = 1; special[id] = true; }
+          else if(ch === 'b') board[id] = 2;
+          else if(ch === 'B') { board[id] = 2; special[id] = true; }
+          idx++; i++;
+        }
+      }
+    }
+    
+    const cur = turnS === 'r' ? 1 : 2;
+    const reserve = resS.split(':').map(x => parseInt(x) || 0);
+    const rotN = parseInt(rotS) || 0;
+    
+    return {
+      board: board, cur: cur, rotN: rotN, reserve: reserve, special: special,
+      history: null, lastMove: null, gameMode: 'local', vsAI: false, gameVer: gameVer
+    };
   },
   
   activateSpectatorMode() {
@@ -699,7 +747,7 @@ const PublicLobby = {
     const timeAgo = this.getTimeAgo(room.timestamp);
     const initial = room.hostName ? room.hostName[0].toUpperCase() : '?';
     
-    // Mostriamo il tipo di tempo scelto
+    // Decodifica il tempo selezionato per mostrarlo in UI
     const tc = room.timeControl || 'unlimited';
     const tcLabels = { 'blitz': '⚡ Blitz', 'rapid': '⏱️ Rapid', 'unlimited': '♾️ Senza limiti' };
     const tcText = tcLabels[tc] || 'Senza limiti';
