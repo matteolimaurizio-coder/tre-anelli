@@ -112,6 +112,64 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
 #an-sb{background:var(--sb-bg) !important;}
 #an-tl{color:var(--text) !important;}
 #an-al{color:var(--text4) !important;}
+
+/* ── SHARE MODAL E SPETTATORE ─────────────────────────────────── */
+#share-modal {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  align-items: center; justify-content: center; z-index: 1000; padding: 20px;
+}
+#share-box {
+  background: var(--surface); border-radius: 13px; padding: 24px 28px;
+  max-width: 500px; width: 100%; box-shadow: 0 4px 24px rgba(0,0,0,0.3); color: var(--text);
+}
+#share-box h2 { font-size: 18px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+#share-box p { font-size: 13px; color: var(--text4); margin-bottom: 16px; line-height: 1.6; }
+#share-link-container {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px;
+}
+#share-link { flex: 1; font-size: 11px; font-family: monospace; color: var(--text2); word-break: break-all; line-height: 1.5; }
+#copy-link-btn { font-size: 12px; padding: 7px 16px; cursor: pointer; border-radius: 6px; border: 1px solid var(--btn-border); background: var(--btn-bg); color: var(--text2); white-space: nowrap; transition: all 0.2s; }
+#copy-link-btn:hover { background: var(--btn-hover); }
+#copy-link-btn.copied { background: #10b981; color: white; border-color: #10b981; }
+#share-buttons { display: flex; gap: 10px; justify-content: flex-end; }
+#share-buttons button { font-size: 13px; padding: 8px 18px; cursor: pointer; border-radius: 8px; border: 1px solid var(--btn-border); background: var(--btn-bg); color: var(--text2); }
+#share-buttons button:hover { background: var(--btn-hover); }
+
+#spectator-banner {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white; text-align: center; padding: 11px 16px; font-size: 13px; font-weight: 600; margin-bottom: 8px; border-radius: 8px; display: none; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+/* ── LOBBY PUBBLICA ──────────────────────────────────────────── */
+#public-lobby {
+  background: var(--surface); border-radius: 12px; border: 0.5px solid var(--border);
+  padding: 16px 20px; margin-top: 16px; max-width: 520px; margin-left: auto; margin-right: auto; text-align: left;
+}
+#public-lobby h3 { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; }
+#public-lobby h3 .online-count { font-size: 11px; font-weight: 500; color: var(--text4); background: var(--surface2); padding: 3px 10px; border-radius: 12px; }
+#public-lobby h3 .online-count .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #10b981; margin-right: 5px; animation: pulse 2s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+.lobby-subtitle { font-size: 12px; color: var(--text4); margin-bottom: 14px; }
+.lobby-empty { text-align: center; padding: 24px 16px; color: var(--text4); font-size: 13px; font-style: italic; }
+.lobby-list { display: flex; flex-direction: column; gap: 8px; }
+.lobby-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); transition: all 0.2s; cursor: pointer; }
+.lobby-item:hover { border-color: var(--ai-border); background: var(--surface2); transform: translateX(2px); }
+.lobby-item-info { display: flex; align-items: center; gap: 12px; flex: 1; }
+.lobby-item-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--ai-color), var(--ob-color)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 16px; flex-shrink: 0; }
+.lobby-item-details { flex: 1; }
+.lobby-item-name { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.lobby-item-meta { font-size: 11px; color: var(--text4); }
+.lobby-item-code { font-family: monospace; font-size: 16px; font-weight: 700; color: var(--ai-color); letter-spacing: 2px; margin-right: 10px; }
+.lobby-item-action { font-size: 12px; padding: 6px 14px; background: var(--ai-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+.lobby-item-action:hover { filter: brightness(1.1); transform: scale(1.05); }
+.public-toggle { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 10px 14px; background: var(--surface2); border-radius: 8px; font-size: 12px; }
+.public-toggle input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--ai-color); }
+.public-toggle label { cursor: pointer; color: var(--text2); user-select: none; }
+.status-indicator { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; padding: 3px 8px; border-radius: 12px; background: var(--surface2); }
+.status-indicator.waiting { color: #f59e0b; }
+.status-indicator.playing { color: #10b981; }
+.status-indicator .status-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
 </style>
 </head>
 <body>
@@ -172,12 +230,31 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
     <div id="waiting">
       <p style="font-size:12px;color:#666;">Condividi questo codice con il tuo avversario:</p>
       <div class="code" id="game-code"></div>
-      <p style="font-size:11px;color:#aaa;">In attesa della connessione…</p>
+      
+      <div class="public-toggle">
+        <input type="checkbox" id="make-public-toggle" onchange="PublicLobby.togglePublic(this.checked)">
+        <label for="make-public-toggle">🌐 Rendi partita visibile in lobby pubblica</label>
+      </div>
+
+      <p style="font-size:11px;color:#aaa;margin-top:10px;">In attesa della connessione…</p>
     </div>
     <div id="lobby-status"></div>
   </div>
 
   <div class="divider"></div>
+
+  <div id="public-lobby" style="display:none;">
+    <h3>
+      <span>🌐 Lobby Pubblica</span>
+      <span class="online-count">
+        <span class="dot"></span>
+        <span id="online-count">0</span> online
+      </span>
+    </h3>
+    <p class="lobby-subtitle">Giocatori che cercano partita</p>
+    <div id="lobby-list-container">
+      </div>
+  </div>
 
   <div class="section">
     <h2>Gioca in locale</h2>
@@ -215,7 +292,7 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
     <div class="btn-row">
       <button class="ob" onclick="window.open('guida.html', '_blank')">Apri Guida</button>
     </div>
-</div>
+  </div>
 
   <div class="divider"></div>
   <div class="section">
@@ -227,6 +304,10 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
 </div>
 
 <div id="game">
+  <div id="spectator-banner">
+    <span style="font-size:16px; margin-right:6px;">👁️</span> Stai guardando in modalità spettatore
+  </div>
+
   <div id="mode-bar"></div>
   <div id="sb">
     <div id="tl">Turno: P1 (rosso)</div>
@@ -247,6 +328,7 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
   <div id="controls">
     <button id="btn-undo" onclick="G.undoMove()" style="display:none; border-color:#9a6dd7; color:var(--beta-color); font-weight:bold;">↩ Annulla Mossa</button>
     <button onclick="G.restart()" id="btn-restart2">Ricomincia</button>
+    <button onclick="ShareFeatures.showModal(G.getGameState())" id="btn-share" style="border-color:#9a6dd7;color:var(--beta-color);font-weight:bold;">🔗 Condividi</button>
     <button onclick="G.surrender()" style="border-color:#e85d24;color:#e85d24;">Abbandona</button>
     <button onclick="goMenu()">Menu</button>
   </div>
@@ -326,6 +408,20 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
       <button onclick="G.copyNotation()">Copia</button>
     </div>
     <div id="notation-log"></div>
+  </div>
+
+  <div id="share-modal">
+    <div id="share-box">
+      <h2>Condividi Partita</h2>
+      <p>Copia questo link per far vedere la partita ad altri in tempo reale (sola lettura).</p>
+      <div id="share-link-container">
+        <div id="share-link"></div>
+        <button id="copy-link-btn" onclick="ShareFeatures.copyLink()">Copia</button>
+      </div>
+      <div id="share-buttons">
+        <button onclick="ShareFeatures.closeModal()">Chiudi</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -423,6 +519,246 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
   </div>
 </div>
 <script>
+// --- FUNZIONI DI CONDIVISIONE / SPETTATORE ---
+const ShareFeatures = {
+  isSpectating: false,
+  
+  generateLink(gameState) {
+    try {
+      const stateStr = JSON.stringify(gameState);
+      const encoded = btoa(encodeURIComponent(stateStr));
+      const baseUrl = window.location.origin + window.location.pathname;
+      return `${baseUrl}?spectate=${encoded}`;
+    } catch (error) {
+      console.error('Errore generazione link:', error);
+      return null;
+    }
+  },
+  
+  showModal(gameState) {
+    const link = this.generateLink(gameState);
+    if (!link) { alert('Errore nella generazione del link di condivisione'); return; }
+    document.getElementById('share-link').textContent = link;
+    document.getElementById('share-modal').style.display = 'flex';
+    const btn = document.getElementById('copy-link-btn');
+    btn.textContent = 'Copia';
+    btn.classList.remove('copied');
+  },
+  
+  closeModal() { document.getElementById('share-modal').style.display = 'none'; },
+  
+  copyLink() {
+    const link = document.getElementById('share-link').textContent;
+    const btn = document.getElementById('copy-link-btn');
+    navigator.clipboard.writeText(link).then(() => {
+        btn.textContent = '✓ Copiato!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copia'; btn.classList.remove('copied'); }, 2000);
+      }).catch(err => { prompt('Copia questo link:', link); });
+  },
+  
+  checkURL() {
+    const params = new URLSearchParams(window.location.search);
+    const spectateData = params.get('spectate');
+    if (spectateData) {
+      try {
+        return JSON.parse(decodeURIComponent(atob(spectateData)));
+      } catch (error) {
+        alert('Link di condivisione non valido o corrotto');
+        return null;
+      }
+    }
+    return null;
+  },
+  
+  activateSpectatorMode() {
+    this.isSpectating = true;
+    const banner = document.getElementById('spectator-banner');
+    if (banner) banner.style.display = 'block';
+    
+    const controlButtons = document.querySelectorAll('#controls button, #rot-controls button');
+    controlButtons.forEach(btn => {
+      btn.disabled = true; btn.style.opacity = '0.3'; btn.style.cursor = 'not-allowed';
+    });
+    
+    const canvas = document.getElementById('cv');
+    if (canvas) { canvas.style.pointerEvents = 'none'; canvas.style.opacity = '0.95'; }
+    
+    const hideButtons = ['btn-restart', 'btn-restart2', document.querySelector('[onclick*="surrender"]'), document.querySelector('[onclick*="ShareFeatures.showModal"]')];
+    hideButtons.forEach(btn => {
+      if (btn && typeof btn === 'string') {
+        const element = document.getElementById(btn);
+        if (element) element.style.display = 'none';
+      } else if (btn) { btn.style.display = 'none'; }
+    });
+    
+    const actionLabel = document.getElementById('al');
+    if (actionLabel) actionLabel.textContent = 'Modalità spettatore - Puoi solo osservare';
+  },
+  
+  loadSharedGame(gameState, gameObject) {
+    if (gameObject && typeof gameObject.loadState === 'function') {
+      gameObject.loadState(gameState);
+    }
+  },
+  
+  init(gameObject) {
+    const spectateState = this.checkURL();
+    if (spectateState) {
+      this.activateSpectatorMode();
+      if (gameObject) this.loadSharedGame(spectateState, gameObject);
+      return true;
+    }
+    return false;
+  }
+};
+
+// --- LOBBY PUBBLICA FIREBASE ---
+const PublicLobby = {
+  db: null,
+  currentUserId: null,
+  currentRoomCode: null,
+  isPublic: false,
+  
+  init(firebaseDatabase) {
+    this.db = firebaseDatabase;
+    this.currentUserId = this.generateUserId();
+    this.registerPresence();
+    this.listenToLobby();
+    window.addEventListener('beforeunload', () => { this.cleanup(); });
+  },
+  
+  generateUserId() {
+    let userId = sessionStorage.getItem('tre_anelli_user_id');
+    if (!userId) {
+      userId = 'user_' + Math.random().toString(36).substr(2, 9);
+      sessionStorage.setItem('tre_anelli_user_id', userId);
+    }
+    return userId;
+  },
+  
+  registerPresence() {
+    const presenceRef = this.db.ref(`presence/${this.currentUserId}`);
+    presenceRef.set({ status: 'online', lastSeen: firebase.database.ServerValue.TIMESTAMP, username: this.getUsername() });
+    presenceRef.onDisconnect().set({ status: 'offline', lastSeen: firebase.database.ServerValue.TIMESTAMP, username: this.getUsername() });
+    setInterval(() => { presenceRef.update({ lastSeen: firebase.database.ServerValue.TIMESTAMP }); }, 30000); 
+  },
+  
+  getUsername() {
+    let username = localStorage.getItem('tre_anelli_username');
+    if (!username) {
+      const adjectives = ['Veloce', 'Saggio', 'Astuto', 'Coraggioso', 'Silenzioso'];
+      const nouns = ['Leone', 'Aquila', 'Drago', 'Lupo', 'Fenice'];
+      username = adjectives[Math.floor(Math.random() * adjectives.length)] + nouns[Math.floor(Math.random() * nouns.length)];
+      localStorage.setItem('tre_anelli_username', username);
+    }
+    return username;
+  },
+  
+  setUsername(newUsername) {
+    localStorage.setItem('tre_anelli_username', newUsername);
+    this.db.ref(`presence/${this.currentUserId}`).update({ username: newUsername });
+  },
+  
+  showLobby() { document.getElementById('public-lobby').style.display = 'block'; },
+  hideLobby() { document.getElementById('public-lobby').style.display = 'none'; },
+  
+  listenToLobby() {
+    const lobbyRef = this.db.ref('lobby');
+    lobbyRef.on('value', (snapshot) => {
+      const rooms = snapshot.val() || {};
+      this.renderLobby(rooms);
+      this.updateOnlineCount();
+    });
+  },
+  
+  updateOnlineCount() {
+    const presenceRef = this.db.ref('presence');
+    presenceRef.once('value', (snapshot) => {
+      const users = snapshot.val() || {};
+      const onlineUsers = Object.values(users).filter(u => u.status === 'online' && (Date.now() - u.lastSeen < 60000));
+      const countEl = document.getElementById('online-count');
+      if (countEl) countEl.textContent = onlineUsers.length;
+    });
+  },
+  
+  renderLobby(rooms) {
+    const container = document.getElementById('lobby-list-container');
+    if (!container) return;
+    const publicRooms = Object.entries(rooms).filter(([code, room]) => room.isPublic && room.status === 'waiting').sort(([, a], [, b]) => b.timestamp - a.timestamp);
+    if (publicRooms.length === 0) {
+      container.innerHTML = `<div class="lobby-empty">Nessun giocatore in cerca di partita al momento.<br><span style="font-size:11px;margin-top:4px;display:block;">Crea una partita e rendila pubblica per apparire qui!</span></div>`;
+      return;
+    }
+    container.innerHTML = `<div class="lobby-list">${publicRooms.map(([code, room]) => this.renderLobbyItem(code, room)).join('')}</div>`;
+  },
+  
+  renderLobbyItem(code, room) {
+    const timeAgo = this.getTimeAgo(room.timestamp);
+    const initial = room.hostName ? room.hostName[0].toUpperCase() : '?';
+    return `
+      <div class="lobby-item" onclick="PublicLobby.joinRoom('${code}')">
+        <div class="lobby-item-info">
+          <div class="lobby-item-avatar">${initial}</div>
+          <div class="lobby-item-details">
+            <div class="lobby-item-name">${room.hostName || 'Giocatore'}</div>
+            <div class="lobby-item-meta">${timeAgo} • <span class="status-indicator waiting"><span class="status-dot"></span> In attesa</span></div>
+          </div>
+        </div>
+        <div class="lobby-item-code">${code}</div>
+        <button class="lobby-item-action">Unisciti</button>
+      </div>`;
+  },
+  
+  getTimeAgo(timestamp) {
+    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+    if (seconds < 60) return 'Ora';
+    if (seconds < 3600) return Math.floor(seconds / 60) + ' min fa';
+    if (seconds < 86400) return Math.floor(seconds / 3600) + ' ore fa';
+    return Math.floor(seconds / 86400) + ' giorni fa';
+  },
+  
+  publishRoom(roomCode, hostName) {
+    this.currentRoomCode = roomCode; this.isPublic = true;
+    const roomRef = this.db.ref(`lobby/${roomCode}`);
+    roomRef.set({ hostId: this.currentUserId, hostName: hostName || this.getUsername(), status: 'waiting', isPublic: true, timestamp: firebase.database.ServerValue.TIMESTAMP });
+    roomRef.onDisconnect().remove();
+  },
+  
+  unpublishRoom(roomCode) {
+    if (!roomCode) roomCode = this.currentRoomCode;
+    if (!roomCode) return;
+    this.db.ref(`lobby/${roomCode}`).remove();
+    this.isPublic = false;
+  },
+  
+  updateRoomStatus(roomCode, status) {
+    if (!roomCode) roomCode = this.currentRoomCode;
+    if (!roomCode) return;
+    this.db.ref(`lobby/${roomCode}`).update({ status: status, lastUpdate: firebase.database.ServerValue.TIMESTAMP });
+  },
+  
+  togglePublic(isPublic) {
+    const roomCode = this.currentRoomCode;
+    if (!roomCode) return;
+    if (isPublic) this.publishRoom(roomCode, this.getUsername());
+    else this.unpublishRoom(roomCode);
+  },
+  
+  joinRoom(roomCode) {
+    const codeInput = document.getElementById('join-code');
+    if (codeInput) codeInput.value = roomCode.toUpperCase();
+    this.updateRoomStatus(roomCode, 'playing');
+    if (typeof joinGame === 'function') joinGame();
+  },
+  
+  cleanup() {
+    if (this.currentRoomCode) this.unpublishRoom(this.currentRoomCode);
+    if (this.currentUserId) this.db.ref(`presence/${this.currentUserId}`).update({ status: 'offline', lastSeen: firebase.database.ServerValue.TIMESTAMP });
+  }
+};
+
+
 // --- IMPOSTAZIONI GLOBALI E TEMI ---
 function toggleSettings() {
   const menu = document.getElementById('settings-menu');
@@ -596,7 +932,6 @@ aiWorker.onmessage = function(e) {
   if (e.data.type === 'ready') {
       aiWorkerReady = true;
   }
-  // Ascoltiamo sia 'mossa' (fine calcolo) che 'iterative' (calcoli intermedi in diretta)
   else if (e.data.type === 'mossa' || e.data.type === 'iterative') {
      if (typeof e.data.eval_score === 'undefined') return;
 
@@ -615,14 +950,12 @@ aiWorker.onmessage = function(e) {
              const bmList = document.getElementById('an-bestmove-list');
              const moveStr = formatEngineMove(e.data.result);
              
-             // Aggiungiamo un piccolo tag che mostra la Profondità attuale in tempo reale!
              let depthStr = e.data.depth ? `<span style="color:var(--text4);font-size:10px;margin-left:8px;">[Profondità: ${e.data.depth}]</span>` : '';
              
              bmList.innerHTML = `<div>1. <span style="color:var(--text);font-weight:bold;">${moveStr}</span>${depthStr}</div>`;
          }
      } 
      
-     // La giocata fisica contro l'IA avviene solo alla fine (type === 'mossa')
      if (e.data.type === 'mossa') {
          const cbId = e.data._callbackId || '';
          const currentTask = workerTasks.shift() || cbId;
@@ -646,7 +979,6 @@ function forceAnalysisEval() {
         document.getElementById('an-bestmove-list').innerHTML = '<span style="color:var(--text4);">Calcolo in corso...</span>';
     }
     
-    // IA pensa fino a profondità 30 o per un massimo di 30 SECONDI interi!
     doAnalysisCall(30, 30000); 
 }
 
@@ -660,7 +992,6 @@ function requestAnalysisEval() {
         document.getElementById('an-bestmove-list').innerHTML = '<span style="color:var(--text4);">Calcolo in corso...</span>';
     }
     
-    // In auto-analisi, l'IA pensa fino a profondità 15 o per 5 secondi
     doAnalysisCall(15, 5000); 
 }
 
@@ -693,7 +1024,7 @@ function doAnalysisCall(depth, timeMs) {
 
       aiWorker.postMessage({ 
           type: 'set_time', 
-          ms: timeMs // Usiamo il nuovo tempo prolungato!
+          ms: timeMs
       }); 
       aiWorker.postMessage({
           type: 'calcola',
@@ -816,7 +1147,10 @@ function loadFB(cb){
     inj('https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js',()=>{
       try{
         if(!firebase.apps.length)firebase.initializeApp({apiKey:"AIzaSyD0byKrvAG1AnQJyxhwab503Rp3OiUfgbw",authDomain:"tre-anelli.firebaseapp.com",databaseURL:"https://tre-anelli-default-rtdb.europe-west1.firebasedatabase.app",projectId:"tre-anelli",storageBucket:"tre-anelli.firebasestorage.app",messagingSenderId:"873864785531",appId:"1:873864785531:web:fe6b728fb97fe381b73cde"});
-        db=firebase.database();cb(true);
+        db=firebase.database();
+        PublicLobby.init(db);
+        PublicLobby.showLobby();
+        cb(true);
       }catch(e){document.getElementById('lobby-status').textContent='Errore connessione.';cb(false);}
     });
   });
@@ -838,6 +1172,11 @@ function createGame(ver){
     document.getElementById('game-code').textContent=code;
     document.getElementById('waiting').style.display='block';
     document.getElementById('lobby-status').textContent='';
+    
+    PublicLobby.currentRoomCode = code;
+    document.getElementById('make-public-toggle').checked = false;
+    PublicLobby.isPublic = false;
+    
     db.ref('games/'+code+'/status').on('value',snap=>{if(snap.val()==='playing')startOnline(code,1,ver);});
   });
 }
@@ -869,6 +1208,10 @@ function startOnline(code,player,ver){
   document.getElementById('btn-restart').style.display='none';
   document.getElementById('btn-restart2').style.display='none';
   
+  if (PublicLobby.isPublic && myPlayer === 1) {
+      PublicLobby.updateRoomStatus(code, 'playing');
+  }
+
   G.init('online',ver,false,null);
   
   db.ref('games/'+code+'/timeControl').once('value').then(snap=>{
@@ -968,6 +1311,7 @@ function goMenu(){
   clockConfig=null;
   document.getElementById('clock-bar').style.display='none';
   isAiCalculating = false;
+  PublicLobby.unpublishRoom();
 }
 
 function openAnalysis(){
@@ -1167,16 +1511,23 @@ const G=(function(){
   function loadState(s) {
     board = Object.assign({}, s.board);
     cur = s.cur;
-    rotN = s.rotN;
-    reserve = [...s.reserve];
-    special = Object.assign({}, s.special);
-    hist = [sn()];
-    navI = -1;
-    notMoves = [];
-    document.getElementById('notation-log').innerHTML='';
+    rotN = s.rotN || 0;
+    reserve = [...(s.reserve || [0,0])];
+    special = Object.assign({}, s.special || {});
+    lastMove = s.lastMove ? {...s.lastMove} : null;
+    
+    if (s.history) {
+      hist = [...s.history];
+      navI = -1;
+      rebuildNotation();
+    } else {
+      hist = [sn()];
+      navI = -1;
+      notMoves = [];
+      document.getElementById('notation-log').innerHTML='';
+    }
     
     isAiCalculating = false;
-    
     upd(); draw();
     if(cur === aiPlayer && vsAI) aiThink();
   }
@@ -1594,6 +1945,7 @@ const G=(function(){
     document.getElementById('wt').textContent='Vince P'+p+tag+'!';
     document.getElementById('wr').textContent=r;
     document.getElementById('wo').style.display='flex';
+    PublicLobby.unpublishRoom();
   }
   function surrender(){
     if(over||!live())return;
@@ -1688,13 +2040,10 @@ const G=(function(){
       let dxI = Math.sqrt(Math.max(0, RI*RI - dy*dy));
       ctx.strokeStyle=th.gridLine;ctx.lineWidth=0.8;ctx.setLineDash([]);
       
-      // Seleziona il disegno basato sul layout
       if (currentBoardStyle === 'nocenter' && gameVer === 'beta') {
-          // Ferma le linee all'anello interno
           ctx.beginPath();ctx.moveTo(CX-RE-22,ry);ctx.lineTo(CX-dxI,ry);ctx.stroke();
           ctx.beginPath();ctx.moveTo(CX+dxI,ry);ctx.lineTo(CX+RE+22,ry);ctx.stroke();
       } else {
-          // Linee passanti per il centro (Classica)
           ctx.beginPath();ctx.moveTo(CX-RE-22,ry);ctx.lineTo(CX+RE+22,ry);ctx.stroke();
       }
     });
@@ -1816,9 +2165,25 @@ const G=(function(){
       buildAdjacencies,
       over:()=>over,cur:()=>cur,isVsAI:()=>vsAI,
       getBoard:()=>board, getSpecial:()=>special, getReserve:()=>reserve, getRotN:()=>rotN,
-      exportTAN,copyTAN,redraw:draw
+      exportTAN,copyTAN,redraw:draw,
+      getGameState: () => ({
+        board: Object.assign({}, board), cur: cur, rotN: rotN, reserve: [...reserve],
+        special: Object.assign({}, special), history: [...hist], lastMove: lastMove ? {...lastMove} : null,
+        gameMode: gameMode, vsAI: vsAI, gameVer: gameVer
+      })
   };
 })();
+
+// ── INIZIALIZZAZIONE DI SHARE E LOBBY ──────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    loadFB(() => { console.log('Firebase caricato all\'avvio'); });
+    
+    const isSpectating = ShareFeatures.init(G);
+    if (isSpectating) {
+        document.getElementById('lobby').style.display = 'none';
+        document.getElementById('game').style.display = 'block';
+    }
+});
 
 // ── ANALYSIS ENGINE ──
 let evalTimeout = null;
