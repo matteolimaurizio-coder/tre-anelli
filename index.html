@@ -197,48 +197,48 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
 
 <div id="lobby">
   <h1>Tre Anelli</h1>
-  <p>Gioco di strategia / 전략 게임</p>
+  <p>Strategy Game / 전략 게임</p>
   <p style="font-size:12px;margin-top:8px;"> <a href="https://discord.gg/sF5AywCt" target="_blank" style="color:#5865F2;text-decoration:none;border-bottom:1px solid #5865F2;">Join Discord Community</a> </p>
   <div class="rules-box">
     <b class="title">Regole / 규칙</b>
-    <b>Per vincere</b> occupa simultaneamente i tre nodi verdi (I1, I3, I5) oppure cattura tutte le pietre avversarie.<br>
-    <b>Al tuo turno puoi</b> spostare una pietra, ruotare l'anello medio o esterno oppure rimettere in gioco una pietra.<br>
-    <b>La cattura</b> è facoltativa. Salta una pietra avversaria adiacente con nodo successivo libero. Le pietre catturate entrano nella tua riserva e possono essere ripiazzate su anello esterno o medio in un turno successivo.<br>
-    <b>La rotazione</b> segue il ciclo 1→2→3→1… Non puoi ruotare un anello senza tue pietre. L'anello interno non ruota.<br>
-    <b>I pezzi speciali</b> (M4, E4, E6 / M10, E15, E13) si muovono di uno o due passi in qualsiasi direzione. Se catturati, rientrano in gioco come pezzi normali.
+    <b>To win</b> simultaneously occupy the three green nodes (I1, I3, I5) or capture all of your opponent’s stones.<br>
+    <b>On your turn</b> you may move a stone, rotate the middle or outer ring, or bring a stone back into play.<br>
+    <b>Capturing is optional.</b> Jump over an adjacent opponent’s stone with a free adjacent node. Captured stones go into your reserve and can be placed back on the outer or middle ring on a later turn.<br>
+    <b>Rotation</b> follows the cycle 1→2→3→1… You cannot rotate a ring that contains none of your stones. The inner ring does not rotate.<br>
+    <b>Special pieces</b> move one or two spaces in any direction. If captured, they return as normal pieces.
   </div>
 
   <div class="section">
-    <h2>Gioca online</h2>
+    <h2>Play Online</h2>
     <div class="btn-row">
-      <button class="ob" onclick="showCreateMenu()">Crea partita</button>
+      <button class="ob" onclick="showCreateMenu()">Create Game</button>
     </div>
     <div id="create-menu" style="display:none; background:var(--surface); border:1px solid var(--ai-border); border-radius:10px; padding:15px; margin-top:10px; text-align:left;">
-      <label style="font-size:11px; color:var(--text3); font-weight:600;">Tempo di gioco</label>
+      <label style="font-size:11px; color:var(--text3); font-weight:600;">Time</label>
       <select id="time-control" style="width:100%; font-size:12px; padding:8px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); margin-top:4px; outline:none; cursor:pointer; margin-bottom:10px;">
         <option value="blitz">⚡ Blitz (5 min + 3 sec)</option>
         <option value="rapid">⏱️ Rapid (10 min + 5 sec)</option>
-        <option value="unlimited" selected>♾️ Senza limiti di tempo</option>
+        <option value="unlimited" selected>♾️ Unlimited</option>
       </select>
       <button class="ob" style="width:100%; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;" onclick="createGame('beta')">Crea Partita</button>
     </div>
     <div class="btn-row">
-      <button class="ob" onclick="showJoin()">Unisciti con codice</button>
+      <button class="ob" onclick="showJoin()">Join with a code</button>
     </div>
     <div id="join-box">
       <input id="join-code" maxlength="4" placeholder="XXXX" oninput="this.value=this.value.toUpperCase()">
-      <button onclick="joinGame()">Entra</button>
+      <button onclick="joinGame()">Join</button>
     </div>
     <div id="waiting">
-      <p style="font-size:12px;color:#666;">Condividi questo codice con il tuo avversario:</p>
+      <p style="font-size:12px;color:#666;">Share this code with your opponent:</p>
       <div class="code" id="game-code"></div>
       
       <div class="public-toggle">
         <input type="checkbox" id="make-public-toggle" onchange="PublicLobby.togglePublic(this.checked)">
-        <label for="make-public-toggle">Metti il codice in piazza!</label>
+        <label for="make-public-toggle">Share your code at the Piazza!</label>
       </div>
 
-      <p style="font-size:11px;color:#aaa;margin-top:10px;">In attesa della connessione…</p>
+      <p style="font-size:11px;color:#aaa;margin-top:10px;">Waiting for the connection…</p>
     </div>
     <div id="lobby-status"></div>
   </div>
@@ -253,7 +253,7 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
         <span id="online-count">0</span> online
       </span>
     </h3>
-    <p class="lobby-subtitle">Giocatori che cercano partita</p>
+    <p class="lobby-subtitle">Players looking for a game</p>
     <div id="lobby-list-container">
       </div>
   </div>
@@ -261,16 +261,16 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
  <div class="divider"></div>
   
   <div class="section">
-    <h2>Gioca in locale</h2>
+    <h2>Play Offline</h2>
     <div class="btn-row">
-      <button onclick="startLocal('beta', false)">Due giocatori</button>
-      <button class="beta" onclick="toggleAiMenu()">Contro l'IA ▼</button>
+      <button onclick="startLocal('beta', false)">Two Players</button>
+      <button class="beta" onclick="toggleAiMenu()">Against AI ▼</button>
     </div>
     
     <div id="ai-menu" style="display:none; background:var(--surface); border:1px solid var(--ai-border); border-radius:10px; padding:15px; margin-top:10px; text-align:left;">
       <div style="display:flex; gap:10px; margin-bottom:15px;">
         <div style="flex:1;">
-          <label style="font-size:11px; color:var(--text3); font-weight:600;">Difficoltà Motore</label>
+          <label style="font-size:11px; color:var(--text3); font-weight:600;">Engine Strength</label>
           <select id="lobby-ai-diff" style="width:100%; font-size:12px; padding:8px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); margin-top:4px; outline:none; cursor:pointer;">
             <option value="easy">Marvin The Paranoid Android</option>
             <option value="medium" selected>Astro Boy</option>
@@ -278,10 +278,10 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
           </select>
         </div>
         <div style="flex:1;">
-          <label style="font-size:11px; color:var(--text3); font-weight:600;">Il tuo Colore</label>
+          <label style="font-size:11px; color:var(--text3); font-weight:600;">Your Colour</label>
           <select id="lobby-ai-color" style="width:100%; font-size:12px; padding:8px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); margin-top:4px; outline:none; cursor:pointer;">
-            <option value="1">🔴 Rosso (Inizi tu)</option>
-            <option value="2">🔵 Blu (Inizia l'IA)</option>
+            <option value="1">🔴 Red (You Start)</option>
+            <option value="2">🔵 Blu (IA Starts)</option>
           </select>
         </div>
       </div>
@@ -292,7 +292,7 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
   <div class="divider"></div>
   
   <div class="section">
-    <h2>Guida Galattica</h2>
+    <h2>The Hitchhiker's Guide (in Italian)</h2>
     <div class="btn-row">
       <button class="ob" onclick="window.open('guida.html', '_blank')">Apri Guida</button>
     </div>
@@ -300,9 +300,9 @@ body{font-family:sans-serif;background:var(--bg);min-height:100vh;padding:12px;c
 
   <div class="divider"></div>
   <div class="section">
-    <h2>Analisi</h2>
+    <h2>Analysis</h2>
     <div class="btn-row">
-      <button onclick="openAnalysis()">Apri scacchiera di analisi</button>
+      <button onclick="openAnalysis()">Open Analysis Board</button>
     </div>
   </div>
 </div>
