@@ -2622,7 +2622,7 @@ const G = (function() {
     function draw() {
         if (!board) return;
         const th = T();
-        ctx.clearRect(0, 0, W, H); ctx.fillStyle = th.cvBg; ctx.fillRect(0, 0, W, H); dSt(); dArrow();
+        ctx.clearRect(0, 0, W, H); ctx.fillStyle = th.cvBg; ctx.fillRect(0, 0, W, H); dSt(); drawArrow();
         let ghostM = {};
         if (prvRing && live()) { const st = (rotN % 3) + 1, cells = rC(prvRing), n = cells.length; cells.forEach((c, i) => { if (board[c] !== 0) ghostM[cells[(i + st) % n]] = board[c]; }); }
         for (const id of getALL()) {
@@ -3049,7 +3049,7 @@ const A = (function() {
     function draw(){
       if (!curNode) return;
       const s=curNode.state, th=T();
-      ctx.clearRect(0,0,W,H);ctx.fillStyle=th.cvBg;ctx.fillRect(0,0,W,H);dSt();dArrow();
+      ctx.clearRect(0,0,W,H);ctx.fillStyle=th.cvBg;ctx.fillRect(0,0,W,H);dSt();drawArrow();
       let ghostM={};
       if(prvRing){const st=(s.rotN%3)+1,cells=rC(prvRing),n=cells.length;cells.forEach((c,i)=>{if(s.board[c]!==0)ghostM[cells[(i+st)%n]]=s.board[c];});}
       
