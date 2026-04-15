@@ -1755,7 +1755,7 @@ const G = (function() {
     function rebuildNotation() {
         notMoves = []; pendingHalf = null;
         for (let i = 1; i < hist.length; i++) {
-            const pl = hist[i - 1].cur;
+            const pl = hist[i].cur;
             const s = notStr(hist[i].lm);
             if (pl === 1) { pendingHalf = s; }
             else { notMoves.push({ num: notMoves.length + 1, p1: pendingHalf || '?', p2: s }); pendingHalf = null; }
