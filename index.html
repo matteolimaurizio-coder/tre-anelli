@@ -2707,9 +2707,9 @@ const A = (function() {
         aae('E2','M2');aae('M2','I2');aae('I3','M6');aae('M6','E9');
         aae('E18','M12');aae('M12','I6');aae('I5','M8');aae('M8','E11');
         
-        ae('I1', 'I4', ADJ_BETA);
-        ae('I2', 'I3', ADJ_BETA);
-        ae('I6', 'I5', ADJ_BETA);
+        aae('I1', 'I4');
+        aae('I2', 'I3');
+        aae('I6', 'I5');
     }
     buildAdjacencies();
 
@@ -3030,7 +3030,7 @@ const A = (function() {
             } else {
                 ctx.beginPath(); ctx.arc(x - 3, y - 3, 5, 0, Math.PI * 2); ctx.fillStyle = hi; ctx.fill();
             }
-    }
+        }
 
         if (pc && currentPieceStyle === 'emoji') {
             drawEmojiPiece(ctx, x, y, pc === 1, s.special && s.special[id]);
