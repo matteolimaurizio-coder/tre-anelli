@@ -758,7 +758,7 @@ function drawBetaSun(ctx, x, y, mainCol) {
     ctx.fillStyle = mainCol;
     ctx.fill();
     
-    const numRays = 8;
+    const numRays = 9;
     const innerRadius = 5.5;
     const outerRadius = 10;
     
@@ -1672,8 +1672,10 @@ const G = (function() {
         ae('E18', 'M12', ADJ_BETA); ae('M12', 'I6', ADJ_BETA); ae('I5', 'M8', ADJ_BETA); ae('M8', 'E11', ADJ_BETA);
 
         ae('I1', 'I4', ADJ_BETA);
-        ae('I2', 'I3', ADJ_BETA);
-        ae('I6', 'I5', ADJ_BETA);
+        if (currentBoardStyle !== 'nocenter') {
+            ae('I2', 'I3', ADJ_BETA);
+            ae('I6', 'I5', ADJ_BETA);
+        }
     }
     buildAdjacencies();
 
@@ -2504,8 +2506,8 @@ const G = (function() {
             });
             const RADIALS = [
                 ['E1','M1','I1','C'], ['C','I4','M7','E10'],
-                ['E2','M2','I2','C'], ['C','I3','M6','E9'],
-                ['E18','M12','I6','C'], ['C','I5','M8','E11']
+                ['E2','M2','I2'], ['I3','M6','E9'],
+                ['E18','M12','I6'], ['I5','M8','E11']
             ];
             ctx.strokeStyle = th.edge; ctx.lineWidth = 1.5;
             RADIALS.forEach(ray => {
@@ -2708,8 +2710,10 @@ const A = (function() {
         aae('E18','M12');aae('M12','I6');aae('I5','M8');aae('M8','E11');
         
         aae('I1', 'I4');
-        aae('I2', 'I3');
-        aae('I6', 'I5');
+        if (currentBoardStyle !== 'nocenter') {
+            aae('I2', 'I3');
+            aae('I6', 'I5');
+        }
     }
     buildAdjacencies();
 
@@ -2934,8 +2938,8 @@ const A = (function() {
             });
             const RADIALS = [
                 ['E1','M1','I1','C'], ['C','I4','M7','E10'],
-                ['E2','M2','I2','C'], ['C','I3','M6','E9'],
-                ['E18','M12','I6','C'], ['C','I5','M8','E11']
+                ['E2','M2','I2'], ['I3','M6','E9'],
+                ['E18','M12','I6'], ['I5','M8','E11']
             ];
             ctx.strokeStyle = th.edge; ctx.lineWidth = 1.5;
             RADIALS.forEach(ray => {
