@@ -859,7 +859,7 @@ function doAnalysisCall(depth, timeMs) {
             player: s.cur, 
             max_depth: depth, 
             is_beta: 1, 
-            is_nocenter: currentBoardStyle === 'nocenter', 
+            is_nocenter: false,
             rotN: s.rotN, 
             _callbackId: 'analysis_' + Date.now() 
         });
@@ -2083,7 +2083,7 @@ const G = (function() {
             board: boardArr, reserve: reserveArr, special: specialArr,
             player: cur, max_depth: conf.maxDepth, 
             is_beta: gameVer === 'beta' ? 1 : 0, 
-            is_nocenter: currentBoardStyle === 'nocenter',
+            is_nocenter: false,
             rotN: rotN,
             _callbackId: 'bot_move'
         });
