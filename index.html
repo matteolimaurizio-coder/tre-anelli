@@ -264,11 +264,11 @@ body { font-family: sans-serif; background: var(--bg); min-height: 100vh; paddin
 
 <div id="lobby">
   <h1>Tre Anelli</h1>
-  <p>Gioco di strategia / 전략 게임 / ボード 게임</p>
+  <p>Strategy Game / 전략 게임</p>
   <p style="font-size:12px;margin-top:8px;"> <a href="https://discord.gg/sF5AywCt" target="_blank" style="color:#5865F2;text-decoration:none;border-bottom:1px solid #5865F2;">Join Discord Community</a> </p>
   
   <div class="rules-box">
-    <b class="title">Regole / 규칙 / Rules</b>
+    <b class="title">Regole / Rules / 규칙</b>
     <div style="display:flex;gap:6px;margin-bottom:10px;">
       <button onclick="showRules('it')" id="btn-it" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--btn-border);background:var(--btn-bg);color:var(--text2);cursor:pointer;">Italiano</button>
       <button onclick="showRules('en')" id="btn-en" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--btn-border);background:var(--btn-bg);color:var(--text2);cursor:pointer;opacity:0.5;">English</button>
@@ -309,8 +309,8 @@ body { font-family: sans-serif; background: var(--bg); min-height: 100vh; paddin
     <div id="create-menu" style="display:none; background:var(--surface); border:1px solid var(--ai-border); border-radius:10px; padding:15px; margin-top:10px; text-align:left;">
       <label style="font-size:11px; color:var(--text3); font-weight:600;">Time</label>
       <select id="time-control" style="width:100%; font-size:12px; padding:8px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); margin-top:4px; outline:none; cursor:pointer; margin-bottom:10px;">
-        <option value="blitz">⚡ Blitz (5 min + 3 sec)</option>
-        <option value="rapid">⏱️ Rapid (10 min + 5 sec)</option>
+        <option value="blitz">🌀 Quake (5 min + 3 sec)</option>
+        <option value="rapid">🦆 Quack (10 min + 5 sec)</option>
         <option value="unlimited" selected>♾️ Unlimited</option>
       </select>
       <button class="ob" style="width:100%; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;" onclick="createGame('beta')">Start Server</button>
@@ -1325,7 +1325,7 @@ const PublicLobby = {
         const timeAgo = this.getTimeAgo(room.timestamp);
         const initial = room.hostName ? room.hostName[0].toUpperCase() : '?';
         const tc = room.timeControl || 'unlimited';
-        const tcLabels = { 'blitz': '⚡ Blitz', 'rapid': '⏱️ Rapid', 'unlimited': '♾️ Senza limiti' };
+        const tcLabels = { 'blitz': '🌀 Quake', 'rapid': '🦆 Quack', 'unlimited': '♾️ Senza limiti' };
         const tcText = tcLabels[tc] || 'Senza limiti';
 
         return `
