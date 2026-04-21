@@ -408,7 +408,7 @@ body { font-family: sans-serif; background: var(--bg); min-height: 100vh; paddin
   </div>
 
   <div id="sb">
-    <div id="tl">Turno: P1 (rosso)</div>
+    <div id="tl">Turno: P1 (Rosso)</div>
     <div id="al">Seleziona una pietra.</div>
   </div>
   
@@ -528,7 +528,7 @@ body { font-family: sans-serif; background: var(--bg); min-height: 100vh; paddin
   <div id="an-layout" style="display:flex;gap:14px;flex-wrap:wrap;">
     <div id="an-left" style="flex:1 1 560px;max-width:560px;min-width:300px;">
       <div id="an-sb" style="text-align:center;padding:7px 12px;border-radius:9px;background:var(--sb-bg);margin-bottom:8px;">
-        <div id="an-tl" style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:2px;">Turno: P1 (rosso)</div>
+        <div id="an-tl" style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:2px;">Turno: P1 (Rosso)</div>
         <div id="an-al" style="font-size:12px;color:var(--text4);">Carica una partita o fai mosse libere.</div>
       </div>
       
@@ -2436,7 +2436,7 @@ const G = (function() {
 
     function upd() {
         const waitOpp = (gameMode === 'online' && cur !== myPlayer) || (vsAI && cur === aiPlayer);
-        document.getElementById('tl').textContent = 'Turno: P' + cur + (cur === 1 ? ' (rosso)' : ' (blu)') + (waitOpp ? ' [Attesa]' : '');
+        document.getElementById('tl').textContent = 'Turno: P' + cur + (cur === 1 ? ' (Rosso)' : ' (Blu)') + (waitOpp ? ' [Attesa]' : '');
         document.getElementById('al').textContent =
             !live() ? 'Navigazione — ⏭ per tornare alla partita' :
             placing ? 'Scegli casella libera. Clic su tua pietra per annullare.' :
@@ -3058,10 +3058,8 @@ const A = (function() {
 
     function upd(){
       const s=curNode.state;
-      document.getElementById('an-tl').textContent='Turno: P'+s.cur+(s.cur===1?' (rosso)':' (blu)');
+      document.getElementById('an-tl').textContent='Turno: P'+s.cur+(s.cur===1?' (Rosso)':' (Blu)');
       document.getElementById('an-al').textContent=editMode?'Setup: Clicca i nodi per cambiare il colore dei pezzi':placing?'Clicca un nodo libero. Clicca tua pietra per annullare.':sel?'Clicca destinazione.':'Clicca un pezzo o ruota un anello.';
-      document.getElementById('an-c1').textContent=cnt(s.board,1);
-      document.getElementById('an-c2').textContent=cnt(s.board,2);
       document.getElementById('an-r1').textContent=s.reserve[0];
       document.getElementById('an-r2').textContent=s.reserve[1];
       const nx=(s.rotN%3)+1;
