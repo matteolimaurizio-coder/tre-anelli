@@ -408,7 +408,7 @@ body { font-family: sans-serif; background: var(--bg); min-height: 100vh; paddin
   </div>
 
   <div id="sb">
-    <div id="tl">Turno: P1 (rosso)</div>
+    <div id="tl">Turno: P1 (Rosso)</div>
     <div id="al">Seleziona una pietra.</div>
   </div>
   
@@ -438,8 +438,6 @@ body { font-family: sans-serif; background: var(--bg); min-height: 100vh; paddin
   </div>
   
   <div id="info-bar">
-    <span>🔴 P1: <b id="c1">9</b></span>
-    <span>🔵 P2: <b id="c2">9</b></span>
     <span id="rb">Prossima rot.: 1</span>
     <span id="spectator-count" style="display:none; color:var(--ai-color); font-weight:bold; margin-left:10px;">👁️ <span id="sc-val">0</span></span>
   </div>
@@ -530,7 +528,7 @@ body { font-family: sans-serif; background: var(--bg); min-height: 100vh; paddin
   <div id="an-layout" style="display:flex;gap:14px;flex-wrap:wrap;">
     <div id="an-left" style="flex:1 1 560px;max-width:560px;min-width:300px;">
       <div id="an-sb" style="text-align:center;padding:7px 12px;border-radius:9px;background:var(--sb-bg);margin-bottom:8px;">
-        <div id="an-tl" style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:2px;">Turno: P1 (rosso)</div>
+        <div id="an-tl" style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:2px;">Turno: P1 (Rosso)</div>
         <div id="an-al" style="font-size:12px;color:var(--text4);">Carica una partita o fai mosse libere.</div>
       </div>
       
@@ -566,8 +564,6 @@ body { font-family: sans-serif; background: var(--bg); min-height: 100vh; paddin
         <button id="an-btn-E" onmouseenter="A.previewRot('E')" onmouseleave="A.clearPreview()" onclick="A.rot('E')" style="font-size:12px;padding:5px 12px;cursor:pointer;border-radius:8px;border:1px solid var(--btn-border);background:var(--btn-bg);color:var(--text2);transition:background .15s;">↺ Esterno</button>
       </div>
       <div style="display:flex;justify-content:center;gap:16px;margin-top:7px;font-size:12px;color:var(--text3);flex-wrap:wrap;">
-        <span>🔴 P1: <b id="an-c1">9</b></span>
-        <span>🔵 P2: <b id="an-c2">9</b></span>
         <span>Riserva: <b id="an-r1">0</b> / <b id="an-r2">0</b></span>
         <span id="an-rb">Prossima rot.: 1</span>
       </div>
@@ -2440,7 +2436,7 @@ const G = (function() {
 
     function upd() {
         const waitOpp = (gameMode === 'online' && cur !== myPlayer) || (vsAI && cur === aiPlayer);
-        document.getElementById('tl').textContent = 'Turno: P' + cur + (cur === 1 ? ' (rosso)' : ' (blu)') + (waitOpp ? ' [Attesa]' : '');
+        document.getElementById('tl').textContent = 'Turno: P' + cur + (cur === 1 ? ' (Rosso)' : ' (Blu)') + (waitOpp ? ' [Attesa]' : '');
         document.getElementById('al').textContent =
             !live() ? 'Navigazione — ⏭ per tornare alla partita' :
             placing ? 'Scegli casella libera. Clic su tua pietra per annullare.' :
