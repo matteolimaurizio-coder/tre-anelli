@@ -408,8 +408,8 @@ body { font-family: sans-serif; background: var(--bg); min-height: 100vh; paddin
   </div>
 
   <div id="sb">
-    <div id="tl">Turno: P1 (Rosso)</div>
-    <div id="al">Seleziona una pietra.</div>
+    <div id="tl">Turn: P1 (Red)</div>
+    <div id="al">Select a stone.</div>
   </div>
   
   <div id="bw">
@@ -417,8 +417,8 @@ body { font-family: sans-serif; background: var(--bg); min-height: 100vh; paddin
     <div id="wo">
       <div id="wbox">
         <h2 id="wt"></h2><p id="wr"></p>
-        <button onclick="G.seeBoard()">Vedi posizione finale</button>
-        <button onclick="G.restart()" id="btn-restart">Rivincita</button>
+        <button onclick="G.seeBoard()">See final position</button>
+        <button onclick="G.restart()" id="btn-restart">Rematch</button>
         <button onclick="goMenu()">Menu</button>
       </div>
     </div>
@@ -433,12 +433,12 @@ body { font-family: sans-serif; background: var(--bg); min-height: 100vh; paddin
   </div>
   
   <div id="rot-controls" style="display:flex;justify-content:center;gap:24px;margin-top:6px;">
-    <button id="btn-M" onmouseenter="G.previewRot('M')" onmouseleave="G.clearPreview()" onclick="G.rot('M')" style="font-size:12px;padding:6px 20px;cursor:pointer;border-radius:8px;border:1.5px solid var(--ob-border);background:var(--ob-hover);color:var(--ob-color);transition:background .15s;min-width:120px;">↺ Anello medio</button>
-    <button id="btn-E" onmouseenter="G.previewRot('E')" onmouseleave="G.clearPreview()" onclick="G.rot('E')" style="font-size:12px;padding:6px 20px;cursor:pointer;border-radius:8px;border:1.5px solid var(--beta-border);background:var(--beta-hover);color:var(--beta-color);transition:background .15s;min-width:120px;">↺ Anello esterno</button>
+    <button id="btn-M" onmouseenter="G.previewRot('M')" onmouseleave="G.clearPreview()" onclick="G.rot('M')" style="font-size:12px;padding:6px 20px;cursor:pointer;border-radius:8px;border:1.5px solid var(--ob-border);background:var(--ob-hover);color:var(--ob-color);transition:background .15s;min-width:120px;">↺ Middle Ring</button>
+    <button id="btn-E" onmouseenter="G.previewRot('E')" onmouseleave="G.clearPreview()" onclick="G.rot('E')" style="font-size:12px;padding:6px 20px;cursor:pointer;border-radius:8px;border:1.5px solid var(--beta-border);background:var(--beta-hover);color:var(--beta-color);transition:background .15s;min-width:120px;">↺ Outer Ring</button>
   </div>
   
   <div id="info-bar">
-    <span id="rb">Prossima rot.: 1</span>
+    <span id="rb">Next rot.: 1</span>
     <span id="spectator-count" style="display:none; color:var(--ai-color); font-weight:bold; margin-left:10px;">👁️ <span id="sc-val">0</span></span>
   </div>
   
@@ -2453,7 +2453,7 @@ const G = (function() {
             if (bp) { bp.style.display = canPlace ? '' : 'none'; bp.style.background = placing ? 'var(--beta-border)' : 'var(--beta-hover)'; }
         }
         const s = (rotN % 3) + 1;
-        document.getElementById('rb').textContent = 'Prossima rot.: ' + s + (s > 1 ? ' passi' : ' passo');
+        document.getElementById('rb').textContent = 'Next rot.: ' + s + (s > 1 ? ' steps' : ' step');
         ['M', 'E'].forEach(r => { const btn = document.getElementById('btn-' + r); if (btn) btn.classList.toggle('off', !(live() && !over && !anim && !placing && hP(cur, r) && isMyTurn())); });
         
         const btnUndo = document.getElementById('btn-undo');
@@ -3063,7 +3063,7 @@ const A = (function() {
       document.getElementById('an-r1').textContent=s.reserve[0];
       document.getElementById('an-r2').textContent=s.reserve[1];
       const nx=(s.rotN%3)+1;
-      document.getElementById('an-rb').textContent='Prossima rot.: '+nx+(nx>1?' passi':' passo');
+      document.getElementById('an-rb').textContent='Prossima rot.: '+nx+(nx>1?' steps':' step');
       document.getElementById('an-place-btn').style.display=s.reserve[s.cur-1]>0?'':'none';
       const depth=nodeDepth(curNode);
       document.getElementById('an-nl').textContent=depth+' ply';
