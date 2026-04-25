@@ -624,6 +624,36 @@ body { font-family: sans-serif; background: var(--bg); min-height: 100vh; paddin
     </div>
   </div>
 <script>
+// ── SOUNDS ───────────────────────────────────────────────────────────────
+const SFX = {
+    _ctx: null,
+    _init() { if (!this._ctx) this._ctx = new AudioContext(); },
+    _play(freq, duration, type = 'sine', vol = 0.25) {
+        this._init();
+        const osc = this._ctx.createOscillator();
+        const gain = this._ctx.createGain();
+        osc.connect(gain); gain.connect(this._ctx.destination);
+        osc.type = type; osc.frequency.value = freq;
+        gain.gain.setValueAtTime(vol, this._ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this._ctx.currentTime + duration);
+        osc.start(); osc.stop(this._ctx.currentTime + duration);
+    },
+    start() {
+        // due note ascendenti: inizio partita
+        this._play(440, 0.15, 'sine');
+        setTimeout(() => this._play(660, 0.25, 'sine'), 160);
+    },
+    move() {
+        // click secco
+        this._play(520, 0.08, 'triangle', 0.15);
+    },
+    capture() {
+        // nota più bassa e decisa
+        this._play(220, 0.25, 'sawtooth', 0.2);
+        setTimeout(() => this._play(180, 0.2, 'sawtooth', 0.1), 100);
+    }
+};
+  
 // --- VARIABILI GLOBALI E SETTINGS ---
 let currentTheme = 'classic'; 
 let currentPieceStyle = 'classic'; 
@@ -1486,6 +1516,7 @@ function startOnline(code,player,ver){
         } else {
             document.getElementById('disconnect-modal').style.display = 'none';
         }
+      SFX.start();
     });
 
     db.ref('games/' + code + '/spectators').on('value', snap => {
@@ -1552,6 +1583,7 @@ function startLocal(ver, ai){
     document.getElementById('ai-monitor').style.display = ai ? 'block' : 'none';
     if(ai) syncAiToUI();
     if (typeof G !== 'undefined') { G.isAnalysisAi = false; G.init('local', ver, ai, aiColor); }
+    SFX.start();
 }
 
 function startAiFromAnalysis() {
