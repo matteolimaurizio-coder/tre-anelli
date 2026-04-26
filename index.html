@@ -2004,6 +2004,12 @@ const G = (function() {
         
         rebuildNotation();
         restore(hist[hist.length - 1]);
+        
+        sel = null;
+        must = null;
+        pendingCapMid = null;
+        pendingSteps = null;
+        
         navI = -1; nUpd(); upd(); draw();
         
         if (window.isBroadcasting) sendMove({type: 'undo', levels: 2, player: myPlayer});
@@ -2012,8 +2018,17 @@ const G = (function() {
     function restart() { if (gameMode === 'online') return; init(gameMode, gameVer, vsAI, aiPlayer); }
     function seeBoard() { document.getElementById('wo').style.display = 'none'; }
 
-    function restore(s) { board = Object.assign({}, s.b); cur = s.cur; rotN = s.rotN || 0; lastMove = s.lm ? { ...s.lm } : null; special = Object.assign({}, s.sp || {}); window.medium = s.md ? Object.assign({}, s.md) : null; reserve = [...(s.rv || [0, 0])]; placing = false; }
-    function navTo(i) { const s = hist[i]; if (!s) return; navI = i; restore(s); nUpd(); upd(); draw(); }
+    function restore(s) { 
+        board = Object.assign({}, s.b); 
+        let idx = hist.indexOf(s);
+        cur = idx !== -1 ? (idx % 2 === 0 ? 1 : 2) : s.cur;
+        rotN = s.rotN || 0; 
+        lastMove = s.lm ? { ...s.lm } : null; 
+        special = Object.assign({}, s.sp || {}); 
+        window.medium = s.md ? Object.assign({}, s.md) : null; 
+        reserve = [...(s.rv || [0, 0])]; 
+        placing = false; 
+    }
     function navFirst() { if (gameMode === 'online' && cur !== myPlayer) return; navTo(0); }
     function navPrev() { if (gameMode === 'online' && cur !== myPlayer) return; const i = navI === -1 ? hist.length - 2 : navI - 1; if (i >= 0) navTo(i); }
     function navNext() { if (navI === -1) return; if (navI < hist.length - 1) navTo(navI + 1); else { navI = -1; restore(hist[hist.length - 1]); nUpd(); upd(); draw(); } }
