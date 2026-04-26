@@ -2029,6 +2029,9 @@ const G = (function() {
         reserve = [...(s.rv || [0, 0])]; 
         placing = false; 
     }
+
+    function navTo(i) { const s = hist[i]; if (!s) return; navI = i; restore(s); nUpd(); upd(); draw(); }
+
     function navFirst() { if (gameMode === 'online' && cur !== myPlayer) return; navTo(0); }
     function navPrev() { if (gameMode === 'online' && cur !== myPlayer) return; const i = navI === -1 ? hist.length - 2 : navI - 1; if (i >= 0) navTo(i); }
     function navNext() { if (navI === -1) return; if (navI < hist.length - 1) navTo(navI + 1); else { navI = -1; restore(hist[hist.length - 1]); nUpd(); upd(); draw(); } }
