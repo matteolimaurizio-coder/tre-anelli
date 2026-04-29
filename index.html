@@ -778,10 +778,12 @@ function drawWavyGlobal(ctx, x, y, color){
     }
     ctx.closePath();
     
-    // Contorno spesso per il contrasto
-    ctx.strokeStyle = outlineCol;
-    ctx.lineWidth = 4.5;
-    ctx.stroke();
+    // Contorno spesso SOLO se la scacchiera è quella Classica (Gioiello)
+    if (currentBoardStyle === 'classic') {
+        ctx.strokeStyle = outlineCol;
+        ctx.lineWidth = 4.5;
+        ctx.stroke();
+    }
     
     // Colore vivo dell'onda in primo piano
     ctx.strokeStyle = color;
@@ -813,10 +815,12 @@ function drawBetaSun(ctx, x, y, mainCol) {
     }
     ctx.lineCap = 'round';
     
-    // Disegna il contorno scuro/chiaro sotto i raggi
-    ctx.strokeStyle = outlineCol;
-    ctx.lineWidth = 5.5;
-    ctx.stroke();
+    // Disegna il contorno scuro/chiaro sotto i raggi SOLO nel tema Classico
+    if (currentBoardStyle === 'classic') {
+        ctx.strokeStyle = outlineCol;
+        ctx.lineWidth = 5.5;
+        ctx.stroke();
+    }
     
     // Disegna i raggi colorati
     ctx.strokeStyle = mainCol;
@@ -829,10 +833,12 @@ function drawBetaSun(ctx, x, y, mainCol) {
     ctx.fillStyle = mainCol;
     ctx.fill();
     
-    // Bordo di contrasto attorno al cerchio principale
-    ctx.lineWidth = 1.5;
-    ctx.strokeStyle = outlineCol;
-    ctx.stroke();
+    // Bordo di contrasto attorno al cerchio principale SOLO nel tema Classico
+    if (currentBoardStyle === 'classic') {
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = outlineCol;
+        ctx.stroke();
+    }
 
     // Riflesso luminoso
     ctx.beginPath();
