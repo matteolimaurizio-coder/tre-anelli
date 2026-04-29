@@ -766,9 +766,10 @@ function drawEmojiPiece(ctx, x, y, isPlayer1, isSpecial) {
 
 function drawWavyGlobal(ctx, x, y, color){
     ctx.save();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.5;
-    const r = 14, waves = 8, amp = 1.8;
+    const isDark = document.body.classList.contains('theme-dark');
+    const outlineCol = isDark ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.4)";
+    
+    const r = 14.5, waves = 8, amp = 2;
     ctx.beginPath();
     for(let i=0; i<=waves*10; i++){
         const angle = (i/(waves*10)) * Math.PI*2;
@@ -776,16 +777,30 @@ function drawWavyGlobal(ctx, x, y, color){
         ctx.lineTo(x + wave * Math.cos(angle), y + wave * Math.sin(angle));
     }
     ctx.closePath();
+    
+    // Contorno spesso per il contrasto
+    ctx.strokeStyle = outlineCol;
+    ctx.lineWidth = 4.5;
     ctx.stroke();
+    
+    // Colore vivo dell'onda in primo piano
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
     ctx.restore();
 }
 
 function drawBetaSun(ctx, x, y, mainCol) {
-    // I raggi ora partono da dentro e sporgono fino a 16px (fuori dalla pedina di 11px!)
+    const isDark = document.body.classList.contains('theme-dark');
+    const outlineCol = isDark ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.5)";
+    
     const numRays = 10;
     const innerRadius = 9;
     const outerRadius = 16;
     
+    ctx.save();
+    ctx.beginPath();
     for(let i = 0; i < numRays; i++){
         const angle = (i * 360 / numRays) * Math.PI / 180;
         const x1 = x + innerRadius * Math.cos(angle);
@@ -793,26 +808,38 @@ function drawBetaSun(ctx, x, y, mainCol) {
         const x2 = x + outerRadius * Math.cos(angle);
         const y2 = y + outerRadius * Math.sin(angle);
         
-        ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
-        ctx.strokeStyle = mainCol;
-        ctx.lineWidth = 2.5;
-        ctx.lineCap = 'round';
-        ctx.stroke();
     }
+    ctx.lineCap = 'round';
     
-    // Disegna il corpo centrale della pedina
+    // Disegna il contorno scuro/chiaro sotto i raggi
+    ctx.strokeStyle = outlineCol;
+    ctx.lineWidth = 5.5;
+    ctx.stroke();
+    
+    // Disegna i raggi colorati
+    ctx.strokeStyle = mainCol;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    
+    // Corpo centrale della pedina
     ctx.beginPath();
     ctx.arc(x, y, 11, 0, Math.PI * 2);
     ctx.fillStyle = mainCol;
     ctx.fill();
+    
+    // Bordo di contrasto attorno al cerchio principale
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = outlineCol;
+    ctx.stroke();
 
-    // Aggiungiamo un riflesso luminoso per dare spessore alla pedina a forma di sole
+    // Riflesso luminoso
     ctx.beginPath();
     ctx.arc(x - 2, y - 2, 4, 0, Math.PI*2);
     ctx.fillStyle = "rgba(255,255,255,0.35)";
     ctx.fill();
+    ctx.restore();
 }
 
 // --- ANALYSIS AI FUNCTIONS ---
