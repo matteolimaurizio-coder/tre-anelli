@@ -1700,6 +1700,7 @@ const G = (function() {
         for (let i = 1; i <= 12; i++) { ae('M' + i, 'M' + (i === 12 ? 1 : i + 1), ADJ); ae('M' + i, 'M' + (i === 12 ? 1 : i + 1), ADJ_BETA); }
         for (let i = 1; i <= 6; i++) { ae('I' + i, 'I' + (i === 6 ? 1 : i + 1), ADJ); ae('I' + i, 'I' + (i === 6 ? 1 : i + 1), ADJ_BETA); }
 
+        ae('E1', 'M1', ADJ); ae('M1', 'I1', ADJ); ae('I4', 'M7', ADJ); ae('M7', 'E10', ADJ);
         ae('E2', 'M2', ADJ); ae('M2', 'I2', ADJ); ae('I3', 'M6', ADJ); ae('M6', 'E9', ADJ);
         ae('E18', 'M12', ADJ); ae('M12', 'I6', ADJ); ae('I5', 'M8', ADJ); ae('M8', 'E11', ADJ);
 
@@ -2807,6 +2808,7 @@ const A = (function() {
         for(let i=1;i<=12;i++)aae('M'+i,'M'+(i===12?1:i+1));
         for(let i=1;i<=6;i++)aae('I'+i,'I'+(i===6?1:i+1));
         
+        aae('E1','M1');aae('M1','I1');aae('I4','M7');aae('M7','E10');
         aae('E2','M2');aae('M2','I2');aae('I3','M6');aae('M6','E9');
         aae('E18','M12');aae('M12','I6');aae('I5','M8');aae('M8','E11');
         
