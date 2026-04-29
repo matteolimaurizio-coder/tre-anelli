@@ -2636,7 +2636,7 @@ const G = (function() {
         const ink = currentTheme === 'dark' ? '#d8d4c8' : '#1a1a1a';
         
         const nodeR = 15;
-        const isPhysicalBoard = currentBoardStyle === 'ink';
+        const isPhysicalBoard = currentBoardStyle === 'classic';
         const isPhysicalPiece = currentPieceStyle === 'classic';
 
         let bg = r === 'E' ? th.nodeE : r === 'C' ? th.nodeC : r === 'I' ? th.nodeI : th.nodeM;
@@ -2688,22 +2688,22 @@ const G = (function() {
             return;
         }
 
+        ctx.save();
         let lx = x, ly = y + 18;
         ctx.textBaseline = 'top';
         
+        // Spingiamo le coordinate a raggiera perfettamente all'esterno
         if (isPhysicalBoard && id !== 'C') {
             const ang = Math.atan2(y - CY, x - CX);
-            // Aggiungiamo 45 gradi (PI/4) per far cadere il testo in diagonale negli spazi vuoti
-            const offsetAng = ang + Math.PI / 4.5; 
-            lx = x + 23 * Math.cos(offsetAng); 
-            ly = y + 23 * Math.sin(offsetAng);
+            lx = x + 25 * Math.cos(ang); 
+            ly = y + 25 * Math.sin(ang);
             ctx.textBaseline = 'middle';
         }
         
         ctx.font = 'bold 10px sans-serif';
         ctx.textAlign = 'center'; 
         
-        // Disegna un contorno del colore di sfondo per garantire la leggibilità al 100%
+        // Un contorno del colore di sfondo per la massima leggibilità
         if (isPhysicalBoard) {
             ctx.lineWidth = 3;
             ctx.strokeStyle = th.cvBg;
@@ -2713,6 +2713,7 @@ const G = (function() {
         
         ctx.fillStyle = th.labelNode;
         ctx.fillText(id, lx, ly);
+        ctx.restore();
 
         if (pc) {
             const col = pc === 1 ? (isPhysicalPiece ? '#e8700a' : th.p1) : (isPhysicalPiece ? '#3888cc' : th.p2);
@@ -3136,7 +3137,7 @@ const A = (function() {
         const ink = currentTheme === 'dark' ? '#d8d4c8' : '#1a1a1a';
         
         const nodeR = 15;
-        const isPhysicalBoard = currentBoardStyle === 'ink';
+        const isPhysicalBoard = currentBoardStyle === 'classic';
         const isPhysicalPiece = currentPieceStyle === 'classic';
 
         let bg = r === 'E' ? th.nodeE : r === 'I' ? th.nodeI : th.nodeM;
@@ -3183,22 +3184,22 @@ const A = (function() {
             return;
         }
 
+        ctx.save();
         let lx = x, ly = y + 18;
         ctx.textBaseline = 'top';
         
+        // Spingiamo le coordinate a raggiera perfettamente all'esterno
         if (isPhysicalBoard && id !== 'C') {
             const ang = Math.atan2(y - CY, x - CX);
-            // Aggiungiamo 45 gradi (PI/4) per far cadere il testo in diagonale negli spazi vuoti
-            const offsetAng = ang + Math.PI / 4.5; 
-            lx = x + 23 * Math.cos(offsetAng); 
-            ly = y + 23 * Math.sin(offsetAng);
+            lx = x + 25 * Math.cos(ang); 
+            ly = y + 25 * Math.sin(ang);
             ctx.textBaseline = 'middle';
         }
         
         ctx.font = 'bold 10px sans-serif';
         ctx.textAlign = 'center'; 
         
-        // Disegna un contorno del colore di sfondo per garantire la leggibilità al 100%
+        // Un contorno del colore di sfondo per la massima leggibilità
         if (isPhysicalBoard) {
             ctx.lineWidth = 3;
             ctx.strokeStyle = th.cvBg;
@@ -3208,6 +3209,7 @@ const A = (function() {
         
         ctx.fillStyle = th.labelNode;
         ctx.fillText(id, lx, ly);
+        ctx.restore();
 
         if (pc) {
             const col = pc === 1 ? (isPhysicalPiece ? '#e8700a' : th.p1) : (isPhysicalPiece ? '#3888cc' : th.p2);
