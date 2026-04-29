@@ -252,15 +252,16 @@ body { font-family: sans-serif; background: var(--bg); min-height: 100vh; paddin
 <div style="font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:600;">Layout Scacchiera</div>
   <select id="sel-board" onchange="setBoardStyle(this.value)" style="width:100%;font-size:12px;padding:6px;margin-bottom:10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);outline:none;cursor:pointer;">
     <option value="classic">Classica</option>
+    <option value="og">OG Theme</option>
     <option value="nocenter">Radiale (Nodi Esterni)</option>
   </select>
   <div style="font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:600;">Stile Pedine</div>
   <select id="sel-pieces" onchange="setPieceStyle(this.value)" style="width:100%;font-size:12px;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);outline:none;cursor:pointer;">
-    <option value="classic">Normale</option>
+    <option value="classic">Classica</option>
+    <option value="og">OG Pieces</option>
     <option value="emoji">Cocomeri!</option>
     <option value="suns">Astrale (Soli)</option>
   </select>
-</div>
 
 <div id="lobby">
   <h1>Tre Anelli</h1>
@@ -2551,6 +2552,7 @@ const G = (function() {
     function dSt() {
         const th = T();
         const isSelfPlay = currentBoardStyle === 'nocenter';
+        const isPhysical = currentBoardStyle === 'classic';
         
         if (isSelfPlay) {
             [RE, RM, RI].forEach(r => {
@@ -2559,8 +2561,8 @@ const G = (function() {
             });
             const RADIALS = [
                 ['E1','M1','I1','C'], ['C','I4','M7','E10'],
-                ['E2','M2','I2'], ['I3','M6','E9'],
-                ['E18','M12','I6'], ['I5','M8','E11']
+                ['E2','M2','I2','C'], ['C','I3','M6','E9'],
+                ['E18','M12','I6','C'], ['C','I5','M8','E11']
             ];
             ctx.strokeStyle = th.edge; ctx.lineWidth = 1.5;
             RADIALS.forEach(ray => {
@@ -2571,6 +2573,34 @@ const G = (function() {
                 });
                 ctx.stroke();
             });
+        } else if (isPhysical) {
+            const ink = currentTheme === 'dark' ? '#d8d4c8' : '#1a1a1a';
+            const RADIALS = [
+                ['E1','M1','I1'], ['I4','M7','E10'],
+                ['E2','M2','I2'], ['I3','M6','E9'],
+                ['E18','M12','I6'], ['I5','M8','E11']
+            ];
+            ctx.save();
+            ctx.strokeStyle = ink; ctx.lineWidth = 1.2;
+            RADIALS.forEach(ray => {
+                const [ax,ay] = pos(ray[0]), [bx,by] = pos(ray[ray.length-1]);
+                const dx=bx-ax, dy=by-ay, len=Math.hypot(dx,dy), ext=24;
+                ctx.beginPath();
+                ctx.moveTo(ax-dx/len*ext, ay-dy/len*ext);
+                ctx.lineTo(bx+dx/len*ext, by+dy/len*ext);
+                ctx.stroke();
+            });
+            ctx.restore();
+
+            const drawn = new Set();
+            for (const a of getALL()) {
+                for (const b of (getADJ()[a] || [])) {
+                    const k = [a, b].sort().join(','); if (drawn.has(k)) continue; drawn.add(k);
+                    const [ax, ay] = pos(a), [bx, by] = pos(b);
+                    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by);
+                    ctx.strokeStyle = ink; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.stroke();
+                }
+            }
         } else {
             RY.forEach(ry => {
                 let dy = ry - CY;
@@ -2583,11 +2613,13 @@ const G = (function() {
                 ctx.beginPath(); ctx.arc(CX, CY, r, 0, Math.PI * 2); ctx.stroke();
             });
             const dr = new Set();
-            for (const a of getALL()) for (const b of (getADJ()[a] || [])) {
-                const k = [a, b].sort().join(','); if (dr.has(k)) continue; dr.add(k);
-                const [ax, ay] = pos(a), [bx, by] = pos(b);
-                ctx.strokeStyle = th.edge; ctx.lineWidth = 0.8;
-                ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+            for (const a of getALL()) {
+                for (const b of (getADJ()[a] || [])) {
+                    const k = [a, b].sort().join(','); if (dr.has(k)) continue; dr.add(k);
+                    const [ax, ay] = pos(a), [bx, by] = pos(b);
+                    ctx.strokeStyle = th.edge; ctx.lineWidth = 0.8;
+                    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+                }
             }
         }
     }
@@ -2595,8 +2627,11 @@ const G = (function() {
     function dCell(id, isSel, isMust, isTgt, ghostPl, isVictim) {
         const [x, y] = pos(id), pc = board[id], isWin = WIN.includes(id), r = rOf(id);
         const th = T();
+        const ink = currentTheme === 'dark' ? '#d8d4c8' : '#1a1a1a';
         
-        const nodeR = 15; // Nodi grandi per entrambe le scacchiere
+        const nodeR = 15;
+        const isPhysicalBoard = currentBoardStyle === 'classic';
+        const isPhysicalPiece = currentPieceStyle === 'classic';
 
         let bg = r === 'E' ? th.nodeE : r === 'C' ? th.nodeC : r === 'I' ? th.nodeI : th.nodeM;
         if (isWin) bg = th.nodeWin;
@@ -2605,58 +2640,76 @@ const G = (function() {
 
         ctx.beginPath(); ctx.arc(x, y, nodeR, 0, Math.PI * 2); ctx.fillStyle = bg; ctx.fill();
 
-        if (isWin) {
+        if (isWin && !isPhysicalBoard) {
             ctx.strokeStyle = th.winRing; ctx.lineWidth = 1.2;
             ctx.beginPath(); ctx.arc(x, y, nodeR-2, 0, Math.PI * 2); ctx.stroke();
+        } else if (isWin && isPhysicalBoard && !pc) {
+            ctx.beginPath(); ctx.arc(x, y, nodeR * 0.48, 0, Math.PI*2);
+            ctx.strokeStyle = ink; ctx.lineWidth = 1.5; ctx.stroke();
         }
 
-        if (window.medium && window.medium[id] && pc) {
+        if (window.medium && window.medium[id] && pc && currentBoardStyle !== 'nocenter') {
             ctx.save(); ctx.strokeStyle = pc === 1 ? th.p1med : th.p2med;
             ctx.lineWidth = 1.5; const s = 12; ctx.strokeRect(x - s, y - s, s * 2, s * 2); ctx.restore();
         }
 
         let st = th.nodeStroke, lw = 0.8;
-        if (isSel) { st = th.selStroke; lw = 2.2; }
-        if (isMust || isVictim) { st = th.mustStroke; lw = 2.5; }
-        if (isTgt && !ghostPl) { st = th.tgtStroke; lw = 1.8; }
-        if (ghostPl) { st = th.ghostStroke; lw = 2; }
-        if (isPlaceTgt) { st = th.placeStroke; lw = 1.8; }
+        if (isPhysicalBoard) {
+            st = ink; lw = 2.5;
+            if (isSel) { lw = 4.5; }
+            else if (isMust || isVictim) { st = '#c03010'; lw = 3.5; }
+            else if (isTgt && !ghostPl) { st = '#207050'; lw = 3; }
+        } else {
+            if (isSel) { st = th.selStroke; lw = 2.2; }
+            if (isMust || isVictim) { st = th.mustStroke; lw = 2.5; }
+            if (isTgt && !ghostPl) { st = th.tgtStroke; lw = 1.8; }
+            if (ghostPl) { st = th.ghostStroke; lw = 2; }
+            if (isPlaceTgt) { st = th.placeStroke; lw = 1.8; }
+        }
         ctx.strokeStyle = st; ctx.lineWidth = lw; ctx.beginPath(); ctx.arc(x, y, nodeR, 0, Math.PI * 2); ctx.stroke();
 
-        if (isTgt && !ghostPl && pc === 0) { ctx.fillStyle = th.tgtDot; ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill(); }
+        if (isTgt && !ghostPl && pc === 0) { 
+            ctx.fillStyle = isPhysicalBoard ? '#207050' : th.tgtDot; 
+            ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill(); 
+        }
         if (isPlaceTgt && pc === 0) { ctx.fillStyle = th.placeDot; ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill(); }
 
         if (ghostPl) {
-            ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI * 2);
+            ctx.beginPath(); ctx.arc(x, y, isPhysicalPiece ? nodeR-5 : 10, 0, Math.PI * 2);
             ctx.fillStyle = ghostPl === 1 ? th.ghost1 : th.ghost2; ctx.fill();
-            ctx.fillStyle = th.ghostArrow; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('→', x, y + 1);
+            ctx.fillStyle = isPhysicalPiece ? ink : th.ghostArrow; 
+            ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('→', x, y + 1);
             return;
         }
-        
-        if (currentPieceStyle !== 'emoji') {
-            ctx.fillStyle = th.labelNode;
-            ctx.font = 'bold 10px sans-serif';
-            ctx.textAlign = 'center'; 
-            ctx.textBaseline = 'top';
-            ctx.fillText(id, x, y + 18);
-        }
 
-        if (pc && currentPieceStyle !== 'emoji') {
-            const col = pc === 1 ? th.p1 : th.p2;
+        ctx.fillStyle = th.labelNode;
+        ctx.font = 'bold 10px sans-serif';
+        ctx.textAlign = 'center'; 
+        ctx.textBaseline = 'top';
+        ctx.fillText(id, x, y + 18);
+
+        if (pc) {
+            const col = pc === 1 ? (isPhysicalPiece ? '#e8700a' : th.p1) : (isPhysicalPiece ? '#3888cc' : th.p2);
             const hi = pc === 1 ? th.p1hi : th.p2hi;
-            ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
             
-            if (currentPieceStyle === 'suns' && special[id]) {
+            if (isPhysicalPiece) {
+                const pr = nodeR - 4;
+                ctx.beginPath(); ctx.arc(x, y, pr, 0, Math.PI*2);
+                ctx.fillStyle = col; ctx.fill();
+                ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.stroke();
+                if (special[id]) {
+                    ctx.beginPath(); ctx.arc(x, y, pr * 0.45, 0, Math.PI*2);
+                    ctx.strokeStyle = ink; ctx.lineWidth = 1.5; ctx.stroke();
+                }
+            } else if (currentPieceStyle === 'emoji') {
+                drawEmojiPiece(ctx, x, y, pc === 1, special[id]);
+            } else if (currentPieceStyle === 'suns' && special[id]) {
                 drawBetaSun(ctx, x, y, col);
             } else {
+                ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
                 ctx.beginPath(); ctx.arc(x - 3, y - 3, 5, 0, Math.PI * 2); ctx.fillStyle = hi; ctx.fill();
+                if (currentPieceStyle !== 'suns' && special[id]) drawWavyGlobal(ctx, x, y, pc === 1 ? th.p1wave : th.p2wave);
             }
-        }
-
-        if (pc && currentPieceStyle === 'emoji') {
-            drawEmojiPiece(ctx, x, y, pc === 1, special[id]);
-        } else if (currentPieceStyle !== 'suns' && special[id] && pc) {
-            drawWavyGlobal(ctx, x, y, pc === 1 ? th.p1wave : th.p2wave);
         }
     }
 
@@ -2979,6 +3032,7 @@ const A = (function() {
     function dSt() {
         const th = T();
         const isSelfPlay = currentBoardStyle === 'nocenter';
+        const isPhysical = currentBoardStyle === 'classic';
         
         if (isSelfPlay) {
             [RE, RM, RI].forEach(r => {
@@ -2987,8 +3041,8 @@ const A = (function() {
             });
             const RADIALS = [
                 ['E1','M1','I1','C'], ['C','I4','M7','E10'],
-                ['E2','M2','I2'], ['I3','M6','E9'],
-                ['E18','M12','I6'], ['I5','M8','E11']
+                ['E2','M2','I2','C'], ['C','I3','M6','E9'],
+                ['E18','M12','I6','C'], ['C','I5','M8','E11']
             ];
             ctx.strokeStyle = th.edge; ctx.lineWidth = 1.5;
             RADIALS.forEach(ray => {
@@ -2999,6 +3053,34 @@ const A = (function() {
                 });
                 ctx.stroke();
             });
+        } else if (isPhysical) {
+            const ink = currentTheme === 'dark' ? '#d8d4c8' : '#1a1a1a';
+            const RADIALS = [
+                ['E1','M1','I1'], ['I4','M7','E10'],
+                ['E2','M2','I2'], ['I3','M6','E9'],
+                ['E18','M12','I6'], ['I5','M8','E11']
+            ];
+            ctx.save();
+            ctx.strokeStyle = ink; ctx.lineWidth = 1.2;
+            RADIALS.forEach(ray => {
+                const [ax,ay] = aPos(ray[0]), [bx,by] = aPos(ray[ray.length-1]);
+                const dx=bx-ax, dy=by-ay, len=Math.hypot(dx,dy), ext=24;
+                ctx.beginPath();
+                ctx.moveTo(ax-dx/len*ext, ay-dy/len*ext);
+                ctx.lineTo(bx+dx/len*ext, by+dy/len*ext);
+                ctx.stroke();
+            });
+            ctx.restore();
+
+            const drawn = new Set();
+            for (const a of AALL) {
+                for (const b of (AADJ[a] || [])) {
+                    const k = [a, b].sort().join(','); if (drawn.has(k)) continue; drawn.add(k);
+                    const [ax, ay] = aPos(a), [bx, by] = aPos(b);
+                    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by);
+                    ctx.strokeStyle = ink; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.stroke();
+                }
+            }
         } else {
             RY.forEach(ry => {
                 let dy = ry - CY;
@@ -3011,11 +3093,13 @@ const A = (function() {
                 ctx.beginPath(); ctx.arc(CX, CY, r, 0, Math.PI * 2); ctx.stroke();
             });
             const dr = new Set();
-            for (const a of AALL) for (const b of (AADJ[a] || [])) {
-                const k = [a, b].sort().join(','); if (dr.has(k)) continue; dr.add(k);
-                const [ax, ay] = aPos(a), [bx, by] = aPos(b);
-                ctx.strokeStyle = th.edge; ctx.lineWidth = 0.8;
-                ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+            for (const a of AALL) {
+                for (const b of (AADJ[a] || [])) {
+                    const k = [a, b].sort().join(','); if (dr.has(k)) continue; dr.add(k);
+                    const [ax, ay] = aPos(a), [bx, by] = aPos(b);
+                    ctx.strokeStyle = th.edge; ctx.lineWidth = 0.8;
+                    ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+                }
             }
         }
     }
@@ -3023,8 +3107,11 @@ const A = (function() {
     function dCell(id, s, isSel, _isMust, isTgt, ghostPl, isVictim) {
         const [x, y] = aPos(id), pc = s.board[id], isWin = WIN.includes(id), r = rOf(id);
         const th = T();
+        const ink = currentTheme === 'dark' ? '#d8d4c8' : '#1a1a1a';
         
         const nodeR = 15;
+        const isPhysicalBoard = currentBoardStyle === 'classic';
+        const isPhysicalPiece = currentPieceStyle === 'classic';
 
         let bg = r === 'E' ? th.nodeE : r === 'I' ? th.nodeI : th.nodeM;
         if (isWin) bg = th.nodeWin;
@@ -3033,53 +3120,71 @@ const A = (function() {
 
         ctx.beginPath(); ctx.arc(x, y, nodeR, 0, Math.PI * 2); ctx.fillStyle = bg; ctx.fill();
 
-        if (isWin) {
+        if (isWin && !isPhysicalBoard) {
             ctx.strokeStyle = th.winRing; ctx.lineWidth = 1.2;
             ctx.beginPath(); ctx.arc(x, y, nodeR-2, 0, Math.PI * 2); ctx.stroke();
+        } else if (isWin && isPhysicalBoard && !pc) {
+            ctx.beginPath(); ctx.arc(x, y, nodeR * 0.48, 0, Math.PI*2);
+            ctx.strokeStyle = ink; ctx.lineWidth = 1.5; ctx.stroke();
         }
 
         let st = th.nodeStroke, lw = 0.8;
-        if (isSel) { st = th.selStroke; lw = 2.2; }
-        if (isVictim) { st = th.mustStroke; lw = 2.5; }
-        if (isTgt && !ghostPl) { st = th.tgtStroke; lw = 1.8; }
-        if (ghostPl) { st = th.ghostStroke; lw = 2; }
-        if (isPlaceTgt) { st = th.placeStroke; lw = 1.8; }
+        if (isPhysicalBoard) {
+            st = ink; lw = 2.5;
+            if (isSel) { lw = 4.5; }
+            else if (isVictim) { st = '#c03010'; lw = 3.5; }
+            else if (isTgt && !ghostPl) { st = '#207050'; lw = 3; }
+        } else {
+            if (isSel) { st = th.selStroke; lw = 2.2; }
+            if (isVictim) { st = th.mustStroke; lw = 2.5; }
+            if (isTgt && !ghostPl) { st = th.tgtStroke; lw = 1.8; }
+            if (ghostPl) { st = th.ghostStroke; lw = 2; }
+            if (isPlaceTgt) { st = th.placeStroke; lw = 1.8; }
+        }
         ctx.strokeStyle = st; ctx.lineWidth = lw; ctx.beginPath(); ctx.arc(x, y, nodeR, 0, Math.PI * 2); ctx.stroke();
 
-        if (isTgt && !ghostPl && pc === 0) { ctx.fillStyle = th.tgtDot; ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill(); }
+        if (isTgt && !ghostPl && pc === 0) { 
+            ctx.fillStyle = isPhysicalBoard ? '#207050' : th.tgtDot; 
+            ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill(); 
+        }
         if (isPlaceTgt && pc === 0) { ctx.fillStyle = th.placeDot; ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill(); }
 
         if (ghostPl) {
-            ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI * 2);
+            ctx.beginPath(); ctx.arc(x, y, isPhysicalPiece ? nodeR-5 : 10, 0, Math.PI * 2);
             ctx.fillStyle = ghostPl === 1 ? th.ghost1 : th.ghost2; ctx.fill();
-            ctx.fillStyle = th.ghostArrow; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('→', x, y + 1);
+            ctx.fillStyle = isPhysicalPiece ? ink : th.ghostArrow; 
+            ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('→', x, y + 1);
             return;
         }
 
-        if (currentPieceStyle !== 'emoji') {
-            ctx.fillStyle = th.labelNode;
-            ctx.font = 'bold 10px sans-serif';
-            ctx.textAlign = 'center'; 
-            ctx.textBaseline = 'top';
-            ctx.fillText(id, x, y + 18);
-        }
+        ctx.fillStyle = th.labelNode;
+        ctx.font = 'bold 10px sans-serif';
+        ctx.textAlign = 'center'; 
+        ctx.textBaseline = 'top';
+        ctx.fillText(id, x, y + 18);
 
-        if (pc && currentPieceStyle !== 'emoji') {
-            const col = pc === 1 ? th.p1 : th.p2;
-             const hi = pc === 1 ? th.p1hi : th.p2hi;
-            ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
- 
-            if (currentPieceStyle === 'suns' && s.special && s.special[id]) {
+        if (pc) {
+            const col = pc === 1 ? (isPhysicalPiece ? '#e8700a' : th.p1) : (isPhysicalPiece ? '#3888cc' : th.p2);
+            const hi = pc === 1 ? th.p1hi : th.p2hi;
+            
+            if (isPhysicalPiece) {
+                const pr = nodeR - 4;
+                ctx.beginPath(); ctx.arc(x, y, pr, 0, Math.PI*2);
+                ctx.fillStyle = col; ctx.fill();
+                ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.stroke();
+                if (s.special && s.special[id]) {
+                    ctx.beginPath(); ctx.arc(x, y, pr * 0.45, 0, Math.PI*2);
+                    ctx.strokeStyle = ink; ctx.lineWidth = 1.5; ctx.stroke();
+                }
+            } else if (currentPieceStyle === 'emoji') {
+                drawEmojiPiece(ctx, x, y, pc === 1, s.special && s.special[id]);
+            } else if (currentPieceStyle === 'suns' && s.special && s.special[id]) {
                 drawBetaSun(ctx, x, y, col);
             } else {
+                ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
                 ctx.beginPath(); ctx.arc(x - 3, y - 3, 5, 0, Math.PI * 2); ctx.fillStyle = hi; ctx.fill();
+                if (currentPieceStyle !== 'suns' && s.special && s.special[id]) drawWavyGlobal(ctx, x, y, pc === 1 ? th.p1wave : th.p2wave);
             }
-        }
-
-        if (pc && currentPieceStyle === 'emoji') {
-            drawEmojiPiece(ctx, x, y, pc === 1, s.special && s.special[id]);
-        } else if (currentPieceStyle !== 'suns' && s.special && s.special[id] && pc) {
-            drawWavyGlobal(ctx, x, y, pc === 1 ? th.p1wave : th.p2wave);
         }
     }
 
