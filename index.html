@@ -677,7 +677,7 @@ const THEMES = {
         p1wave:'rgba(200,60,20,0.85)', p2wave:'rgba(20,80,180,0.85)', p1med:'rgba(192,72,40,0.85)', p2med:'rgba(29,111,165,0.85)',
         tgtDot:'rgba(29,158,117,0.65)', placeDot:'rgba(154,109,215,0.4)', ghost1:'rgba(192,72,40,0.35)', ghost2:'rgba(29,111,165,0.35)',
         labelText:'#444', labelSpecial:'#888', labelNode:'#444', labelPiece:'rgba(255,255,255,0.95)',
-        arrow:'rgba(240,180,0,0.8)', arrowFill:'rgba(240,180,0,0.9)', arrowRing:'rgba(240,180,0,0.5)',
+        arrow:'#f59e0b', arrowFill:'#f59e0b', arrowRing:'rgba(245,158,11,0.5)',
         lastTo:'rgba(154,109,215,0.7)', selStroke:'#c04828', mustStroke:'#e85d24', tgtStroke:'#1d9e75', ghostStroke:'#f0a500', placeStroke:'#9a6dd7', ghostArrow:'#f0a500',
     },
     dark: {
@@ -2534,7 +2534,7 @@ const G = (function() {
         if (lastMove.type === 'move' && lastMove.from !== 'riserva') {
             const [fx, fy] = pos(lastMove.from), [tx, ty] = pos(lastMove.to), ang = Math.atan2(ty - fy, tx - fx);
             const off = 14, ex = tx - off * Math.cos(ang), ey = ty - off * Math.sin(ang);
-            ctx.save(); ctx.strokeStyle = th.arrow; ctx.lineWidth = 2.5; ctx.setLineDash([4, 3]);
+            ctx.save(); ctx.strokeStyle = th.arrow; ctx.lineWidth = currentBoardStyle === 'classic' ? 4 : 2.5; ctx.setLineDash(currentBoardStyle === 'classic' ? [] : [4, 3]);
             ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(ex, ey); ctx.stroke(); ctx.setLineDash([]);
             ctx.fillStyle = th.arrowFill; ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex - 11 * Math.cos(ang - 0.38), ey - 11 * Math.sin(ang - 0.38)); ctx.lineTo(ex - 11 * Math.cos(ang + 0.38), ey - 11 * Math.sin(ang + 0.38)); ctx.closePath(); ctx.fill();
             ctx.strokeStyle = th.arrowRing; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(tx, ty, 16, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
@@ -2687,11 +2687,20 @@ const G = (function() {
             return;
         }
 
+        let lx = x, ly = y + 18;
+        if (isPhysicalBoard && id !== 'C') {
+            const ang = Math.atan2(y - CY, x - CX);
+            lx = x + 12 * Math.cos(ang);
+            ly = y + 12 * Math.sin(ang);
+            ctx.textBaseline = 'middle';
+        } else {
+            ctx.textBaseline = 'top';
+        }
+        
         ctx.fillStyle = th.labelNode;
         ctx.font = 'bold 10px sans-serif';
         ctx.textAlign = 'center'; 
-        ctx.textBaseline = 'top';
-        ctx.fillText(id, x, y + 18);
+        ctx.fillText(id, lx, ly);
 
         if (pc) {
             const col = pc === 1 ? (isPhysicalPiece ? '#e8700a' : th.p1) : (isPhysicalPiece ? '#3888cc' : th.p2);
@@ -3013,7 +3022,7 @@ const A = (function() {
         if (mv.type === 'move' && mv.from !== 'riserva') {
             const [fx, fy] = aPos(mv.from), [tx, ty] = aPos(mv.to), ang = Math.atan2(ty - fy, tx - fx);
             const off = 14, ex = tx - off * Math.cos(ang), ey = ty - off * Math.sin(ang);
-            ctx.save(); ctx.strokeStyle = th.arrow; ctx.lineWidth = 2.5; ctx.setLineDash([4, 3]);
+            ctx.save(); ctx.strokeStyle = th.arrow; ctx.lineWidth = currentBoardStyle === 'classic' ? 4 : 2.5; ctx.setLineDash(currentBoardStyle === 'classic' ? [] : [4, 3]);
             ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(ex, ey); ctx.stroke(); ctx.setLineDash([]);
             ctx.fillStyle = th.arrowFill; ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex - 11 * Math.cos(ang - 0.38), ey - 11 * Math.sin(ang - 0.38)); ctx.lineTo(ex - 11 * Math.cos(ang + 0.38), ey - 11 * Math.sin(ang + 0.38)); ctx.closePath(); ctx.fill();
             ctx.strokeStyle = th.arrowRing; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(tx, ty, 16, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
@@ -3161,11 +3170,20 @@ const A = (function() {
             return;
         }
 
+        let lx = x, ly = y + 18;
+        if (isPhysicalBoard && id !== 'C') {
+            const ang = Math.atan2(y - CY, x - CX);
+            lx = x + 12 * Math.cos(ang);
+            ly = y + 12 * Math.sin(ang);
+            ctx.textBaseline = 'middle';
+        } else {
+            ctx.textBaseline = 'top';
+        }
+        
         ctx.fillStyle = th.labelNode;
         ctx.font = 'bold 10px sans-serif';
         ctx.textAlign = 'center'; 
-        ctx.textBaseline = 'top';
-        ctx.fillText(id, x, y + 18);
+        ctx.fillText(id, lx, ly);
 
         if (pc) {
             const col = pc === 1 ? (isPhysicalPiece ? '#e8700a' : th.p1) : (isPhysicalPiece ? '#3888cc' : th.p2);
