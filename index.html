@@ -2691,17 +2691,27 @@ const G = (function() {
         let lx = x, ly = y + 18;
         ctx.textBaseline = 'top';
         
-        // Se è la scacchiera fisica (Gioiello), spingiamo le coordinate a raggiera verso l'esterno
         if (isPhysicalBoard && id !== 'C') {
             const ang = Math.atan2(y - CY, x - CX);
-            lx = x + 26 * Math.cos(ang); // 15px (raggio) + 11px (spazio extra)
-            ly = y + 26 * Math.sin(ang);
+            // Aggiungiamo 45 gradi (PI/4) per far cadere il testo in diagonale negli spazi vuoti
+            const offsetAng = ang + Math.PI / 4.5; 
+            lx = x + 23 * Math.cos(offsetAng); 
+            ly = y + 23 * Math.sin(offsetAng);
             ctx.textBaseline = 'middle';
         }
         
-        ctx.fillStyle = th.labelNode;
         ctx.font = 'bold 10px sans-serif';
         ctx.textAlign = 'center'; 
+        
+        // Disegna un contorno del colore di sfondo per garantire la leggibilità al 100%
+        if (isPhysicalBoard) {
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = th.cvBg;
+            ctx.lineJoin = 'round';
+            ctx.strokeText(id, lx, ly);
+        }
+        
+        ctx.fillStyle = th.labelNode;
         ctx.fillText(id, lx, ly);
 
         if (pc) {
@@ -3176,17 +3186,27 @@ const A = (function() {
         let lx = x, ly = y + 18;
         ctx.textBaseline = 'top';
         
-        // Se è la scacchiera fisica (Gioiello), spingiamo le coordinate a raggiera verso l'esterno
         if (isPhysicalBoard && id !== 'C') {
             const ang = Math.atan2(y - CY, x - CX);
-            lx = x + 26 * Math.cos(ang); // 15px (raggio) + 11px (spazio extra)
-            ly = y + 26 * Math.sin(ang);
+            // Aggiungiamo 45 gradi (PI/4) per far cadere il testo in diagonale negli spazi vuoti
+            const offsetAng = ang + Math.PI / 4.5; 
+            lx = x + 23 * Math.cos(offsetAng); 
+            ly = y + 23 * Math.sin(offsetAng);
             ctx.textBaseline = 'middle';
         }
         
-        ctx.fillStyle = th.labelNode;
         ctx.font = 'bold 10px sans-serif';
         ctx.textAlign = 'center'; 
+        
+        // Disegna un contorno del colore di sfondo per garantire la leggibilità al 100%
+        if (isPhysicalBoard) {
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = th.cvBg;
+            ctx.lineJoin = 'round';
+            ctx.strokeText(id, lx, ly);
+        }
+        
+        ctx.fillStyle = th.labelNode;
         ctx.fillText(id, lx, ly);
 
         if (pc) {
