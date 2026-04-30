@@ -699,7 +699,7 @@ const AI_SETTINGS = {
 // --- INITIALIZE THEMES AND SETTINGS ---
 (function(){
     try{const s=localStorage.getItem('ta_theme');if(s)setTheme(s);}catch(e){}
-    try{const p=localStorage.getItem('ta_pieces');if(p){currentPieceStyle=p;document.addEventListener('DOMContentLoaded',()=>{const sp=document.getElementById('sel-pieces');if(sp)sp.value=p;});}}catch(e){}
+    try{const p=localStorage.getItem('ta_pieces');if(p){const valid=['classic','watermelon'];currentPieceStyle=valid.includes(p)?p:'classic';document.addEventListener('DOMContentLoaded',()=>{const sp=document.getElementById('sel-pieces');if(sp)sp.value=currentPieceStyle;});}}catch(e){}
     try{const b=localStorage.getItem('ta_board');if(b){currentBoardStyle=b;document.addEventListener('DOMContentLoaded',()=>{const sb=document.getElementById('sel-board');if(sb)sb.value=b;});}}catch(e){}
 })();
 
