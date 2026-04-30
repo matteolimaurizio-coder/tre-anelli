@@ -762,89 +762,6 @@ function drawEmojiPiece(ctx, x, y, isPlayer1, isSpecial) {
     ctx.restore();
 }
 
-function drawWavyGlobal(ctx, x, y, color){
-    ctx.save();
-    const isDark = document.body.classList.contains('theme-dark');
-    const outlineCol = isDark ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.4)";
-    
-    const r = 14.5, waves = 8, amp = 2;
-    ctx.beginPath();
-    for(let i=0; i<=waves*10; i++){
-        const angle = (i/(waves*10)) * Math.PI*2;
-        const wave = r + amp * Math.sin(i/10 * Math.PI*2);
-        ctx.lineTo(x + wave * Math.cos(angle), y + wave * Math.sin(angle));
-    }
-    ctx.closePath();
-    
-    // Contorno spesso SOLO se la scacchiera è quella Classica (Gioiello)
-    if (currentBoardStyle === 'classic') {
-        ctx.strokeStyle = outlineCol;
-        ctx.lineWidth = 4.5;
-        ctx.stroke();
-    }
-    
-    // Colore vivo dell'onda in primo piano
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    
-    ctx.restore();
-}
-
-function drawBetaSun(ctx, x, y, mainCol) {
-    const isDark = document.body.classList.contains('theme-dark');
-    const outlineCol = isDark ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.5)";
-    
-    const numRays = 10;
-    const innerRadius = 9;
-    const outerRadius = 16;
-    
-    ctx.save();
-    ctx.beginPath();
-    for(let i = 0; i < numRays; i++){
-        const angle = (i * 360 / numRays) * Math.PI / 180;
-        const x1 = x + innerRadius * Math.cos(angle);
-        const y1 = y + innerRadius * Math.sin(angle);
-        const x2 = x + outerRadius * Math.cos(angle);
-        const y2 = y + outerRadius * Math.sin(angle);
-        
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-    }
-    ctx.lineCap = 'round';
-    
-    // Disegna il contorno scuro/chiaro sotto i raggi SOLO nel tema Classico
-    if (currentBoardStyle === 'classic') {
-        ctx.strokeStyle = outlineCol;
-        ctx.lineWidth = 5.5;
-        ctx.stroke();
-    }
-    
-    // Disegna i raggi colorati
-    ctx.strokeStyle = mainCol;
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
-    
-    // Corpo centrale della pedina
-    ctx.beginPath();
-    ctx.arc(x, y, 11, 0, Math.PI * 2);
-    ctx.fillStyle = mainCol;
-    ctx.fill();
-    
-    // Bordo di contrasto attorno al cerchio principale SOLO nel tema Classico
-    if (currentBoardStyle === 'classic') {
-        ctx.lineWidth = 1.5;
-        ctx.strokeStyle = outlineCol;
-        ctx.stroke();
-    }
-
-    // Riflesso luminoso
-    ctx.beginPath();
-    ctx.arc(x - 2, y - 2, 4, 0, Math.PI*2);
-    ctx.fillStyle = "rgba(255,255,255,0.35)";
-    ctx.fill();
-    ctx.restore();
-}
 
 // --- ANALYSIS AI FUNCTIONS ---
 function toggleAutoAnalysis() {
@@ -2680,7 +2597,10 @@ const G = (function() {
         if (isWin && !isPhysicalBoard) {
             ctx.strokeStyle = th.winRing; ctx.lineWidth = 1.2;
             ctx.beginPath(); ctx.arc(x, y, nodeR-2, 0, Math.PI * 2); ctx.stroke();
-        } 
+        } else if (isWin && isPhysicalBoard && !pc) {
+            ctx.beginPath(); ctx.arc(x, y, nodeR * 0.48, 0, Math.PI*2);
+            ctx.strokeStyle = ink; ctx.lineWidth = 1.5; ctx.stroke();
+        }
 
         if (window.medium && window.medium[id] && pc && currentBoardStyle !== 'nocenter') {
             ctx.save(); ctx.strokeStyle = pc === 1 ? th.p1med : th.p2med;
@@ -2720,18 +2640,17 @@ const G = (function() {
         let lx = x, ly = y + 18;
         ctx.textBaseline = 'top';
         
-        // Spingiamo le coordinate a raggiera perfettamente all'esterno
         if (isPhysicalBoard && id !== 'C') {
             const ang = Math.atan2(y - CY, x - CX);
-            lx = x + 25 * Math.cos(ang); 
-            ly = y + 25 * Math.sin(ang);
+            const offsetAng = ang + Math.PI / 4.5; 
+            lx = x + 23 * Math.cos(offsetAng); 
+            ly = y + 23 * Math.sin(offsetAng);
             ctx.textBaseline = 'middle';
         }
         
         ctx.font = 'bold 10px sans-serif';
         ctx.textAlign = 'center'; 
         
-        // Un contorno del colore di sfondo per la massima leggibilità
         if (isPhysicalBoard) {
             ctx.lineWidth = 3;
             ctx.strokeStyle = th.cvBg;
@@ -2744,32 +2663,25 @@ const G = (function() {
         ctx.restore();
 
         if (pc) {
-            const col = pc === 1 ? (isPhysicalPiece ? '#e8700a' : th.p1) : (isPhysicalPiece ? '#3888cc' : th.p2);
-            const hi = pc === 1 ? th.p1hi : th.p2hi;
-            
             if (isPhysicalPiece) {
+                const col = pc === 1 ? '#e8700a' : '#3888cc';
                 const pr = nodeR - 4;
                 ctx.beginPath(); ctx.arc(x, y, pr, 0, Math.PI*2);
                 ctx.fillStyle = col; ctx.fill();
                 ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.stroke();
+                
                 if (special[id]) {
-    const arm = pr * 0.42;
-    ctx.save(); ctx.strokeStyle = 'white'; ctx.lineWidth = 3; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(x - arm, y - arm); ctx.lineTo(x + arm, y + arm); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(x + arm, y - arm); ctx.lineTo(x - arm, y + arm); ctx.stroke();
-    ctx.restore();
-    }
-            } else if (currentPieceStyle === 'emoji') {
-                drawEmojiPiece(ctx, x, y, pc === 1, special[id]);
-            } else if (currentPieceStyle === 'suns' && special[id]) {
-                drawBetaSun(ctx, x, y, col);
+                    const arm = pr * 0.42;
+                    ctx.save(); ctx.strokeStyle = 'white'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+                    ctx.beginPath(); ctx.moveTo(x - arm, y - arm); ctx.lineTo(x + arm, y + arm); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(x + arm, y - arm); ctx.lineTo(x - arm, y + arm); ctx.stroke();
+                    ctx.restore();
+                }
             } else {
-                ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
-                ctx.beginPath(); ctx.arc(x - 3, y - 3, 5, 0, Math.PI * 2); ctx.fillStyle = hi; ctx.fill();
-                if (currentPieceStyle !== 'suns' && special[id]) drawWavyGlobal(ctx, x, y, pc === 1 ? th.p1wave : th.p2wave);
+                drawEmojiPiece(ctx, x, y, pc === 1, special[id]);
             }
         }
-    }
+    } 
 
     function draw() {
         if (!board) return;
@@ -3219,18 +3131,17 @@ const A = (function() {
         let lx = x, ly = y + 18;
         ctx.textBaseline = 'top';
         
-        // Spingiamo le coordinate a raggiera perfettamente all'esterno
         if (isPhysicalBoard && id !== 'C') {
             const ang = Math.atan2(y - CY, x - CX);
-            lx = x + 25 * Math.cos(ang); 
-            ly = y + 25 * Math.sin(ang);
+            const offsetAng = ang + Math.PI / 4.5; 
+            lx = x + 23 * Math.cos(offsetAng); 
+            ly = y + 23 * Math.sin(offsetAng);
             ctx.textBaseline = 'middle';
         }
         
         ctx.font = 'bold 10px sans-serif';
         ctx.textAlign = 'center'; 
         
-        // Un contorno del colore di sfondo per la massima leggibilità
         if (isPhysicalBoard) {
             ctx.lineWidth = 3;
             ctx.strokeStyle = th.cvBg;
@@ -3243,26 +3154,25 @@ const A = (function() {
         ctx.restore();
 
         if (pc) {
-            const col = pc === 1 ? (isPhysicalPiece ? '#e8700a' : th.p1) : (isPhysicalPiece ? '#3888cc' : th.p2);
-            const hi = pc === 1 ? th.p1hi : th.p2hi;
-            
             if (isPhysicalPiece) {
+                const col = pc === 1 ? '#e8700a' : '#3888cc';
                 const pr = nodeR - 4;
                 ctx.beginPath(); ctx.arc(x, y, pr, 0, Math.PI*2);
                 ctx.fillStyle = col; ctx.fill();
                 ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.stroke();
-                i    }
-            } else if (currentPieceStyle === 'emoji') {
-                drawEmojiPiece(ctx, x, y, pc === 1, s.special && s.special[id]);
-            } else if (currentPieceStyle === 'suns' && s.special && s.special[id]) {
-                drawBetaSun(ctx, x, y, col);
+                
+                if (s.special && s.special[id]) {
+                    const arm = pr * 0.42;
+                    ctx.save(); ctx.strokeStyle = 'white'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+                    ctx.beginPath(); ctx.moveTo(x - arm, y - arm); ctx.lineTo(x + arm, y + arm); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(x + arm, y - arm); ctx.lineTo(x - arm, y + arm); ctx.stroke();
+                    ctx.restore();
+                }
             } else {
-                ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
-                ctx.beginPath(); ctx.arc(x - 3, y - 3, 5, 0, Math.PI * 2); ctx.fillStyle = hi; ctx.fill();
-                if (currentPieceStyle !== 'suns' && s.special && s.special[id]) drawWavyGlobal(ctx, x, y, pc === 1 ? th.p1wave : th.p2wave);
+                drawEmojiPiece(ctx, x, y, pc === 1, s.special && s.special[id]);
             }
         }
-    }
+    } 
 
     function draw(){
       if (!curNode) return;
